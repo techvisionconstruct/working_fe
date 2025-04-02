@@ -7,7 +7,7 @@ import Link from "next/link";
 import { TemplateGridProps } from "@/types/templates";
 
 
-export default function TemplateGrid({ sortOption, searchQuery = "" }: TemplateGridProps) {
+export default function TemplateGridView({ sortOption, searchQuery = "" }: TemplateGridProps) {
 
   const filteredAndSortedTemplates = useMemo(() => {
     const filtered = searchQuery
