@@ -148,9 +148,9 @@ export function Sidenav() {
     const rect = targetElement.getBoundingClientRect();
     
     // Set the tooltip position to match the hovered item's position
-    // Adjust position to be slightly higher than center
+    // Adjust position to be higher than center - increased offset to fix alignment
     setTooltipPosition({ 
-      top: rect.top + (rect.height / 2) - 18, // Offset upward by 18px
+      top: rect.top + (rect.height / 2) - 24, // Increased offset from 18px to 24px
       item: item,
       windowHeight: window.innerHeight
     });
@@ -165,7 +165,7 @@ export function Sidenav() {
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2) - 4, // Offset upward by 4px
+        top: rect.top + (rect.height / 2) - 24, // Increased offset from 4px to 24px to match other tooltips
         item: "logo",
         windowHeight: window.innerHeight
       });
@@ -183,7 +183,7 @@ export function Sidenav() {
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2) - 4, // Offset upward by 4px
+        top: rect.top + (rect.height / 2) + 10, // Increased offset to match other tooltips
         item: "profile",
         windowHeight: window.innerHeight
       });
@@ -424,13 +424,15 @@ export function Sidenav() {
             exit={{ opacity: 0, x: -5, scale: 0.95 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Arrow positioning based on tooltip placement */}
-            <div 
-              className={cn(
-                "absolute w-2 h-2 bg-popover rotate-45",
-                isProfileTooltipNearBottom ? "-bottom-1 left-3" : "-left-1 top-1/2 -mt-1"
-              )} 
-            />
+            {/* Arrow pointing to the hovered item - Only show for non-profile items */}
+            {hoverItem !== "profile" && (
+              <div 
+                className={cn(
+                  "absolute w-2 h-2 bg-popover rotate-45",
+                  isProfileTooltipNearBottom ? "-bottom-1 left-3" : "-left-1 top-1/2 -mt-1"
+                )} 
+              />
+            )}
             
             {/* Different tooltip content based on hovered item */}
             <div className="relative z-10">
