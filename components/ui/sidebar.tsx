@@ -485,24 +485,43 @@ function NavItem({
     <Link href={href} onClick={onClick} className="block relative h-12">
       <motion.div
         className={cn(
-          "relative w-full h-full rounded-[30px]",
+          "relative w-full h-full",
+          !isCollapsed ? "rounded-[30px]" : "",
           "transition-all duration-300 ease-in-out",
-          isActive ? "font-bold bg-sidebar-accent" : ""
+          !isCollapsed && isActive ? "font-bold bg-sidebar-accent" : ""
         )}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
-        whileHover={{ 
+        whileHover={!isCollapsed ? { 
           backgroundColor: "var(--sidebar-accent)",
           transition: { duration: 0.2, ease: "easeInOut" }
-        }}
+        } : {}}
         animate={{
-          backgroundColor: isActive ? "var(--sidebar-accent)" : "transparent",
+          backgroundColor: !isCollapsed && isActive ? "var(--sidebar-accent)" : "transparent",
         }}
         transition={{
           duration: 0.2,
           backgroundColor: { duration: 0.15 }
         }}
       >
+        {/* Circle background for collapsed state when active or hovered */}
+        {isCollapsed && (isActive || isHovered) && (
+          <motion.div
+            className="absolute rounded-full bg-sidebar-accent"
+            style={{
+              left: "50%",
+              top: "50%",
+              width: "40px",
+              height: "40px",
+              transform: "translate(-50%, -50%)"
+            }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      
         {/* Icon with dynamic positioning based on sidebar state */}
         <div 
           className="absolute top-1/2 z-10 transition-all duration-400 ease-in-out"
@@ -538,7 +557,7 @@ function NavItem({
           
           {isActive && (
             <motion.div 
-              className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-sidebar-primary"
+              className="absolute -top-1.5 -right-1.5 w-2 h-2 rounded-full bg-sidebar-primary"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
