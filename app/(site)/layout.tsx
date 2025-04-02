@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/assets/style/globals.css";
-import { Sidenav } from "@/components/ui/sidebar";
+import SidenavWrapper from "@/components/ui/sidenav-wrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +30,7 @@ export default function SiteLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="flex h-screen">
-          <Sidenav />
+          <SidenavWrapper />
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </body>

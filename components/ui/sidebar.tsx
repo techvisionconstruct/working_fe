@@ -76,24 +76,36 @@ const navItems = [
   }
 ];
 
+// Constants for sidebar dimensions
+const SIDEBAR_EXPANDED_WIDTH = "18rem";
+const SIDEBAR_COLLAPSED_WIDTH = "6.5rem"; // Increased from 5rem to 6.5rem for better centering
+const ICON_LEFT_POSITION = "1.75rem"; // Fixed position in expanded state
+
 export function Sidenav() {
   const pathname = usePathname();
   const [activeItem, setActiveItem] = useState("");
   const [hoverItem, setHoverItem] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  // Fixed type issue by making item string | null instead of just null
+  
+  // Initialize tooltipPosition without any window references
   const [tooltipPosition, setTooltipPosition] = useState({ 
     top: 0, 
     item: null as string | null,
-    // Store window height to check if tooltip is near bottom
-    windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0 
+    windowHeight: 0 
   });
   
   // Ref for the nav container to get positions
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Update window height on resize
+  // Initialize client-side values after component mounts
   useEffect(() => {
+    // Update window height only after component has mounted
+    setTooltipPosition(prev => ({
+      ...prev,
+      windowHeight: window.innerHeight
+    }));
+    
+    // Handle window resize
     const handleResize = () => {
       setTooltipPosition(prev => ({
         ...prev,
@@ -107,6 +119,8 @@ export function Sidenav() {
 
   // Set active item based on current route
   useEffect(() => {
+    if (!pathname) return;
+    
     const currentPath = pathname || "/dashboard";
     
     // Find the active item from all sections
@@ -116,64 +130,22 @@ export function Sidenav() {
     setActiveItem(active);
   }, [pathname]);
 
-  // Animation variants for sidebar container with morphing effect
+  // Animation variants for sidebar container - SMOOTH animation, not bouncy
   const sidebarVariants = {
     expanded: { 
-      width: "16rem", // 256px
+      width: SIDEBAR_EXPANDED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }, // Bouncy easing
+        width: { duration: 0.4, ease: "easeInOut" }, // Smooth easing, not bouncy
         borderRadius: { duration: 0.3 }
       }
     },
     collapsed: { 
-      width: "5rem", // 80px
+      width: SIDEBAR_COLLAPSED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }, // Bouncy easing
-        borderRadius: { duration: 0.3, delay: 0.1 }
-      }
-    }
-  };
-
-  // Logo container variants
-  const logoContainerVariants = {
-    expanded: { 
-      justifyContent: "flex-start",
-      transition: { duration: 0.3, ease: "easeOut" }
-    },
-    collapsed: { 
-      justifyContent: "center",
-      transition: { duration: 0.3, ease: "easeOut" }
-    }
-  };
-
-  // Improved text animation variants to prevent clipping
-  const textVariants = {
-    expanded: { 
-      opacity: 1, 
-      width: "auto",
-      height: "auto",
-      marginLeft: "4px",
-      display: "flex",
-      flexDirection: "column" as const,
-      transition: { 
-        opacity: { duration: 0.3, delay: 0.1 },
-        width: { duration: 0.3 },
-        height: { duration: 0.3 }
-      }
-    },
-    collapsed: { 
-      opacity: 0,
-      width: 0,
-      height: 0,
-      marginLeft: 0,
-      display: "flex",
-      flexDirection: "column" as const,
-      transition: { 
-        opacity: { duration: 0.2 },
-        width: { duration: 0.3, delay: 0.05 },
-        height: { duration: 0.3, delay: 0.05 }
+        width: { duration: 0.4, ease: "easeInOut" }, // Smooth easing, not bouncy
+        borderRadius: { duration: 0.3 }
       }
     }
   };
@@ -190,7 +162,7 @@ export function Sidenav() {
     setTooltipPosition({ 
       top: rect.top + (rect.height / 2),
       item: item,
-      windowHeight: window.innerHeight
+      windowHeight: tooltipPosition.windowHeight
     });
     setHoverItem(item);
   };
@@ -205,7 +177,7 @@ export function Sidenav() {
       setTooltipPosition({ 
         top: rect.top + (rect.height / 2),
         item: "logo",
-        windowHeight: window.innerHeight
+        windowHeight: tooltipPosition.windowHeight
       });
       setHoverItem("logo");
     } else {
@@ -223,7 +195,7 @@ export function Sidenav() {
       setTooltipPosition({ 
         top: rect.top + (rect.height / 2),
         item: "profile",
-        windowHeight: window.innerHeight
+        windowHeight: tooltipPosition.windowHeight
       });
       setHoverItem("profile");
     } else {
@@ -236,6 +208,16 @@ export function Sidenav() {
     hoverItem === "profile" && 
     tooltipPosition.top > tooltipPosition.windowHeight - 100; // 100px threshold
 
+  // Calculate icon position based on sidebar state
+  const getIconPosition = () => {
+    return isCollapsed ? "50%" : ICON_LEFT_POSITION;
+  };
+
+  // Calculate transform for icons based on sidebar state
+  const getIconTransform = () => {
+    return isCollapsed ? "translateX(-50%) translateY(-50%)" : "translateY(-50%)";
+  };
+
   return (
     <div className="relative h-screen" ref={navRef}>
       <motion.div 
@@ -244,49 +226,51 @@ export function Sidenav() {
         initial="expanded"
         animate={isCollapsed ? "collapsed" : "expanded"}
       >
-        {/* Logo and brand section with fixed layout */}
-        <motion.div 
-          className="flex items-center mb-12 px-2"
-          variants={logoContainerVariants}
-          initial="expanded"
-          animate={isCollapsed ? "collapsed" : "expanded"}
-        >
+        {/* Logo section with centered logo */}
+        <div className="h-20 mb-12 relative">
+          {/* Logo with dynamic positioning */}
           <div 
-            className="flex-shrink-0"
+            className="absolute z-20 transition-all duration-400 ease-in-out"
+            style={{
+              left: getIconPosition(),
+              top: "50%",
+              transform: getIconTransform()
+            }}
             onMouseEnter={(e) => handleLogoHover(true, e)}
             onMouseLeave={() => handleLogoHover(false)}
           >
-            <motion.div
-              animate={{
-                scale: isCollapsed ? 0.8 : 1
-              }}
-              transition={{
-                scale: { duration: 0.3 }
-              }}
-            >
-              <Image 
-                src="/icons/logo.svg" 
-                alt="Projex Logo" 
-                width={56} 
-                height={56} 
-                className="object-contain"
-              />
-            </motion.div>
+            <Image 
+              src="/icons/logo.svg" 
+              alt="Projex Logo" 
+              width={56} 
+              height={56} 
+              className="object-contain"
+            />
           </div>
           
-          {/* Fixed SIMPLE PROJEX layout with adjusted spacing */}
+          {/* Fixed SIMPLE PROJEX layout */}
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.div 
-                className="flex flex-col overflow-visible"
-                variants={textVariants}
-                initial={false}
-                animate="expanded"
-                exit="collapsed"
+                className="absolute top-1/2 -translate-y-1/2 overflow-visible"
                 style={{ 
+                  left: "calc(" + ICON_LEFT_POSITION + " + 64px)",
                   willChange: "transform, opacity",
-                  transformOrigin: "left",
-                  minWidth: "120px" // Ensures enough space for the text
+                  transformOrigin: "left"
+                }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  transition: { 
+                    opacity: { duration: 0.3, delay: 0.1 },
+                    x: { duration: 0.3, delay: 0.1 }
+                  }
+                }}
+                exit={{ 
+                  opacity: 0, 
+                  x: -10,
+                  transition: { duration: 0.2, ease: "easeInOut" } 
                 }}
               >
                 <div 
@@ -296,7 +280,7 @@ export function Sidenav() {
                     letterSpacing: "0",
                     lineHeight: 0.9
                   }} 
-                  className="text-muted-foreground uppercase tracking-wide mb-0.5" // Added a slight spacing
+                  className="text-muted-foreground uppercase tracking-wide mb-0.5"
                 >
                   SIMPLE
                 </div>
@@ -314,7 +298,7 @@ export function Sidenav() {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
         
         {/* Navigation items by section */}
         <nav className="flex-1 flex flex-col px-2 overflow-y-auto">
@@ -344,6 +328,8 @@ export function Sidenav() {
                   onHover={(e) => handleItemHover(item.label, e)}
                   onLeave={() => setHoverItem(null)}
                   onClick={() => setActiveItem(item.label)}
+                  iconPosition={getIconPosition()}
+                  iconTransform={getIconTransform()}
                 />
               ))}
               {/* Add divider after sections (except the last one) */}
@@ -359,62 +345,59 @@ export function Sidenav() {
           ))}
         </nav>
         
-        {/* User profile section - Fixed alignment when collapsed */}
-        <motion.div 
-          className="mt-auto pt-4 border-t border-sidebar-border px-2"
-          variants={logoContainerVariants}
-          initial="expanded"
-          animate={isCollapsed ? "collapsed" : "expanded"}
-        >
-          <motion.div 
-            className={cn(
-              "flex items-center",
-              isCollapsed ? "justify-center" : ""
-            )}
-            whileHover={{ x: isCollapsed ? 0 : 2 }}
-            transition={{ duration: 0.2 }}
+        {/* User profile section with absolutely positioned avatar */}
+        <div className="h-16 mt-auto pt-4 border-t border-sidebar-border relative">
+          {/* Avatar with dynamic positioning */}
+          <div 
+            className="absolute z-20 transition-all duration-400 ease-in-out"
+            style={{
+              left: getIconPosition(),
+              top: "50%",
+              transform: getIconTransform()
+            }}
+            onMouseEnter={(e) => handleProfileHover(true, e)}
+            onMouseLeave={() => handleProfileHover(false)}
           >
-            <div 
-              className="relative"
-              onMouseEnter={(e) => handleProfileHover(true, e)}
-              onMouseLeave={() => handleProfileHover(false)}
-            >
-              <motion.div
-                animate={{
-                  scale: isCollapsed ? 0.9 : 1,
-                }}
-                transition={{ duration: 0.3 }}
-              >
-                <Avatar className={cn("ring-2 ring-sidebar-ring/20", isCollapsed ? "h-8 w-8" : "h-9 w-9")}>
-                  <AvatarImage src="https://github.com/Rejhinald.png" alt="User" />
-                  <AvatarFallback>RJ</AvatarFallback>
-                </Avatar>
-              </motion.div>
-            </div>
+            <Avatar className="ring-2 ring-sidebar-ring/20 h-9 w-9 bg-sidebar-accent">
+              <AvatarFallback className="font-medium text-sidebar-foreground">AD</AvatarFallback>
+            </Avatar>
+          </div>
             
-            <AnimatePresence mode="wait">
-              {!isCollapsed && (
-                <motion.div 
-                  style={{ 
-                    fontFamily: "'Open Sans', sans-serif", 
-                    willChange: "transform, opacity",
-                    minWidth: "80px" // Ensures enough space for the text
-                  }}
-                  className="flex flex-col justify-center overflow-visible ml-3"
-                  variants={textVariants}
-                  initial={false}
-                  animate="expanded"
-                  exit="collapsed"
-                >
-                  <div className="font-medium text-sm text-sidebar-foreground">Rejhinald</div>
-                  <div className="text-xs text-muted-foreground">
-                    Admin
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </motion.div>
+          {/* Profile text alignment - keeping user's preferred styling */}
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.div 
+                className="absolute flex flex-col justify-center"
+                style={{ 
+                  left: "calc(" + ICON_LEFT_POSITION + " + 48px)",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontFamily: "'Open Sans', sans-serif",
+                  willChange: "transform, opacity",
+                }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  transition: { 
+                    opacity: { duration: 0.3, delay: 0.1 },
+                    x: { duration: 0.3, delay: 0.1 }
+                  }
+                }}
+                exit={{ 
+                  opacity: 0, 
+                  x: -10,
+                  transition: { duration: 0.2, ease: "easeInOut" } 
+                }}
+              >
+                <div className="font-medium text-sm text-sidebar-foreground -mt-5">Admin</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  System
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
 
       {/* Toggle button - Properly positioned at the middle right edge */}
@@ -441,7 +424,7 @@ export function Sidenav() {
           <motion.div
             className="fixed z-[100] px-3 py-1.5 bg-popover text-popover-foreground rounded-md shadow-md whitespace-nowrap"
             style={{ 
-              left: 'calc(5rem + 8px)', // Position to the right of collapsed sidebar
+              left: `calc(${SIDEBAR_COLLAPSED_WIDTH} + 8px)`, // Position to the right of collapsed sidebar
               // For profile near bottom, position tooltip above instead of centered
               top: isProfileTooltipNearBottom ? tooltipPosition.top - 40 : tooltipPosition.top,
               transform: isProfileTooltipNearBottom ? 'translateY(-100%)' : 'translateY(-50%)',
@@ -467,14 +450,13 @@ export function Sidenav() {
               
               {hoverItem === "profile" && (
                 <>
-                  <div className="font-medium">Rejhinald</div>
-                  <div className="text-xs text-muted-foreground">Admin</div>
+                  <div className="font-medium">Admin</div>
+                  <div className="text-xs text-muted-foreground">System</div>
                 </>
               )}
               
               {hoverItem !== "logo" && hoverItem !== "profile" && (
                 <span className="font-medium">{hoverItem}</span>
-                // Removed the circle indicator here
               )}
             </div>
           </motion.div>
@@ -484,7 +466,7 @@ export function Sidenav() {
   );
 }
 
-// Navigation item component with enhanced tooltip and morphing animations
+// Navigation item component with dynamic positioning for icons
 function NavItem({ 
   icon: Icon, 
   label, 
@@ -494,7 +476,9 @@ function NavItem({
   isCollapsed,
   onHover,
   onLeave,
-  onClick 
+  onClick,
+  iconPosition,
+  iconTransform
 }: { 
   icon: React.ElementType; 
   label: string; 
@@ -505,20 +489,20 @@ function NavItem({
   onHover: (e: React.MouseEvent) => void;
   onLeave: () => void;
   onClick: () => void;
+  iconPosition: string;
+  iconTransform: string;
 }) {
   return (
-    <Link href={href} onClick={onClick} className="block relative">
+    <Link href={href} onClick={onClick} className="block relative h-12">
       <motion.div
         className={cn(
-          "flex items-center gap-3 py-2.5 rounded-[30px] relative",
+          "relative w-full h-full rounded-[30px]",
           "transition-all duration-300 ease-in-out",
-          isCollapsed ? "justify-center px-2" : "px-3",
           isActive ? "font-bold bg-sidebar-accent" : ""
         )}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
         whileHover={{ 
-          scale: 1.02,
           backgroundColor: "var(--sidebar-accent)",
           transition: { duration: 0.2, ease: "easeInOut" }
         }}
@@ -530,8 +514,14 @@ function NavItem({
           backgroundColor: { duration: 0.15 }
         }}
       >
-        {/* Fixed icon container with persisted rendering to prevent flickering */}
-        <div className="relative w-6 h-6 flex items-center justify-center">
+        {/* Icon with dynamic positioning based on sidebar state */}
+        <div 
+          className="absolute top-1/2 z-10 transition-all duration-400 ease-in-out"
+          style={{ 
+            left: iconPosition,
+            transform: iconTransform
+          }}
+        >
           <motion.div
             initial={false}
             animate={{ 
@@ -571,47 +561,38 @@ function NavItem({
           )}
         </div>
         
+        {/* Label absolutely positioned for clean animation */}
         <AnimatePresence mode="wait">
           {!isCollapsed && (
-            <motion.div
-              className="overflow-hidden"
-              style={{ minWidth: "100px" }}
-              initial={false}
+            <motion.div 
+              className="absolute top-1/2 -translate-y-1/2"
+              style={{ 
+                left: "calc(" + ICON_LEFT_POSITION + " + 40px)",
+                fontFamily: "'Open Sans', sans-serif", 
+                fontSize: "16px",
+              }}
+              initial={{ opacity: 0, x: -10 }}
               animate={{ 
-                width: "auto", 
-                opacity: 1,
-                transition: { duration: 0.3 }
+                opacity: 1, 
+                x: 0,
+                transition: { 
+                  opacity: { duration: 0.3, delay: 0.1 },
+                  x: { duration: 0.3, delay: 0.1 },
+                  ease: "easeInOut"
+                }
               }}
               exit={{ 
-                width: 0, 
-                opacity: 0,
-                transition: { duration: 0.3 }
+                opacity: 0, 
+                x: -10,
+                transition: { duration: 0.2, ease: "easeInOut" } 
               }}
             >
-              <motion.span 
-                style={{ 
-                  fontFamily: "'Open Sans', sans-serif", 
-                  fontSize: "16px",
-                  willChange: "transform, opacity",
-                  display: "block",
-                  whiteSpace: "nowrap"
-                }}
-                className={cn(
-                  "transition-all duration-300",
-                  isActive ? "text-sidebar-foreground" : "text-muted-foreground"
-                )}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  fontWeight: isActive ? 600 : 400
-                }}
-                transition={{ 
-                  duration: 0.2,
-                  opacity: { duration: 0.2 }
-                }}
-              >
+              <span className={cn(
+                "whitespace-nowrap",
+                isActive ? "text-sidebar-foreground font-semibold" : "text-muted-foreground"
+              )}>
                 {label}
-              </motion.span>
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
