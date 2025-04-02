@@ -1,0 +1,64 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/shared/tabs";
+import { SortByComponent } from "@/components/ui/templates/sort-by";
+import { Button } from "@/components/shared/button";
+import SearchComponent from "@/components/ui/templates/search";
+import TemplateGrid from "@/components/ui/templates/grid-view";
+import { SortOption } from "@/types/sort";
+
+export default function TemplatePage() {
+  const [sortOption, setSortOption] = useState<SortOption>({
+    value: "date-descending",
+    label: "Date (Newest First)",
+  });
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const handleSortChange = (newSortOption: SortOption) => {
+    setSortOption(newSortOption);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-bold">Templates</h1>
+          <p>Manage and track client templates.</p>
+        </div>
+        <Button className="uppercase font-bold">New Template</Button>
+      </div>
+      <Tabs defaultValue="grid">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <SearchComponent
+              onChange={handleSearchChange}
+              value={searchQuery}
+            />
+            <SortByComponent
+              onChange={handleSortChange}
+              initialValue={sortOption.value}
+            />
+          </div>
+          <TabsList>
+            <TabsTrigger value="grid">Grid View</TabsTrigger>
+            <TabsTrigger value="list">List View</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="grid">
+          <TemplateGrid sortOption={sortOption} searchQuery={searchQuery} />
+        </TabsContent>
+        <TabsContent value="list"></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
