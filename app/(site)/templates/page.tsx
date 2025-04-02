@@ -10,8 +10,8 @@ import {
 import { SortByComponent } from "@/components/ui/templates/sort-by";
 import { Button } from "@/components/shared/button";
 import SearchComponent from "@/components/ui/templates/search";
-import TemplateGrid from "@/components/ui/templates/grid-view";
 import { SortOption } from "@/types/sort";
+import TemplateGridView from "@/components/ui/templates/template-grid-view";
 
 export default function TemplatePage() {
   const [sortOption, setSortOption] = useState<SortOption>({
@@ -55,7 +55,7 @@ export default function TemplatePage() {
           </TabsList>
         </div>
         <TabsContent value="grid">
-          <TemplateGrid sortOption={sortOption} searchQuery={searchQuery} />
+          <TemplateGridView sortOption={sortOption} searchQuery={searchQuery} />
         </TabsContent>
         <TabsContent value="list"></TabsContent>
       </Tabs>
