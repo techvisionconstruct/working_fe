@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   Tabs,
@@ -7,11 +10,7 @@ import {
 } from "@/components/shared/tabs";
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/shared/card";
 import {
   Table,
@@ -23,12 +22,36 @@ import {
 } from "@/components/shared/table";
 import { proposals } from "@/data/proposals";
 import { Badge } from "@/components/shared/badge";
-import { SortByComponent } from "@/components/ui/proposals/sort-by";
+import { SortByComponent, SortOption } from "@/components/ui/proposals/sort-by";
 import { Button } from "@/components/shared/button";
 import SearchComponent from "@/components/ui/proposals/search";
 import Link from "next/link";
 
 export default function ProposalPage() {
+  const [sortOption, setSortOption] = useState<SortOption>({
+    value: "name-ascending",
+    label: "Name (A-Z)",
+  });
+  
+  const sortedProposals = useMemo(() => {
+    return [...proposals].sort((a, b) => {
+      if (sortOption.value === "name-ascending") {
+        return a.title.localeCompare(b.title);
+      } else if (sortOption.value === "name-descending") {
+        return b.title.localeCompare(a.title);
+      } else if (sortOption.value === "date-ascending") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortOption.value === "date-descending") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return 0;
+    });
+  }, [sortOption]);
+
+  const handleSortChange = (newSortOption: SortOption) => {
+    setSortOption(newSortOption);
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
@@ -43,7 +66,10 @@ export default function ProposalPage() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3 flex-wrap">
             <SearchComponent />
-            <SortByComponent />
+            <SortByComponent 
+              onChange={handleSortChange} 
+              initialValue={sortOption.value} 
+            />
           </div>
 
           <TabsList>
@@ -54,12 +80,12 @@ export default function ProposalPage() {
 
         <TabsContent value="grid" className="">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {proposals.map((proposal) => (
+            {sortedProposals.map((proposal) => (
               <Card
                 key={proposal.id}
                 className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
               >
-                <div className="w-full h-32 relative -mt-20">
+                <div className="w-full h-44 relative -mt-20">
                   <Image
                     src={proposal.imageUrl || "/placeholder.svg"}
                     alt={proposal.title}
@@ -75,7 +101,7 @@ export default function ProposalPage() {
 
                   <div className="flex justify-between items-center mt-4">
                     <div className="flex flex-wrap gap-2 max-w-full">
-                      {proposal.categories.map((category) => (
+                      {proposal.categories.slice(0, 4).map((category) => (
                         <Badge
                           key={category}
                           variant="outline"
@@ -84,6 +110,14 @@ export default function ProposalPage() {
                           {category}
                         </Badge>
                       ))}
+                      {proposal.categories.length > 4 && (
+                        <Badge
+                          variant="outline"
+                          className="font-bold uppercase text-xs"
+                        >
+                          +{proposal.categories.length - 4} more
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -135,7 +169,7 @@ export default function ProposalPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {proposals.map((proposal) => (
+                {sortedProposals.map((proposal) => (
                   <TableRow key={proposal.id}>
                     <TableCell className="font-medium">
                       {proposal.title}
