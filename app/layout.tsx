@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
 import "@/assets/style/globals.css";
-import { Sidenav } from "@/components/ui/sidebar";
 
+// Define all your fonts in the root layout
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Add the DM Sans and Open Sans fonts for the Sidenav
+// Add these if needed for the sidebar
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
@@ -36,11 +36,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Use the array join method for consistent class name generation
+  const bodyClasses = [
+    geistSans.variable, 
+    geistMono.variable, 
+    dmSans.variable, 
+    openSans.variable, 
+    "antialiased"
+  ].join(" ");
+  
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${openSans.variable} antialiased`}
-      >
+      <body className={bodyClasses}>
         {children}
       </body>
     </html>

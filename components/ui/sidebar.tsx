@@ -86,26 +86,17 @@ export function Sidenav() {
   const [activeItem, setActiveItem] = useState("");
   const [hoverItem, setHoverItem] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // Initialize tooltipPosition without any window references
   const [tooltipPosition, setTooltipPosition] = useState({ 
     top: 0, 
     item: null as string | null,
-    windowHeight: 0 
+    windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0 
   });
   
   // Ref for the nav container to get positions
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Initialize client-side values after component mounts
+  // Update window height on resize
   useEffect(() => {
-    // Update window height only after component has mounted
-    setTooltipPosition(prev => ({
-      ...prev,
-      windowHeight: window.innerHeight
-    }));
-    
-    // Handle window resize
     const handleResize = () => {
       setTooltipPosition(prev => ({
         ...prev,
@@ -119,8 +110,6 @@ export function Sidenav() {
 
   // Set active item based on current route
   useEffect(() => {
-    if (!pathname) return;
-    
     const currentPath = pathname || "/dashboard";
     
     // Find the active item from all sections
@@ -162,7 +151,7 @@ export function Sidenav() {
     setTooltipPosition({ 
       top: rect.top + (rect.height / 2),
       item: item,
-      windowHeight: tooltipPosition.windowHeight
+      windowHeight: window.innerHeight
     });
     setHoverItem(item);
   };
@@ -177,7 +166,7 @@ export function Sidenav() {
       setTooltipPosition({ 
         top: rect.top + (rect.height / 2),
         item: "logo",
-        windowHeight: tooltipPosition.windowHeight
+        windowHeight: window.innerHeight
       });
       setHoverItem("logo");
     } else {
@@ -195,7 +184,7 @@ export function Sidenav() {
       setTooltipPosition({ 
         top: rect.top + (rect.height / 2),
         item: "profile",
-        windowHeight: tooltipPosition.windowHeight
+        windowHeight: window.innerHeight
       });
       setHoverItem("profile");
     } else {
