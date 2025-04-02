@@ -15,21 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 // Add the DM Sans and Open Sans fonts for the Sidenav
-const dmSans = DM_Sans({ 
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
 });
 
 const openSans = Open_Sans({
-  subsets: ['latin'],
-  variable: '--font-open-sans',
+  subsets: ["latin"],
+  variable: "--font-open-sans",
 });
 
 export const metadata: Metadata = {
   title: "Simple Projex",
   description:
     "A partner-specific web application focused on streamlining the creation of proposals and contracts through a template-based system.",
-}
+};
 
 export default function RootLayout({
   children,
@@ -41,12 +41,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${openSans.variable} antialiased`}
       >
-        <div className="flex h-screen">
-          <Sidenav />
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
-        </div>
+        {children}
       </body>
     </html>
   );
