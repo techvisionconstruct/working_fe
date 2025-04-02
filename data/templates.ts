@@ -1,7 +1,7 @@
 export const templates = [
   {
     id: "1",
-    title: "Full House Remodel Proposal",
+    title: "Full House Remodel Template",
     description:
       "Complete overhaul of the interior and exterior to enhance aesthetics and functionality. \nThe renovation includes new flooring, upgraded plumbing, and modern electrical systems. \nSmart home integrations and energy-efficient materials will be incorporated.",
     categories: [
@@ -54,8 +54,3 @@ export const templates = [
   },
 ];
 
-// "Framing",
-// "Flooring",
-// "Plumbing",
-// "Electrical",
-// "Interior Design",
