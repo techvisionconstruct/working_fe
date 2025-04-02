@@ -8,6 +8,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/shared/tabs";
+import { ScrollArea } from "@/components/shared/scroll-area";
 import { SortByComponent } from "@/components/ui/proposals/sort-by";
 import { Button } from "@/components/shared/button";
 import SearchComponent from "@/components/ui/proposals/search";
@@ -57,10 +58,14 @@ export default function ProposalPage() {
           </TabsList>
         </div>
         <TabsContent value="grid" className="">
-          <ProposalGridView sortOption={sortOption} searchQuery={searchQuery} />
+          <ScrollArea className="h-[calc(100vh-210px)]">
+            <ProposalGridView sortOption={sortOption} searchQuery={searchQuery} />
+          </ScrollArea>
         </TabsContent>
         <TabsContent value="list">
-          <ProposalListView sortOption={sortOption} searchQuery={searchQuery} />
+          <ScrollArea className="h-[calc(100vh-210px)]">
+            <ProposalListView sortOption={sortOption} searchQuery={searchQuery} />
+          </ScrollArea>
         </TabsContent>
       </Tabs>
     </div>
