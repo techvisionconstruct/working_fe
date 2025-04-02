@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/shared/card";
 import { Badge } from "@/components/shared/badge";
 import Link from "next/link";
 import { ProposalsGridProps } from "@/types/proposals";
 import { proposals } from "@/data/proposals";
+import { AnimatedCard } from "./animations/proposal-grid-view-animations";
 
 export default function ProposalGridView({ sortOption, searchQuery = "" }: ProposalsGridProps) {
   const filteredAndSortedProposals = useMemo(() => {
@@ -36,19 +36,8 @@ export default function ProposalGridView({ sortOption, searchQuery = "" }: Propo
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {filteredAndSortedProposals.length > 0 ? (
-        filteredAndSortedProposals.map((proposal) => (
-          <motion.div 
-            key={proposal.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, margin: "-50px" }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 25,
-              duration: 0.4
-            }}
-          >
+        filteredAndSortedProposals.map((proposal, index) => (
+          <AnimatedCard key={proposal.id} index={index}>
             <Card
               className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
             >
@@ -110,7 +99,7 @@ export default function ProposalGridView({ sortOption, searchQuery = "" }: Propo
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </AnimatedCard>
         ))
       ) : (
         <div className="col-span-3 py-8 text-center">
