@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
 import "@/assets/style/globals.css";
 
-// Define all your fonts in the root layout
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,7 +13,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Add these if needed for the sidebar
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
@@ -36,7 +34,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Use the array join method for consistent class name generation
   const bodyClasses = [
     geistSans.variable, 
     geistMono.variable, 
