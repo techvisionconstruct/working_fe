@@ -148,8 +148,9 @@ export function Sidenav() {
     const rect = targetElement.getBoundingClientRect();
     
     // Set the tooltip position to match the hovered item's position
+    // Adjust position to be slightly higher than center
     setTooltipPosition({ 
-      top: rect.top + (rect.height / 2),
+      top: rect.top + (rect.height / 2) - 18, // Offset upward by 18px
       item: item,
       windowHeight: window.innerHeight
     });
@@ -164,7 +165,7 @@ export function Sidenav() {
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2),
+        top: rect.top + (rect.height / 2) - 4, // Offset upward by 4px
         item: "logo",
         windowHeight: window.innerHeight
       });
@@ -182,7 +183,7 @@ export function Sidenav() {
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2),
+        top: rect.top + (rect.height / 2) - 4, // Offset upward by 4px
         item: "profile",
         windowHeight: window.innerHeight
       });
@@ -348,7 +349,7 @@ export function Sidenav() {
             onMouseLeave={() => handleProfileHover(false)}
           >
             <Avatar className="ring-2 ring-sidebar-ring/20 h-9 w-9 bg-sidebar-accent">
-              <AvatarFallback className="font-medium text-sidebar-foreground">AD</AvatarFallback>
+              <AvatarFallback className="font-medium text-sidebar-foreground">Ad</AvatarFallback>
             </Avatar>
           </div>
             
@@ -481,21 +482,40 @@ function NavItem({
   iconPosition: string;
   iconTransform: string;
 }) {
+  // Local hover state to ensure we can track hover independently in each state
+  const [isLocalHover, setIsLocalHover] = useState(false);
+  
+  // Handle mouse enter with both parent and local hover states
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    setIsLocalHover(true);
+    onHover(e);
+  };
+  
+  // Handle mouse leave with both parent and local hover states
+  const handleMouseLeave = () => {
+    setIsLocalHover(false);
+    onLeave();
+  };
+
   return (
     <Link href={href} onClick={onClick} className="block relative h-12">
       <motion.div
         className={cn(
           "relative w-full h-full",
-          !isCollapsed ? "rounded-[30px]" : "",
+          // Only apply rounded corners to nav items in expanded state
+          !isCollapsed && "rounded-[30px]",
           "transition-all duration-300 ease-in-out",
+          // Only apply background to active items in expanded state
           !isCollapsed && isActive ? "font-bold bg-sidebar-accent" : ""
         )}
-        onMouseEnter={onHover}
-        onMouseLeave={onLeave}
-        whileHover={!isCollapsed ? { 
-          backgroundColor: "var(--sidebar-accent)",
-          transition: { duration: 0.2, ease: "easeInOut" }
-        } : {}}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        // Apply hover effects to both expanded and collapsed states
+        whileHover={!isCollapsed ? 
+          { 
+            backgroundColor: "var(--sidebar-accent)",
+            transition: { duration: 0.2, ease: "easeInOut" }
+          } : {}}
         animate={{
           backgroundColor: !isCollapsed && isActive ? "var(--sidebar-accent)" : "transparent",
         }}
@@ -504,25 +524,7 @@ function NavItem({
           backgroundColor: { duration: 0.15 }
         }}
       >
-        {/* Circle background for collapsed state when active or hovered */}
-        {isCollapsed && (isActive || isHovered) && (
-          <motion.div
-            className="absolute rounded-full bg-sidebar-accent"
-            style={{
-              left: "50%",
-              top: "50%",
-              width: "40px",
-              height: "40px",
-              transform: "translate(-50%, -50%)"
-            }}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
-      
-        {/* Icon with dynamic positioning based on sidebar state */}
+        {/* Icon container with dynamic positioning based on sidebar state */}
         <div 
           className="absolute top-1/2 z-10 transition-all duration-400 ease-in-out"
           style={{ 
@@ -530,11 +532,28 @@ function NavItem({
             transform: iconTransform
           }}
         >
+          {/* Circle background directly around the icon in collapsed state */}
+          {isCollapsed && (isActive || isLocalHover) && (
+            <div 
+              className="absolute inset-0 z-0 rounded-full"
+              style={{
+                width: "38px",
+                height: "38px",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                backgroundColor: isActive ? "var(--sidebar-accent)" : "var(--sidebar-accent)",
+              }}
+            />
+          )}
+          
+          {/* Icon element with animations */}
           <motion.div
+            className="relative z-10"
             initial={false}
             animate={{ 
-              scale: isActive || isHovered ? 1.1 : 1,
-              rotate: isHovered ? 5 : 0,
+              scale: isActive || isHovered || isLocalHover ? 1.1 : 1,
+              rotate: isHovered || isLocalHover ? 5 : 0,
               opacity: 1
             }}
             transition={{ 
@@ -555,6 +574,7 @@ function NavItem({
             />
           </motion.div>
           
+          {/* Active indicator dot */}
           {isActive && (
             <motion.div 
               className="absolute -top-1.5 -right-1.5 w-2 h-2 rounded-full bg-sidebar-primary"
