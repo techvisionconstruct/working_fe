@@ -38,21 +38,30 @@ function ScrollBar({
       data-slot="scroll-area-scrollbar"
       orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors select-none",
+        "flex touch-none select-none transition-colors duration-200",
         orientation === "vertical" &&
-          "h-full w-2.5 border-l border-l-transparent",
+          "h-full w-1.5 border-l border-l-transparent px-[1px]",
         orientation === "horizontal" &&
-          "h-2.5 flex-col border-t border-t-transparent",
+          "h-1.5 flex-col border-t border-t-transparent py-[1px]",
         className
       )}
       {...props}
     >
       <ScrollAreaPrimitive.ScrollAreaThumb
         data-slot="scroll-area-thumb"
-        className="bg-border relative flex-1 rounded-full"
+        className={cn(
+          "relative flex-1 rounded-full bg-muted-foreground/20",
+          "hover:bg-muted-foreground/40 active:bg-muted-foreground/50",
+          "transition-colors duration-150 ease-out"
+        )}
       />
     </ScrollAreaPrimitive.ScrollAreaScrollbar>
   )
 }
 
-export { ScrollArea, ScrollBar }
+// Horizontal scrollbar component for convenience
+function ScrollBarHorizontal(props: React.ComponentProps<typeof ScrollBar>) {
+  return <ScrollBar orientation="horizontal" {...props} />
+}
+
+export { ScrollArea, ScrollBar, ScrollBarHorizontal }
