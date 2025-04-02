@@ -49,6 +49,12 @@ export default function ProposalListView({
               damping: 28,
               duration: 0.3
             }}
+            // Simple hover effect
+            whileHover={{ 
+              scale: 1.01, 
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.08)",
+              cursor: "pointer"
+            }}
             className={`border rounded-md p-4 ${
               index % 2 === 0 ? "bg-[#e8e8e8]" : "bg-white"
             }`}
