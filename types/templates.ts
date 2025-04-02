@@ -7,6 +7,6 @@ export interface TemplateGridProps {
 
 export interface TemplatePageProps {
   params: {
-    id: string;
+    id: number;
   };
 }

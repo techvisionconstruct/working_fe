@@ -7,6 +7,6 @@ export interface ProposalsGridProps {
 
 export interface ProposalsPageProps {
   params: {
-    id: string;
+    id: number;
   };
 }

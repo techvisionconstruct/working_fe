@@ -7,7 +7,7 @@ import { Separator } from "@/components/shared/separator";
 import { TemplatePageProps } from "@/types/templates";
 
 export default function TemplatePage({ params }: TemplatePageProps) {
-  const template = templates.find((t) => t.id === params.id);
+  const template = templates.find((t) => t.id == params.id);
 
   if (!template) {
     notFound();
