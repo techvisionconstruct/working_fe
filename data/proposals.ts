@@ -4,7 +4,7 @@ export const proposals = [
     "title": "Full House Remodel Proposal",
     "description": 
       "Complete overhaul of the interior and exterior to enhance aesthetics and functionality. \nThe renovation includes new flooring, upgraded plumbing, and modern electrical systems. \nSmart home integrations and energy-efficient materials will be incorporated.",
-    "categories": ["Framing", "Flooring", "Plumbing", "Electrical"],
+    "categories": ["Framing", "Flooring", "Plumbing", "Electrical", "Interior Design"],
     "variables": [
       { "name": "House Length", "value": 100 },
       { "name": "House Width", "value": 100 }
