@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 import {
   Tabs,
@@ -31,17 +32,44 @@ export default function ProposalPage() {
     setSortOption(newSortOption);
   };
 
+  // Page animation variants
+  const pageVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        duration: 0.4,
+        when: "beforeChildren" 
+      }
+    }
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
+    <motion.div 
+      className="container mx-auto py-8"
+      initial="hidden"
+      animate="visible"
+      variants={pageVariants}
+    >
+      <motion.div 
+        className="flex justify-between items-center mb-6"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
         <div className="flex flex-col">
           <h1 className="text-3xl font-bold">Proposals</h1>
           <p>Manage and track client proposals.</p>
         </div>
         <Button className="uppercase font-bold">New Proposal</Button>
-      </div>
+      </motion.div>
       <Tabs defaultValue="grid">
-        <div className="flex justify-between items-center mb-4">
+        <motion.div 
+          className="flex justify-between items-center mb-4"
+          initial={{ y: 15, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
           <div className="flex items-center gap-3 flex-wrap">
             <SearchComponent
               onChange={handleSearchChange}
@@ -56,18 +84,30 @@ export default function ProposalPage() {
             <TabsTrigger value="grid">Grid View</TabsTrigger>
             <TabsTrigger value="list">List View</TabsTrigger>
           </TabsList>
-        </div>
+        </motion.div>
         <TabsContent value="grid" className="">
-          <ScrollArea className="h-[calc(100vh-210px)]">
-            <ProposalGridView sortOption={sortOption} searchQuery={searchQuery} />
-          </ScrollArea>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <ScrollArea className="h-[calc(100vh-210px)]">
+              <ProposalGridView sortOption={sortOption} searchQuery={searchQuery} />
+            </ScrollArea>
+          </motion.div>
         </TabsContent>
         <TabsContent value="list">
-          <ScrollArea className="h-[calc(100vh-210px)]">
-            <ProposalListView sortOption={sortOption} searchQuery={searchQuery} />
-          </ScrollArea>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <ScrollArea className="h-[calc(100vh-210px)]">
+              <ProposalListView sortOption={sortOption} searchQuery={searchQuery} />
+            </ScrollArea>
+          </motion.div>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

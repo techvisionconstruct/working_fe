@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/shared/badge";
 import { ProposalsGridProps } from "@/types/proposals";
 import { proposals } from "@/data/proposals";
@@ -32,12 +33,22 @@ export default function ProposalListView({
       return 0;
     });
   }, [sortOption, searchQuery]);
+  
   return (
     <div className="space-y-1">
       {filteredAndSortedProposals.length > 0 ? (
         filteredAndSortedProposals.map((proposal, index) => (
-          <div
+          <motion.div
             key={proposal.id}
+            initial={{ opacity: 0, x: -15 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, margin: "-40px" }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 28,
+              duration: 0.3
+            }}
             className={`border rounded-md p-4 ${
               index % 2 === 0 ? "bg-[#e8e8e8]" : "bg-white"
             }`}
@@ -110,7 +121,7 @@ export default function ProposalListView({
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))
       ) : (
         <div className="col-span-3 py-8 text-center">
