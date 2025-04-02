@@ -16,12 +16,12 @@ import {
   PopoverTrigger,
 } from "@/components/shared/popover"
 
-type Status = {
+export type SortOption = {
   value: string
   label: string
 }
 
-const statuses: Status[] = [
+const statuses: SortOption[] = [
   {
     value: "name-ascending",
     label: "Name (A-Z)",
@@ -30,12 +30,25 @@ const statuses: Status[] = [
     value: "name-descending",
     label: "Name (Z-A)",
   },
+  {
+    value: "date-ascending",
+    label: "Date (Oldest First)",
+  },
+  {
+    value: "date-descending",
+    label: "Date (Newest First)",
+  },
 ]
 
-export function SortByComponent() {
+interface SortByComponentProps {
+  onChange?: (sortOption: SortOption) => void;
+  initialValue?: string;
+}
+
+export function SortByComponent({ onChange, initialValue = "name-ascending" }: SortByComponentProps) {
   const [open, setOpen] = React.useState(false)
-  const [selectedStatus, setSelectedStatus] = React.useState<Status | null>(
-    null
+  const [selectedStatus, setSelectedStatus] = React.useState<SortOption | null>(
+    initialValue ? statuses.find(status => status.value === initialValue) || null : null
   )
 
   return (
@@ -43,7 +56,7 @@ export function SortByComponent() {
       <p className="text-sm text-muted-foreground">Sort by</p>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-[120px] justify-start">
+          <Button variant="outline" className=" justify-start">
             {selectedStatus ? <>{selectedStatus.label}</> : <> Name (A-Z) </>}
           </Button>
         </PopoverTrigger>
@@ -58,16 +71,18 @@ export function SortByComponent() {
                     key={status.value}
                     value={status.value}
                     onSelect={(value) => {
-                      setSelectedStatus(
-                        statuses.find((priority) => priority.value === value) ||
-                          null
-                      )
-                      setOpen(false)
+                      const newSortOption = statuses.find((priority) => priority.value === value) || null;
+                      setSelectedStatus(newSortOption);
+                      setOpen(false);
+                      if (onChange && newSortOption) {
+                        onChange(newSortOption);
+                      }
                     }}
                   >
                     {status.label}
                   </CommandItem>
                 ))}
+
               </CommandGroup>
             </CommandList>
           </Command>
