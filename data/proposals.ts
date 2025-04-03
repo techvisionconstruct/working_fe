@@ -1,3 +1,17 @@
+import { ProposalData } from "@/types/proposals"
+
+export const emptyProposal: ProposalData = {
+  id: 0,
+  title: "",
+  description: "",
+  categories: [],
+  variables: [],
+  created_at: new Date().toISOString().split("T")[0],
+  imageUrl: "",
+  useGlobalMarkup: false,
+  globalMarkupPercentage: 15,
+}
+
 export const proposals = [
   {
     "id": 1,
