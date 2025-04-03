@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import { templates } from "@/data/templates";
-import { Card, CardContent } from "@/components/shared/card";
-import { Badge } from "@/components/shared/badge";
+import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { TemplateGridProps } from "@/types/templates";
 

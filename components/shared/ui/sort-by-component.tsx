@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/shared/button";
 import {
   Command,
   CommandEmpty,
@@ -9,12 +8,11 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/shared/command";
-import {
+  Button,
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/shared/popover";
+} from "@/components/shared";
 import { SortByComponentProps, SortOption } from "@/types/sort";
 import { statuses } from "@/data/sort";
 

@@ -6,10 +6,10 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@/components/shared/tabs";
-import { SortByComponent } from "@/components/ui/templates/sort-by";
-import { Button } from "@/components/shared/button";
-import SearchComponent from "@/components/ui/templates/search";
+  Button,
+} from "@/components/shared";
+import { SortByComponent } from "@/components/shared/ui/sort-by-component";
+import { SearchComponent } from "@/components/shared/ui/search-component";
 import { SortOption } from "@/types/sort";
 import TemplateGridView from "@/components/ui/templates/template-grid-view";
 

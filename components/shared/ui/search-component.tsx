@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Input } from "@/components/shared/input";
+import { Input,  Button } from "@/components/shared";
 import { Search } from "lucide-react";
-import { Button } from "@/components/shared/button";
 
 interface SearchComponentProps {
   onChange?: (query: string) => void;
   value?: string;
 }
 
-export default function SearchComponent({ onChange, value = "" }: SearchComponentProps) {
+export function SearchComponent({ onChange, value = "" }: SearchComponentProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   
   const handleSearch = () => {

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { ExternalLink } from "lucide-react";
-import { Badge } from "@/components/shared/badge";
+import { Badge } from "@/components/shared";
 import { ProposalsGridProps } from "@/types/proposals";
 import { proposals } from "@/data/proposals";
 import { AnimatedListItem } from "./proposal-grid-view-animations";

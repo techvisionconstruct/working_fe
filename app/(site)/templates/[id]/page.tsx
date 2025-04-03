@@ -2,8 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { templates } from "@/data/templates";
-import { Badge } from "@/components/shared/badge";
-import { Separator } from "@/components/shared/separator";
+import { Badge, Separator } from "@/components/shared";
 import { TemplatePageProps } from "@/types/templates";
 
 export default function TemplatePage({ params }: TemplatePageProps) {

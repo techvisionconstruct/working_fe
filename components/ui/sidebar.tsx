@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared";
 import { 
   Home, 
   FileText, 
