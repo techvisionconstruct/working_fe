@@ -10,9 +10,9 @@ import {
   TabsContent,
 } from "@/components/shared/tabs";
 import { ScrollArea } from "@/components/shared/scroll-area";
-import { SortByComponent } from "@/components/ui/proposals/sort-by";
+import { SortByComponent } from "@/components/shared/ui/sort-by-component";
 import { Button } from "@/components/shared/button";
-import SearchComponent from "@/components/ui/proposals/search";
+import SearchComponent from "@/components/shared/ui/search-component";
 import { SortOption } from "@/types/sort";
 import ProposalGridView from "@/components/ui/proposals/proposal-grid-view";
 import ProposalListView from "@/components/ui/proposals/proposal-list-view";
