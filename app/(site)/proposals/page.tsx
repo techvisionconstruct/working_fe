@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  ScrollArea,
   Button,
   Separator,
 } from "@/components/shared";
@@ -17,6 +15,7 @@ import { SearchComponent } from "@/components/shared/ui/search-component";
 import { SortOption } from "@/types/sort";
 import ProposalGridView from "@/components/ui/proposals/proposal-grid-view";
 import ProposalListView from "@/components/ui/proposals/proposal-list-view";
+import Link from "next/link";
 
 export default function ProposalPage() {
   const [sortOption, setSortOption] = useState<SortOption>({
@@ -33,18 +32,6 @@ export default function ProposalPage() {
     setSortOption(newSortOption);
   };
 
-  // Page animation variants
-  const pageVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        duration: 0.4,
-        when: "beforeChildren",
-      },
-    },
-  };
-
   return (
     <div>
       <Tabs defaultValue="grid">
@@ -55,7 +42,7 @@ export default function ProposalPage() {
                 <h1 className="text-3xl font-bold">Proposals</h1>
                 <p>Manage and track client proposals.</p>
               </div>
-              <Button className="uppercase font-bold">New Proposals</Button>
+              <Link href={'/proposals/create'}><Button className="uppercase font-bold">New Proposals</Button></Link>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3 flex-wrap">
