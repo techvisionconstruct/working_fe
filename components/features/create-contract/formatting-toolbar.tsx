@@ -34,7 +34,8 @@ export const FormattingToolbar = ({
   
   const setAlignment = (alignment: "left" | "center" | "right") => {
     if (isDisabled) return;
-    onFormattingChange({ ...formatting, alignment });
+    // Set both alignment and textAlign properties for compatibility
+    onFormattingChange({ ...formatting, alignment, textAlign: alignment });
   };
   
   const setFontSize = (fontSize: number) => {

@@ -8,6 +8,7 @@ import { ElementRenderer } from "./element-renderer";
 import { getPageDimensions } from "./utils/page-sizes";
 import { PageMargins } from "./margin-controls";
 import { Printer } from "lucide-react";
+import { PrintPreview } from "./print-preview";
 
 // Define DragItem interface to avoid 'any' types
 interface DragItem {
@@ -713,7 +714,18 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   return (
-    <div className="flex justify-center pb-10">
+    <div className="flex flex-col items-center pb-10">
+      {/* Print preview button */}
+      <div className="mb-4 self-end">
+        <button
+          onClick={() => setShowPrintPreview(true)}
+          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          <Printer size={16} />
+          <span>Print Preview</span>
+        </button>
+      </div>
+      
       <div 
         ref={(node) => {
           if (node) {
@@ -780,6 +792,16 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
         {renderDropIndicator()}
 
       </div>
+      
+      {/* Show the print preview modal when enabled */}
+      {showPrintPreview && (
+        <PrintPreview
+          elements={elements}
+          pageSize={pageSize}
+          pageMargins={pageMargins}
+          onClose={() => setShowPrintPreview(false)}
+        />
+      )}
     </div>
   );
 };

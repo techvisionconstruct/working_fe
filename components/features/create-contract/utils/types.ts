@@ -12,6 +12,7 @@ export interface TextFormatting {
   color?: string;
   fontSize?: number;
   alignment?: 'left' | 'center' | 'right';
+  textAlign?: 'left' | 'center' | 'right'; // Add textAlign as an alternative to alignment
 }
 
 export type ElementType = 
@@ -81,6 +82,7 @@ export interface SignatureElement extends ElementBase {
   isFloating: true;
   content: {
     label: string;
+    imageData?: string; // Add imageData property that's being used in the code
   };
 }
 
