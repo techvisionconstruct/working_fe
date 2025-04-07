@@ -3,24 +3,26 @@ import { ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/shared";
 import { ProposalsGridProps } from "@/types/proposals";
-import { proposals } from "@/data/proposals";
+import { getProposals } from "@/hooks/api/proposals/get-proposals";
 
 export default function ProposalListView({
   sortOption,
   searchQuery = "",
 }: ProposalsGridProps) {
+  const { proposals, isLoading, error } = getProposals();
+
   const filteredAndSortedProposals = useMemo(() => {
     const filtered = searchQuery
       ? proposals.filter((proposal) =>
-          proposal.title.toLowerCase().includes(searchQuery.toLowerCase())
+          proposal.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
       : proposals;
 
     return [...filtered].sort((a, b) => {
       if (sortOption.value === "name-ascending") {
-        return a.title.localeCompare(b.title);
+        return a.name.localeCompare(b.name);
       } else if (sortOption.value === "name-descending") {
-        return b.title.localeCompare(a.title);
+        return b.name.localeCompare(a.name);
       } else if (sortOption.value === "date-ascending") {
         return (
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -32,8 +34,24 @@ export default function ProposalListView({
       }
       return 0;
     });
-  }, [sortOption, searchQuery]);
+  }, [sortOption, searchQuery, proposals]);
   
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <p className="text-lg font-medium">Loading proposals...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center py-12 text-red-500">
+        <p className="text-lg font-medium">Failed to load proposals: {error.message}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1">
       {filteredAndSortedProposals.length > 0 ? (
@@ -59,7 +77,7 @@ export default function ProposalListView({
               index % 2 === 0 ? "bg-[#e8e8e8]" : "bg-white"
             }`}
           >
-            <div className="font-bold text-xl">{proposal.title}</div>
+            <div className="font-bold text-xl">{proposal.name}</div>
             <div className="flex items-center justify-between mt-1 gap-x-8">
               <div className="text-sm text-black/50 line-clamp-3">
                 {proposal.description}
@@ -69,7 +87,7 @@ export default function ProposalListView({
             <div className="flex justify-between items-center mt-2">
               <div className="flex justify-between items-center mt-4">
                 <div className="flex flex-wrap gap-2 max-w-full">
-                  {proposal.categories.slice(0, 4).map((category) => (
+                  {proposal.project_modules.slice(0, 4).map((category) => (
                     <Badge
                       key={category.id}
                       variant="outline"
@@ -79,10 +97,10 @@ export default function ProposalListView({
                           : "bg-none text-black"
                       }`}
                     >
-                      {category.name}
+                      {category.module.name}
                     </Badge>
                   ))}
-                  {proposal.categories.length > 4 && (
+                  {proposal.project_modules.length > 4 && (
                     <Badge
                       variant="outline"
                       className={`font-bold uppercase text-xs ${
@@ -91,7 +109,7 @@ export default function ProposalListView({
                           : "bg-none text-black"
                       }`}
                     >
-                      +{proposal.categories.length - 4} more
+                      +{proposal.project_modules.length - 4} more
                     </Badge>
                   )}
                   <Badge
@@ -106,7 +124,7 @@ export default function ProposalListView({
                     <span
                       className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
                     >
-                      {proposal.variables?.length || 0}
+                      {proposal.project_parameters?.length || 0}
                     </span>
                   </Badge>
                   <Badge
@@ -121,7 +139,7 @@ export default function ProposalListView({
                     <span
                      className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
                     >
-                      {proposal.categories?.length || 0}
+                      {proposal.project_parameters?.length || 0}
                     </span>
                   </Badge>
                 </div>

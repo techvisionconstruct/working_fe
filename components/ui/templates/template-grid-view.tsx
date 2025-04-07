@@ -1,25 +1,34 @@
 import { useMemo } from "react";
 import Image from "next/image";
-import { templates } from "@/data/templates";
 import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { TemplateGridProps } from "@/types/templates";
+import { getTemplates } from "@/hooks/api/templates/get-templates";
 
-
-export default function TemplateGridView({ sortOption, searchQuery = "" }: TemplateGridProps) {
+export default function TemplateGridView({
+  sortOption,
+  searchQuery = "",
+}: TemplateGridProps) {
+  const { templates, isLoading, error } = getTemplates();
 
   const filteredAndSortedTemplates = useMemo(() => {
+    if (!templates) return [];
+
     const filtered = searchQuery
-      ? templates.filter(template => 
-          template.title.toLowerCase().includes(searchQuery.toLowerCase())
+      ? templates.filter(
+          (template) =>
+            template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            template.description
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())
         )
       : templates;
-    
+
     return [...filtered].sort((a, b) => {
       if (sortOption.value === "name-ascending") {
-        return a.title.localeCompare(b.title);
+        return a.name.localeCompare(b.name);
       } else if (sortOption.value === "name-descending") {
-        return b.title.localeCompare(a.title);
+        return b.name.localeCompare(a.name);
       } else if (sortOption.value === "date-ascending") {
         return (
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -31,7 +40,7 @@ export default function TemplateGridView({ sortOption, searchQuery = "" }: Templ
       }
       return 0;
     });
-  }, [sortOption, searchQuery]);
+  }, [sortOption, searchQuery, templates]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -43,57 +52,63 @@ export default function TemplateGridView({ sortOption, searchQuery = "" }: Templ
           >
             <div className="w-full h-44 relative -mt-20">
               <Image
-                src={template.imageUrl || "/placeholder.svg"}
-                alt={template.title}
+                src="https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt={template.name}
                 fill
                 className="object-cover"
               />
             </div>
             <CardContent>
-              <h1 className="text-xl font-bold">{template.title}</h1>
+              <h1 className="text-xl font-bold">{template.name}</h1>
               <p className="mt-1 text-sm text-black/50 line-clamp-3">
                 {template.description}
               </p>
 
               <div className="flex justify-between items-center mt-4">
                 <div className="flex flex-wrap gap-2 max-w-full">
-                  {template.categories.slice(0, 4).map((category) => (
+                  {template.modules &&
+                    template.modules.slice(0, 4).map((module, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="font-bold uppercase text-xs"
+                      >
+                        {module.name || "Module"}
+                      </Badge>
+                    ))}
+                  {template.modules && template.modules.length > 4 && (
                     <Badge
-                      key={category.id}
                       variant="outline"
                       className="font-bold uppercase text-xs"
                     >
-                      {category.name}
-                    </Badge>
-                  ))}
-                  {template.categories.length > 4 && (
-                    <Badge
-                      variant="outline"
-                      className="font-bold uppercase text-xs"
-                    >
-                      +{template.categories.length - 4} more
+                      +{template.modules.length - 4} more
                     </Badge>
                   )}
                 </div>
               </div>
               <div className="flex gap-2 mt-2">
                 <Badge variant="outline" className="flex items-center gap-1">
-                  <span className="uppercase font-bold">Variables</span>
+                  <span className="uppercase font-bold">Parameters</span>
                   <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                    {template.variables?.length || 0}
+                    {template.parameters?.length || 0}
                   </span>
                 </Badge>
                 <Badge variant="outline" className="flex items-center gap-1">
-                  <span className="uppercase font-bold">Categories</span>
+                  <span className="uppercase font-bold">Modules</span>
                   <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                    {template.categories?.length || 0}
+                    {template.modules?.length || 0}
                   </span>
                 </Badge>
               </div>
 
               <div className="flex justify-between items-center mt-4 ml-1">
-                <p className="text-sm font-bold">{template.created_at}</p>
-                <Link href={`templates/${template.id}`} className="text-sm font-bold hover:underline">
+                <p className="text-sm font-bold">
+                  {new Date(template.created_at).toLocaleDateString()}
+                </p>
+                <Link
+                  href={`templates/${template.id}`}
+                  className="text-sm font-bold hover:underline"
+                >
                   Read More
                 </Link>
               </div>
@@ -102,9 +117,13 @@ export default function TemplateGridView({ sortOption, searchQuery = "" }: Templ
         ))
       ) : (
         <div className="col-span-3 py-8 text-center">
-          <p className="text-lg font-medium">No templates found matching your search.</p>
+          <p className="text-lg font-medium">
+            No templates found matching your search.
+          </p>
         </div>
       )}
     </div>
   );
 }
+
+

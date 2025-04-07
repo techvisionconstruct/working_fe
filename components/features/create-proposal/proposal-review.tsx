@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Card,
@@ -20,14 +22,43 @@ import {
   DownloadIcon,
   MailIcon,
   CheckCircleIcon,
+  Loader2Icon,
 } from "lucide-react";
 import { useMemo } from "react";
+import { useCreateProposal } from "@/hooks/api/proposals/create-proposal";
 
 interface ProposalPreviewProps {
   proposal: ProposalData;
 }
 
 export function ProposalPreview({ proposal }: ProposalPreviewProps) {
+  const router = useRouter();
+  const { createProposal, isLoading, error } = useCreateProposal();
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const handleSaveProposal = async () => {
+    setIsSaving(true);
+    
+    try {
+      const result = await createProposal(proposal);
+      
+      if (result.success) {
+        alert("Success! Your proposal has been saved successfully.");
+        
+        // Redirect to proposals list or the new proposal page
+        setTimeout(() => {
+          router.push('/proposals');
+        }, 1500);
+      } else {
+        alert(result.error || "Failed to save proposal. Please try again.");
+      }
+    } catch (err) {
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const calculatedCosts = useMemo(() => {
     return proposal.categories.map((category) => ({
       ...category,
@@ -109,12 +140,28 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
             <MailIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Email</span>
           </Button>
-          <Button className="gap-2">
-            <CheckCircleIcon className="h-4 w-4" />
-            Save Proposal
+          <Button 
+            className="gap-2" 
+            onClick={handleSaveProposal}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircleIcon className="h-4 w-4" />
+            )}
+            {isSaving ? "Saving..." : "Save Proposal"}
           </Button>
         </div>
       </div>
+      
+      {/* Show error message if API call fails */}
+      {error && (
+        <div className="bg-destructive/20 border border-destructive rounded-md p-3 text-destructive">
+          {error}
+        </div>
+      )}
+      
       <div className="flex flex-col justify-center max-w-7xl mx-auto">
         <div className="rounded-lg border bg-card shadow-sm">
           <div className="flex flex-col gap-8 p-8">
@@ -226,9 +273,9 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                   Formula: {element.labor_cost}
+</div>
                                 </div>
-                              </div>
-                            </TableCell>
+                              </TableCell>
                             <TableCell className="text-right font-medium font-mono">
                               $
                               {(
