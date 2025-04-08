@@ -5,18 +5,24 @@ interface PageDimensions {
   height: number;
 }
 
+// Paper dimensions in pixels at 96 DPI (standard screen resolution)
+// This provides more accurate real-world sizes on screens
 export const getPageDimensions = (pageSize: PageSize): PageDimensions => {
   switch (pageSize) {
     case "a4":
-      return { width: 595, height: 842 }; // A4 in pixels at 72 DPI
+      // A4: 210mm × 297mm (8.27in × 11.69in)
+      return { width: 794, height: 1123 }; // A4 in pixels at 96 DPI
     case "letter":
-      return { width: 612, height: 792 }; // Letter in pixels at 72 DPI
+      // US Letter: 8.5in × 11in (216mm × 279mm)
+      return { width: 816, height: 1056 }; // Letter in pixels at 96 DPI
     case "legal":
-      return { width: 612, height: 1008 }; // Legal in pixels at 72 DPI
+      // US Legal: 8.5in × 14in (216mm × 356mm)
+      return { width: 816, height: 1344 }; // Legal in pixels at 96 DPI
     case "short":
-      return { width: 595, height: 700 }; // Custom short format
+      // Custom short format (adjusted for new DPI)
+      return { width: 794, height: 935 }; // Scaled to keep proportions
     default:
-      return { width: 595, height: 842 }; // Default to A4
+      return { width: 794, height: 1123 }; // Default to A4
   }
 };
 

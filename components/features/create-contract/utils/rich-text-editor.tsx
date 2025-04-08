@@ -49,7 +49,7 @@ export const RichTextEditor = ({
   }, [value, multiline, adjustTextareaHeight, formatting]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    onChange(e.target.value, formatting);
+    onChange(e.target.value);
     // For textarea, adjust height after content change
     if (multiline && e.target instanceof HTMLTextAreaElement) {
       setTimeout(adjustTextareaHeight, 0);
@@ -72,19 +72,23 @@ export const RichTextEditor = ({
   };
 
   // Style based on formatting
-  const textStyle = {
+  const textStyle: React.CSSProperties = {
     fontWeight: formatting.bold ? "bold" : "normal",
     fontStyle: formatting.italic ? "italic" : "normal",
     textDecoration: formatting.underline ? "underline" : "none",
-    color: formatting.color || "black",
+    color: formatting.color || "#000000",
     fontSize: `${formatting.fontSize || 16}px`,
-    textAlign: formatting.alignment || "left",
-    overflow: "hidden", // Prevent scrollbar
-    resize: "none", // Disable manual resizing
-  } as React.CSSProperties;
+  };
+
+  // Handle alignment separately to ensure it works properly
+  if (formatting.alignment) {
+    textStyle.textAlign = formatting.alignment;
+  } else if (formatting.textAlign) {
+    textStyle.textAlign = formatting.textAlign;
+  }
   
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {multiline ? (
         <Textarea
           ref={textareaRef}
@@ -92,7 +96,12 @@ export const RichTextEditor = ({
           onChange={handleChange}
           placeholder={placeholder}
           className="w-full min-h-[80px] border-transparent focus:border-blue-300 p-2"
-          style={textStyle}
+          style={{
+            ...textStyle,
+            width: "100%",
+            overflow: "hidden", // Prevent scrollbar
+            resize: "none",     // Disable manual resizing
+          }}
           onInput={adjustTextareaHeight}
           onKeyDown={handleKeyDown}
         />
@@ -103,7 +112,10 @@ export const RichTextEditor = ({
           onChange={handleChange}
           placeholder={placeholder}
           className="w-full border-transparent focus:border-blue-300"
-          style={textStyle}
+          style={{
+            ...textStyle,
+            width: "100%"
+          }}
           onKeyDown={handleKeyDown}
         />
       )}

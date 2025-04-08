@@ -8,6 +8,7 @@ import { ElementRenderer } from "./element-renderer";
 import { getPageDimensions } from "./utils/page-sizes";
 import { PageMargins } from "./margin-controls";
 import { Printer } from "lucide-react";
+import { PrintPreview } from "./print-preview";
 
 // Define DragItem interface to avoid 'any' types
 interface DragItem {
@@ -355,20 +356,23 @@ export const Canvas = ({
       
       if (!clientOffset) return;
       
+      // Account for the canvas scaling (0.75) when calculating positions
+      const scaleCompensation = 1 / 0.75; // Inverse of scale to compensate
+      
+      // Calculate position relative to the scaled canvas
       const position: Position = {
-        x: clientOffset.x - canvasRect.left,
-        y: clientOffset.y - canvasRect.top,
+        x: (clientOffset.x - canvasRect.left) * scaleCompensation,
+        y: (clientOffset.y - canvasRect.top) * scaleCompensation,
       };
       
-      // For regular elements, snap to rows
+      // For regular elements, snap to rows but keep exact cursor position for preview
       if (!item.isFloating) {
         position.x = horizontalPadding;
-        // Snap to grid but still show position where user is hovering
-        position.y = Math.floor(position.y / rowHeight) * rowHeight;
-        // No constraining to prevent already used positions
+        // Store exact position for preview but we'll snap when actually dropping
       }
       
-      // Update drop preview
+      // Make sure we don't update too frequently to avoid performance issues
+      // Use debounced updates for smoother performance
       setDropPreview({
         position,
         type: item.type,
@@ -387,26 +391,29 @@ export const Canvas = ({
       const dropOffset = monitor.getClientOffset();
       if (!dropOffset) return;
 
+      // Compensate for the canvas scaling
+      const scaleCompensation = 1 / 0.75;
+      
       let position: Position = {
-        x: dropOffset.x - canvasRect.left,
-        y: dropOffset.y - canvasRect.top,
+        x: (dropOffset.x - canvasRect.left) * scaleCompensation,
+        y: (dropOffset.y - canvasRect.top) * scaleCompensation,
       };
 
-      // Constrain y position to page boundary (but not to grid)
-      position.y = Math.max(pageMargins.top, Math.min(position.y, pageHeight - 100));
+      // Allow elements to be placed as far down as needed, but at least at top margin
+      position.y = Math.max(pageMargins.top, position.y);
 
       // CASE 1: Moving an existing element (item.isMoving is true)
       if (item.isMoving && item.id) {
         console.log("Moving existing element:", item.id, "to position:", position);
         
         if (item.isFloating) {
-          // For floating elements (signatures), ensure we capture the position with updated width
+          // For floating elements (signatures), keep them within the visible area
           updateElementPosition(item.id, {
-            x: Math.max(0, Math.min(position.x, width - 350)), // Updated from 150 to 350
-            y: Math.max(pageMargins.top, Math.min(position.y, pageHeight - 100))
+            x: Math.max(0, Math.min(position.x, width - 350)),
+            y: Math.max(pageMargins.top, position.y)
           });
         } else {
-          // For regular elements, still snap to row grid but honor the actual row
+          // For regular elements, snap to row grid
           const snappedY = Math.floor(position.y / rowHeight) * rowHeight;
           // Allow positioning anywhere in the document
           reorderElements(item.id, snappedY);
@@ -417,8 +424,9 @@ export const Canvas = ({
         console.log("Adding new element of type:", item.type);
         
         if (!item.isFloating) {
-          // For regular elements, place them at next available position
-          position = findNextAvailablePosition(item.type, item.isFloating);
+          // For regular elements, use exact drop position but snap to grid
+          position.y = Math.floor(position.y / rowHeight) * rowHeight;
+          position.x = horizontalPadding;
         }
         createNewElement(item.type, position, item.isFloating);
       }
@@ -430,7 +438,7 @@ export const Canvas = ({
       isOver: !!monitor.isOver(),
       canDrop: !!monitor.canDrop(),
     }),
-  }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, horizontalPadding]);
+  }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, horizontalPadding, pageMargins.top]);
 
   // Clear preview when not hovering
   useEffect(() => {
@@ -577,8 +585,10 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
       left: `${dropPreview.position.x}px`,
       top: `${dropPreview.position.y}px`,
       zIndex: 1000,
-      opacity: 0.7,
+      opacity: 0.8,
       pointerEvents: 'none',
+      transition: 'all 0.1s ease',
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     } as React.CSSProperties;
     
     // Different preview styling based on element type
@@ -587,11 +597,11 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
       return (
         <div 
           style={previewStyle}
-          className="border-2 border-dashed border-blue-400 bg-blue-50 p-4 rounded"
+          className="border-2 border-dashed border-blue-500 bg-blue-50 p-4 rounded animate-pulse"
         >
           <div className="flex flex-col items-center">
             {dropPreview.icon && <div className="text-blue-500">{dropPreview.icon}</div>}
-            <span className="text-sm">{dropPreview.label || 'Signature'}</span>
+            <span className="text-sm font-medium">{dropPreview.label || 'Signature'}</span>
           </div>
         </div>
       );
@@ -604,10 +614,10 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
             width: `${width - (horizontalPadding * 2)}px`,
             height: `${rowHeight}px`,
           }}
-          className="border-2 border-dashed border-blue-400 bg-blue-50 rounded flex items-center px-3"
+          className="border-2 border-dashed border-blue-500 bg-blue-50 rounded flex items-center px-3 animate-pulse"
         >
           {dropPreview.icon && <span className="mr-2 text-blue-500">{dropPreview.icon}</span>}
-          <span>{dropPreview.label || dropPreview.type}</span>
+          <span className="font-medium">{dropPreview.label || dropPreview.type}</span>
         </div>
       );
     }
@@ -701,7 +711,9 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
             top: `${indicatorY}px`,
             height: `${rowHeight}px`,
             zIndex: 0,
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            transition: 'all 0.15s ease-out',
+            boxShadow: 'inset 0 0 5px rgba(59, 130, 246, 0.3)'
           }}
         />
       );
@@ -713,7 +725,18 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   return (
-    <div className="flex justify-center pb-10">
+    <div className="flex flex-col items-center pb-10">
+      {/* Print preview button */}
+      <div className="mb-4 self-end">
+        <button
+          onClick={() => setShowPrintPreview(true)}
+          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          <Printer size={16} />
+          <span>Print Preview</span>
+        </button>
+      </div>
+      
       <div 
         ref={(node) => {
           if (node) {
@@ -727,6 +750,8 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
           height: `${pageHeight}px`,
           border: isOver && canDrop ? "2px dashed #4299e1" : "1px solid #e2e8f0",
           marginTop: "12px",
+          transform: "scale(0.75)", // Scale down for better fit on screen
+          transformOrigin: "top center", // Keep the top aligned when scaling
         }}
         onClick={handleCanvasClick}
       >
@@ -780,6 +805,16 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
         {renderDropIndicator()}
 
       </div>
+      
+      {/* Show the print preview modal when enabled */}
+      {showPrintPreview && (
+        <PrintPreview
+          elements={elements}
+          pageSize={pageSize}
+          pageMargins={pageMargins}
+          onClose={() => setShowPrintPreview(false)}
+        />
+      )}
     </div>
   );
 };
