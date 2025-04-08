@@ -30,6 +30,7 @@ interface Template {
   user: User;
   modules: Module[];
   parameters: Parameter[];
+  image: string;
 }
 
 interface GetTemplatesResult {
@@ -79,4 +80,3 @@ export const getTemplates = (): GetTemplatesResult => {
     refetch: fetchTemplates,
   };
 };
-/// This coode is for balablablbalba

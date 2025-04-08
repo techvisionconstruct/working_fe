@@ -52,7 +52,7 @@ interface Template {
   parameters: Parameter[];
   categories: Category[];
   variables: Variable[];
-  imageUrl?: string;
+  image: string;
 }
 
 interface GetTemplateByIdResult {
