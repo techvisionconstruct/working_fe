@@ -6,7 +6,16 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/shared";
+import { 
+  Avatar, 
+  AvatarFallback, 
+  AvatarImage,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuItem
+} from "@/components/shared";
 import { 
   Home, 
   FileText, 
@@ -16,12 +25,13 @@ import {
   Variable, 
   Calculator,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Settings,
+  LogOut
 } from "lucide-react";
+import { useUser } from "../contexts/user-context";
 
-// Group navigation items by section with Lucide icons
 const navItems = [
-  // Main section
   {
     section: "main",
     items: [
@@ -32,7 +42,6 @@ const navItems = [
       },
     ]
   },
-  // Primary content section
   {
     section: "primary",
     items: [
@@ -53,7 +62,6 @@ const navItems = [
       },
     ]
   },
-  // Utility section
   {
     section: "utility",
     items: [
@@ -76,10 +84,9 @@ const navItems = [
   }
 ];
 
-// Constants for sidebar dimensions
 const SIDEBAR_EXPANDED_WIDTH = "18rem";
-const SIDEBAR_COLLAPSED_WIDTH = "6.5rem"; // Increased from 5rem to 6.5rem for better centering
-const ICON_LEFT_POSITION = "1.75rem"; // Fixed position in expanded state
+const SIDEBAR_COLLAPSED_WIDTH = "6.5rem"; 
+const ICON_LEFT_POSITION = "1.75rem"; 
 
 export function Sidenav() {
   const pathname = usePathname();
@@ -91,11 +98,10 @@ export function Sidenav() {
     item: null as string | null,
     windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0 
   });
+  const { user, isLoading, error } = useUser();
   
-  // Ref for the nav container to get positions
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Update window height on resize
   useEffect(() => {
     const handleResize = () => {
       setTooltipPosition(prev => ({
@@ -108,24 +114,22 @@ export function Sidenav() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Set active item based on current route
+
   useEffect(() => {
     const currentPath = pathname || "/dashboard";
     
-    // Find the active item from all sections
     const allItems = navItems.flatMap(section => section.items);
     const active = allItems.find(item => currentPath.startsWith(item.href))?.label || "Dashboard";
     
     setActiveItem(active);
   }, [pathname]);
 
-  // Animation variants for sidebar container - SMOOTH animation, not bouncy
   const sidebarVariants = {
     expanded: { 
       width: SIDEBAR_EXPANDED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: "easeInOut" }, // Smooth easing, not bouncy
+        width: { duration: 0.4, ease: "easeInOut" }, 
         borderRadius: { duration: 0.3 }
       }
     },
@@ -133,39 +137,34 @@ export function Sidenav() {
       width: SIDEBAR_COLLAPSED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: "easeInOut" }, // Smooth easing, not bouncy
+        width: { duration: 0.4, ease: "easeInOut" }, 
         borderRadius: { duration: 0.3 }
       }
     }
   };
 
-  // Update tooltip position when hovering an item
   const handleItemHover = (item: string, e: React.MouseEvent) => {
     if (!isCollapsed) return;
     
-    // Get the target element
     const targetElement = e.currentTarget;
     const rect = targetElement.getBoundingClientRect();
     
-    // Set the tooltip position to match the hovered item's position
-    // Adjust position to be higher than center - increased offset to fix alignment
     setTooltipPosition({ 
-      top: rect.top + (rect.height / 2) - 24, // Increased offset from 18px to 24px
+      top: rect.top + (rect.height / 2) - 24, 
       item: item,
       windowHeight: window.innerHeight
     });
     setHoverItem(item);
   };
 
-  // Handle logo hover
   const handleLogoHover = (isHovering: boolean, e?: React.MouseEvent) => {
     if (!isCollapsed) return;
     
-    if (isHovering && e) {  // Only proceed if we have the event
+    if (isHovering && e) {  
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2) - 24, // Increased offset from 4px to 24px to match other tooltips
+        top: rect.top + (rect.height / 2) - 24, 
         item: "logo",
         windowHeight: window.innerHeight
       });
@@ -175,15 +174,14 @@ export function Sidenav() {
     }
   };
 
-  // Handle profile hover
   const handleProfileHover = (isHovering: boolean, e?: React.MouseEvent) => {
     if (!isCollapsed) return;
     
-    if (isHovering && e) {  // Only proceed if we have the event
+    if (isHovering && e) {  
       const targetElement = e.currentTarget;
       const rect = targetElement.getBoundingClientRect();
       setTooltipPosition({ 
-        top: rect.top + (rect.height / 2) + 10, // Increased offset to match other tooltips
+        top: rect.top + (rect.height / 2) + 10, 
         item: "profile",
         windowHeight: window.innerHeight
       });
@@ -193,17 +191,14 @@ export function Sidenav() {
     }
   };
 
-  // Determine if tooltip should be shown above for profile (near bottom of screen)
   const isProfileTooltipNearBottom = 
     hoverItem === "profile" && 
-    tooltipPosition.top > tooltipPosition.windowHeight - 100; // 100px threshold
+    tooltipPosition.top > tooltipPosition.windowHeight - 100; 
 
-  // Calculate icon position based on sidebar state
   const getIconPosition = () => {
     return isCollapsed ? "50%" : ICON_LEFT_POSITION;
   };
 
-  // Calculate transform for icons based on sidebar state
   const getIconTransform = () => {
     return isCollapsed ? "translateX(-50%) translateY(-50%)" : "translateY(-50%)";
   };
@@ -216,9 +211,7 @@ export function Sidenav() {
         initial="expanded"
         animate={isCollapsed ? "collapsed" : "expanded"}
       >
-        {/* Logo section with centered logo */}
         <div className="h-20 mb-12 relative">
-          {/* Logo with dynamic positioning */}
           <div 
             className="absolute z-20 transition-all duration-400 ease-in-out"
             style={{
@@ -333,25 +326,42 @@ export function Sidenav() {
               )}
             </motion.div>
           ))}
-        </nav>
-        
-        {/* User profile section with absolutely positioned avatar */}
-        <div className="h-16 mt-auto pt-4 border-t border-sidebar-border relative">
-          {/* Avatar with dynamic positioning */}
-          <div 
-            className="absolute z-20 transition-all duration-400 ease-in-out"
-            style={{
-              left: getIconPosition(),
-              top: "50%",
-              transform: getIconTransform()
-            }}
-            onMouseEnter={(e) => handleProfileHover(true, e)}
-            onMouseLeave={() => handleProfileHover(false)}
-          >
-            <Avatar className="ring-2 ring-sidebar-ring/20 h-9 w-9 bg-sidebar-accent">
-              <AvatarFallback className="font-medium text-sidebar-foreground">Ad</AvatarFallback>
-            </Avatar>
-          </div>
+        </nav>          {/* User profile section with dropdown menu */}
+        <div className="h-16 border-t border-sidebar-border relative">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div 
+                className="absolute z-20 transition-all duration-400 ease-in-out cursor-pointer"
+                style={{
+                  left: getIconPosition(),
+                  top: "50%",
+                  transform: getIconTransform()
+                }}
+              >
+                <Avatar className="ring-2 ring-sidebar-ring/20 h-9 w-9 bg-sidebar-accent hover:ring-sidebar-ring/40 transition-all">
+                  <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username[0]}</AvatarFallback>
+                </Avatar>
+              </div>
+            </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent focus:bg-accent">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.username}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator /><DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
             
           {/* Profile text alignment - keeping user's preferred styling */}
           <AnimatePresence mode="wait">
@@ -380,9 +390,9 @@ export function Sidenav() {
                   transition: { duration: 0.2, ease: "easeInOut" } 
                 }}
               >
-                <div className="font-medium text-sm text-sidebar-foreground -mt-5">Admin</div>
+                <div className="font-medium text-sm text-sidebar-foreground -mt-5">{user?.username}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  System
+                 {user?.email}
                 </div>
               </motion.div>
             )}
