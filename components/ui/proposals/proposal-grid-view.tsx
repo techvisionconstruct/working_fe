@@ -71,7 +71,7 @@ export default function ProposalGridView({
       {filteredAndSortedProposals.length > 0 ? (
         filteredAndSortedProposals.map((proposal, index) => (
           <AnimatedCard key={proposal.id} index={index}>
-            <Card className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+            <Card className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6">
               <div className="w-full h-44 relative -mt-20">
                 <Image
                   src="https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -81,7 +81,7 @@ export default function ProposalGridView({
                 />
               </div>
               <CardContent>
-                <h1 className="text-xl font-bold">{proposal.name}</h1>
+                <h1 className="text-xl font-bold mt-2">{proposal.name}</h1>
                 <p className="mt-1 text-sm text-black/50 line-clamp-3">
                   {proposal.description}
                 </p>

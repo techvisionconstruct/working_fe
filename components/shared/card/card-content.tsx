@@ -9,7 +9,7 @@ export function CardContent({
   return (
     <div
       data-slot="card-content"
-      className={cn("px-4", className)}
+      className={cn("p-6 pt-0", className)}
       {...props}
     />
   );
