@@ -125,6 +125,7 @@ export interface Proposal {
   created_at: string;
   updated_at: string;
   user: User;
+  image: string;
   project_elements: ProjectElement[];
   project_parameters: ProjectParameter[];
   project_modules: ProjectModule[];
@@ -139,7 +140,7 @@ export interface ProposalData {
   categories: Category[]
   variables: Variable[]
   created_at: string
-  imageUrl: string
+  image: string
   clientName?: string
   clientEmail?: string
   clientPhone?: string

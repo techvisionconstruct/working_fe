@@ -57,16 +57,16 @@ export default function TemplatePage({
   return (
     <div>
       <div className="relative w-full h-[240px] mb-8 overflow-hidden">
-        <Image
-          src={
-            template.imageUrl ||
-            "https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-          }
-          alt={template.name}
-          fill
-          className="object-cover"
-          priority
-        />
+      <Image
+        src={
+          template.image ||
+          "https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+        }
+        alt={template.name}
+        fill
+        className="object-cover"
+        priority
+      />
       </div>
 
       <div className="container mx-auto px-4">
@@ -86,11 +86,12 @@ export default function TemplatePage({
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Description</h2>
             <div className="prose prose-slate max-w-none">
-              {template.description.split("\n").map((paragraph, idx) => (
-                <p key={idx} className="text-base/relaxed">
-                  {paragraph}
-                </p>
-              ))}
+            {template.description.split("\n").map((paragraph) => (
+              <p key={paragraph.slice(0, 20)} className="text-base/relaxed">
+                {paragraph}
+              </p>
+            ))}
+
             </div>
           </div>
 
