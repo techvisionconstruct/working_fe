@@ -50,8 +50,6 @@ export const checkFormulaErrors = (
   const variablePattern = /\b[A-Za-z_][A-Za-z0-9_ ]*[A-Za-z0-9_]\b/g;
   const matches = formula.match(variablePattern) || [];
   const validVariableNames = variables.map((v) => v.name);
-  console.log(validVariableNames);
-  console.log(matches);
   return matches.some((match) => !validVariableNames.includes(match));
 };
 

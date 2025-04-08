@@ -188,3 +188,13 @@ export { AccordionContent } from "./accordion/accordion-content"
  */
 export { ScrollArea } from "./scroll-area/scroll-area"
 export { ScrollBar } from "./scroll-area/scroll-bar"
+/**
+ * Alert
+ */
+export { Alert } from "./alert/alert"
+export { AlertTitle } from "./alert/alert-title"
+export { AlertDescription } from "./alert/alert-description"
+/**
+ * Slider
+ */
+export { Slider } from "./slider/slider"
