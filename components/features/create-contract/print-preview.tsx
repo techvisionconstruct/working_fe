@@ -192,7 +192,7 @@ export const PrintPreview = ({
         <div className="p-8 bg-gray-100">
           <div 
             ref={containerRef}
-            className="relative mx-auto bg-white shadow-md overflow-hidden" 
+            className="relative mx-auto bg-white shadow-md overflow-hidden scale-75 origin-top" 
             style={{ 
               width: `${width}px`, 
               height: `${height}px`,
