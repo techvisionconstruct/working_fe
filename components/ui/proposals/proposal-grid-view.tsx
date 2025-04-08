@@ -73,12 +73,13 @@ export default function ProposalGridView({
           <AnimatedCard key={proposal.id} index={index}>
             <Card className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6">
               <div className="w-full h-44 relative -mt-20">
-                <Image
-                  src="https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              <Image
+                  src={proposal.image || "https://images.unsplash.com/photo-1593623671658-6b842c7f9697?q=80&w=1996&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"}
                   alt={proposal.name}
                   fill
                   className="object-cover"
                 />
+
               </div>
               <CardContent>
                 <h1 className="text-xl font-bold mt-2">{proposal.name}</h1>
