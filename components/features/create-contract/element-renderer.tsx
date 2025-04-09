@@ -11,7 +11,6 @@ import { NumberListElement } from "./elements/number-list-element";
 import { TableElement } from "./elements/table-element";
 import { SignatureElement } from "./elements/signature-element";
 
-// Update the interface
 interface ElementRendererProps {
   element: Element;
   canvasWidth: number;
@@ -23,15 +22,15 @@ interface ElementRendererProps {
   onFormattingChange?: (formatting: TextFormatting) => void;
   isActive?: boolean;
   onFocus?: () => void;
-  topMargin?: number; // Add this prop
-  isPrintPreview?: boolean; // Add this new prop
+  topMargin?: number;
+  isPrintPreview?: boolean;
 }
 
 export const ElementRenderer = ({
   element,
   canvasWidth,
   horizontalPadding,
-  topMargin = 0, // Default to 0
+  topMargin = 0,
   onDelete,
   onPositionChange,
   onContentChange,
@@ -39,31 +38,25 @@ export const ElementRenderer = ({
   onFormattingChange,
   isActive = false,
   onFocus,
-  isPrintPreview = false, // Default to false
+  isPrintPreview = false,
 }: ElementRendererProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const [elementHeight, setElementHeight] = useState(0);
 
-  // This is the critical part for drag and drop functionality
   const [{ isDragging }, dragRef] = useDrag(() => ({
     type: element.isFloating ? "MOVE_FLOATING_ELEMENT" : "MOVE_ELEMENT",
-    item: () => {
-      // Include all necessary data
-      return {
-        id: element.id,
-        type: element.type,
-        isFloating: element.isFloating,
-        isMoving: true,
-        // Store exact position to preserve during drag
-        position: { ...element.position },
-        content: element.content
-      };
-    },
+    item: () => ({
+      id: element.id,
+      type: element.type,
+      isFloating: element.isFloating,
+      isMoving: true,
+      position: { ...element.position },
+      content: element.content
+    }),
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-    // When drag ends without a valid drop
     end: (item, monitor) => {
       if (!monitor.didDrop()) {
         console.log("Drag ended without valid drop - element remains at original position");
@@ -71,11 +64,9 @@ export const ElementRenderer = ({
     }
   }), [element.id, element.position, element.content, element.type, element.isFloating]);
 
-  // This separate handler is specifically for direct mouse dragging of floating elements
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!element.isFloating || !elementRef.current) return;
 
-    // Prevent default to avoid text selection during drag
     e.preventDefault();
     
     const startX = e.clientX;
@@ -88,7 +79,6 @@ export const ElementRenderer = ({
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       
-      // Update position through the callback, but maintain dimensions
       onPositionChange({
         x: elementX + dx,
         y: elementY + dy,
@@ -104,25 +94,20 @@ export const ElementRenderer = ({
     window.addEventListener("mouseup", handleMouseUp);
   };
 
-  // Connect drag functionality to appropriate elements
   useEffect(() => {
     if (element.isFloating && elementRef.current) {
-      // For floating elements, make the entire element draggable
       dragRef(elementRef.current);
     }
   }, [dragRef, element.isFloating]);
 
-  // Measure element height and report it to parent
   useEffect(() => {
     if (!elementRef.current) return;
     
-    // Use ResizeObserver to detect height changes
     const observer = new ResizeObserver(entries => {
       const height = entries[0].contentRect.height;
       setElementHeight(height);
       onHeightChange(height);
       
-      // Dispatch custom event for the canvas to pick up
       const event = new CustomEvent('elementresized', { 
         bubbles: true,
         detail: { id: element.id, height }
@@ -137,11 +122,8 @@ export const ElementRenderer = ({
     };
   }, [element.id, onHeightChange]);
 
-  // Add a new useEffect hook to reposition elements when they overlap
   useEffect(() => {
-    // This effect will run when an element is moved or resized
     if (!element.isFloating && elementRef.current) {
-      // Notify the canvas that an element has been moved or resized
       const event = new CustomEvent('elementmoved', { 
         bubbles: true,
         detail: { 
@@ -154,15 +136,13 @@ export const ElementRenderer = ({
     }
   }, [element.position, elementHeight, element.id, element.isFloating]);
 
-  // Handle element click to set focus
   const handleElementClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent canvas click handler from firing
+    e.stopPropagation();
     if (onFocus) {
       onFocus();
     }
   };
 
-  // Render the appropriate element type based on the type property
   const renderElement = () => {
     const contentWidth = canvasWidth - (horizontalPadding * 2);
     
@@ -219,9 +199,16 @@ export const ElementRenderer = ({
           />
         );
       case "signature":
+        const signatureContent = {
+          ...element.content,
+          signatureType: (element.content as any).signatureType || 'initials',
+          label: element.content.label || 'Signature',
+          initials: (element.content as any).initials || '',
+          imageData: element.content.imageData
+        };
         return (
           <SignatureElement 
-            content={element.content} 
+            content={signatureContent} 
             onChange={onContentChange}
             isPrintPreview={isPrintPreview}
           />
@@ -231,23 +218,19 @@ export const ElementRenderer = ({
     }
   };
 
-  // Define element container class based on active state and type
   const containerClassName = isPrintPreview
-    ? "relative" // Minimal styling for print preview
-    : `relative group ${
-        element.isFloating 
-          ? "border-2 border-dashed border-blue-300 bg-blue-50 p-1 rounded" // Reduced padding from p-2 to p-1
-          : isActive 
-          ? "p-1 bg-blue-50 border border-blue-300 rounded" // Reduced padding from p-2 to p-1
-          : "p-1 hover:bg-gray-50" // Reduced padding from p-2 to p-1
-      }`;
+    ? "relative"
+    : `relative group ${element.isFloating 
+        ? "border-2 border-dashed border-blue-300 bg-blue-50 rounded" 
+        : isActive 
+        ? "bg-blue-50 border border-blue-300 rounded" 
+        : "hover:bg-gray-50"}`;
 
-  // Adjust the minimum Y position for non-floating elements
   const adjustPositionForMargins = (position: Position): Position => {
     if (!element.isFloating) {
       return {
         x: position.x,
-        y: Math.max(position.y, topMargin) // Ensure Y is at least topMargin
+        y: Math.max(position.y, topMargin)
       };
     }
     return position;
@@ -256,25 +239,24 @@ export const ElementRenderer = ({
   return (
     <div
       ref={elementRef}
-      className={`absolute transition-opacity ${
-        element.isFloating ? "cursor-move" : ""
-      } ${isDragging ? "opacity-30" : "opacity-100"}`}
+      className={`absolute transition-all ${element.isFloating ? "cursor-move" : ""} ${isDragging ? "opacity-30" : "opacity-100"}`}
       style={{
         left: `${element.position.x}px`,
-        top: `${Math.max(element.position.y, element.isFloating ? 0 : topMargin)}px`, // Apply topMargin to regular elements
-        width: element.isFloating ? 
-          element.type === "signature" ? "350px" : "auto" : // Increased from 200px to 350px
-          `${canvasWidth - (horizontalPadding * 2)}px`,
+        top: `${Math.max(element.position.y, element.isFloating ? 0 : topMargin)}px`,
+        width: element.isFloating 
+          ? element.type === "signature" ? "300px" : "auto"
+          : `${canvasWidth - (horizontalPadding * 2)}px`,
         zIndex: isActive ? 5 : element.isFloating ? 10 : 1,
         transform: isDragging && !element.isFloating ? "translateY(-3px)" : "none",
         transition: "transform 0.2s, opacity 0.2s",
-        height: element.type === "signature" && element.isFloating ? "80px" : 'auto', // Set fixed height for signature
+        height: element.type === "signature" && element.isFloating 
+          ? isPrintPreview ? "80px" : "160px"
+          : 'auto',
       }}
       onMouseDown={element.isFloating ? handleMouseDown : undefined}
       onClick={handleElementClick}
     >
       <div className={containerClassName}>
-        {/* Only show in edit mode, not in print preview */}
         {!isPrintPreview && !element.isFloating && (
           <div 
             ref={(node) => {
@@ -289,11 +271,11 @@ export const ElementRenderer = ({
           </div>
         )}
         
-        <div className={isPrintPreview ? "" : "relative pl-2"}> {/* Reduce padding since handle is outside */}
+        <div className={isPrintPreview ? "" : "relative"}>
           {!isPrintPreview && (
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering element click
+                e.stopPropagation();
                 onDelete(element.id);
               }}
               className="absolute top-1/2 right-1 transform -translate-y-1/2 bg-transparent text-gray-400 hover:text-red-500 p-1.5 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity z-20"
