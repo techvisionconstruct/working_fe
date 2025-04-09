@@ -3,18 +3,57 @@
 import { Button } from "@/components/shared";
 import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useRouter } from "next/navigation";
+import Cookie from "js-cookie";
 
 export function GoogleButton({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const router = useRouter();
   const login = useGoogleLogin({
-    onSuccess: (codeResponse) => console.log(codeResponse),
-    onError: (error) => console.log("Login Failed:", error),
-    redirect_uri: "http://localhost:3000/",
+    onSuccess: async (tokenResponse) => {
+      setIsSubmitting(true);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const response = await fetch(
+          `${apiUrl}/api/accounts/auth/google/callback`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              token: tokenResponse.code,
+            }),
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          Cookie.set("auth-token", data.access, {
+            expires: 7,
+            secure: true,
+            sameSite: "strict",
+            path: "/",
+          });
+
+          router.push("/templates");
+        } else {
+          console.error("Login failed:", data.error);
+        }
+      } catch (error) {
+        console.error("Error occurred while logging in:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Login Failed:", error);
+    },
+    flow: "auth-code",
   });
 
   return (

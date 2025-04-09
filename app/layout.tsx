@@ -50,6 +50,7 @@ export default function RootLayout({
           clientId="
 567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com"
         >
+          {/* <GoogleOAuthProvider clientId="567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com"> */}
           {children}
         </GoogleOAuthProvider>
       </body>
