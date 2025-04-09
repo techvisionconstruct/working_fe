@@ -298,21 +298,60 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
   
   const styles = getElementStyles();
   
+  // Helper function to safely render HTML content
+  const renderHTML = (htmlContent: string) => {
+    return { __html: htmlContent };
+  };
+  
   // Render different element types
   switch (element.type) {
-    case 'header':
+    case 'header': {
+      // For headers, use appropriate heading level based on content.level
+      const level = element.content.level || 1;
+      // Define exact font sizes for each header level to match editor view exactly
+      const headerStyles = {
+        ...styles,
+        lineHeight: '1.5', // Increased line height for better spacing
+        fontWeight: 'bold',
+        marginTop: level === 1 ? '12px' : level === 2 ? '10px' : '8px',
+        marginBottom: level === 1 ? '12px' : level === 2 ? '10px' : '8px',
+        fontSize: level === 1 ? '24px' : level === 2 ? '20px' : '18px',
+        padding: '0', // Remove any default padding
+        display: 'block', // Ensure block display
+        width: '100%' // Full width
+      };
+      
+      // Render the appropriate heading based on level with consistent styling
       return (
-        <div style={styles}>
-          <h2>{element.content.text}</h2>
+        <div style={headerStyles}>
+          {element.content.text}
         </div>
       );
+    }
     
-    case 'text':
+    case 'text': {
+      // For text elements, render HTML content safely with consistent styling
+      const textStyles = {
+        ...styles,
+        margin: '0',
+        padding: '0',
+        lineHeight: '1.35', // Match the line height from the editor
+        minHeight: '22px' // Match the min-height from the editor
+      };
+      
+      // Check if content already has HTML tags
+      const hasHtmlTags = /<[a-z][\s\S]*>/i.test(element.content.text);
+      
       return (
-        <div style={styles}>
-          <p>{element.content.text}</p>
+        <div style={textStyles}>
+          {hasHtmlTags ? (
+            <div dangerouslySetInnerHTML={renderHTML(element.content.text)} />
+          ) : (
+            <div>{element.content.text}</div>
+          )}
         </div>
       );
+    }
     
     case 'bulletList':
       return (

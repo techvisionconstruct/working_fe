@@ -229,10 +229,10 @@ export const ElementRenderer = ({
     ? "relative" // Minimal styling for print preview
     : `relative group ${
         element.isFloating 
-          ? "border-2 border-dashed border-blue-300 bg-blue-50 p-2 rounded" 
+          ? "border-2 border-dashed border-blue-300 bg-blue-50 p-1 rounded" // Reduced padding from p-2 to p-1
           : isActive 
-          ? "p-2 bg-blue-50 border border-blue-300 rounded" 
-          : "p-2 hover:bg-gray-50"
+          ? "p-1 bg-blue-50 border border-blue-300 rounded" // Reduced padding from p-2 to p-1
+          : "p-1 hover:bg-gray-50" // Reduced padding from p-2 to p-1
       }`;
 
   // Adjust the minimum Y position for non-floating elements

@@ -38,8 +38,11 @@ export const ContractEditor = () => {
 
   // Memoize the page size handler to prevent recreating on each render
   const handlePageSizeChange = useCallback((size: PageSize) => {
-    setPageSize(size);
-  }, []);
+    // Only update if the size is actually different
+    if (size !== pageSize) {
+      setPageSize(size);
+    }
+  }, [pageSize]);
 
   // Memoize the element focus handler
   const handleElementFocus = useCallback((id: string | null) => {

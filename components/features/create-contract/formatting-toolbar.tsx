@@ -25,10 +25,14 @@ export const FormattingToolbar = ({
   const toggleFormatting = (property: keyof TextFormatting) => {
     if (isDisabled) return;
     
+    // Create a new formatting object with the toggled property
     const newFormatting = { ...formatting };
-    if (typeof newFormatting[property] === "boolean") {
-      newFormatting[property] = !newFormatting[property] as any;
+    
+    // Toggle the boolean value, making sure it's always a boolean (true/false) rather than true/undefined
+    if (property === 'bold' || property === 'italic' || property === 'underline') {
+      newFormatting[property] = !newFormatting[property];
     }
+    
     onFormattingChange(newFormatting);
   };
   

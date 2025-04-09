@@ -11,6 +11,8 @@ interface RichTextEditorProps {
   onFormattingChange?: (formatting: TextFormatting) => void;
   placeholder?: string;
   multiline?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const RichTextEditor = ({
@@ -20,6 +22,8 @@ export const RichTextEditor = ({
   onFormattingChange,
   placeholder = "Type something...",
   multiline = true,
+  onFocus,
+  onBlur,
 }: RichTextEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -47,6 +51,20 @@ export const RichTextEditor = ({
       adjustTextareaHeight();
     }
   }, [value, multiline, adjustTextareaHeight, formatting]);
+  
+  // Adjust height on window resize to handle width changes
+  useEffect(() => {
+    const handleResize = () => {
+      if (multiline) {
+        adjustTextareaHeight();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [multiline, adjustTextareaHeight]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     onChange(e.target.value);
@@ -78,6 +96,7 @@ export const RichTextEditor = ({
     textDecoration: formatting.underline ? "underline" : "none",
     color: formatting.color || "#000000",
     fontSize: `${formatting.fontSize || 16}px`,
+    lineHeight: "1.35", // Make consistent with TipTap editor
   };
 
   // Handle alignment separately to ensure it works properly
@@ -87,6 +106,19 @@ export const RichTextEditor = ({
     textStyle.textAlign = formatting.textAlign;
   }
   
+  // Handle focus and blur events
+  const handleFocus = (e: React.FocusEvent) => {
+    if (onFocus) {
+      onFocus();
+    }
+  };
+  
+  const handleBlur = (e: React.FocusEvent) => {
+    if (onBlur) {
+      onBlur();
+    }
+  };
+  
   return (
     <div className="relative w-full">
       {multiline ? (
@@ -95,15 +127,18 @@ export const RichTextEditor = ({
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
-          className="w-full min-h-[80px] border-transparent focus:border-blue-300 p-2"
+          className="w-full min-h-[22px] border-transparent focus:border-blue-300 focus:ring-1 focus:ring-blue-300 p-1"
           style={{
             ...textStyle,
             width: "100%",
             overflow: "hidden", // Prevent scrollbar
             resize: "none",     // Disable manual resizing
+            padding: "2px 4px", // Consistent with TipTap
           }}
           onInput={adjustTextareaHeight}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       ) : (
         <Input
@@ -111,12 +146,15 @@ export const RichTextEditor = ({
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
-          className="w-full border-transparent focus:border-blue-300"
+          className="w-full border-transparent focus:border-blue-300 focus:ring-1 focus:ring-blue-300"
           style={{
             ...textStyle,
-            width: "100%"
+            width: "100%",
+            padding: "2px 4px" // Consistent with TipTap
           }}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       )}
     </div>

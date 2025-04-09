@@ -33,6 +33,9 @@ interface CanvasProps {
   onElementFocus?: (elementId: string | null) => void;
 }
 
+// Local storage key for saving element positions
+const ELEMENTS_STORAGE_KEY = "contract_canvas_elements";
+
 export const Canvas = ({ 
   pageSize,
   pageMargins,
@@ -45,22 +48,50 @@ export const Canvas = ({
   const [localElements, setLocalElements] = useState<Element[]>([]);
   
   // Determine which elements state to use
-  const elements = externalElements || localElements;
-  const setElements = useCallback((newElementsOrFn: Element[] | ((prev: Element[]) => Element[])) => {
-    // If external elements handler is provided, use it
-    if (onElementsChange) {
-      if (typeof newElementsOrFn === 'function') {
-        const updatedElements = newElementsOrFn(externalElements || []);
-        onElementsChange(updatedElements);
+  const elements = externalElements !== undefined ? externalElements : localElements;
+  const setElements = useCallback((newElements: Element[] | ((prev: Element[]) => Element[])) => {
+    if (onElementsChange && externalElements !== undefined) {
+      if (typeof newElements === 'function') {
+        onElementsChange(newElements(externalElements));
       } else {
-        onElementsChange(newElementsOrFn);
+        onElementsChange(newElements);
       }
     } else {
-      // Otherwise use local state
-      setLocalElements(newElementsOrFn);
+      if (typeof newElements === 'function') {
+        setLocalElements(prev => {
+          const updated = newElements(prev);
+          // Save to local storage whenever elements are updated
+          localStorage.setItem(ELEMENTS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      } else {
+        setLocalElements(newElements);
+        // Save to local storage whenever elements are updated
+        localStorage.setItem(ELEMENTS_STORAGE_KEY, JSON.stringify(newElements));
+      }
     }
   }, [externalElements, onElementsChange]);
 
+  // Load elements from local storage on component mount
+  useEffect(() => {
+    // Only load from local storage if not using external elements
+    if (externalElements === undefined) {
+      const savedElements = localStorage.getItem(ELEMENTS_STORAGE_KEY);
+      if (savedElements) {
+        try {
+          const parsed = JSON.parse(savedElements);
+          setLocalElements(parsed);
+        } catch (error) {
+          console.error("Failed to parse saved elements:", error);
+        }
+      }
+    }
+  }, [externalElements]);
+
+  // Canvas ref for drop calculations
+  const canvasRef = useRef<HTMLDivElement>(null);
+  
+  // Track preview during drag
   const [dropPreview, setDropPreview] = useState<{
     position: Position;
     type: string;
@@ -69,60 +100,127 @@ export const Canvas = ({
     label?: string;
   } | null>(null);
   
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const { width, height: pageHeight } = getPageDimensions(pageSize);
-  const rowHeight = 50; // Height of each row for snapping
-  const horizontalPadding = pageMargins.left; // Use marginLeft from pageMargins instead of fixed horizontal padding
-  
-  // Element height cache to store actual rendered heights
+  // State to track the height of each element
   const [elementHeights, setElementHeights] = useState<Record<string, number>>({});
+  
+  // Show print preview modal
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  
+  // Get page dimensions based on page size
+  const { width, height: pageHeight } = getPageDimensions(pageSize);
+  
+  // Define standard row height and horizontal padding
+  const rowHeight = 40;
+  const horizontalPadding = 40;
 
-  // Update elementHeights when elements change their size
-  const updateElementHeight = useCallback((id: string, height: number) => {
+  // Update element height in the cache
+  const handleElementHeightChange = useCallback((id: string, height: number) => {
     setElementHeights(prev => ({
       ...prev,
       [id]: height
     }));
   }, []);
-
-  // Listen for element resize events
-  useEffect(() => {
-    const handleElementResize = (e: CustomEvent) => {
-      if (e.detail && e.detail.id && e.detail.height) {
-        updateElementHeight(e.detail.id, e.detail.height);
-      }
-    };
+  
+  // Get the height of an element from the cache or estimate it
+  const getElementHeight = useCallback((element: Element | string) => {
+    const elementId = typeof element === 'string' ? element : element.id;
+    const elementObj = typeof element === 'string' ? elements.find(e => e.id === element) : element;
     
-    // Cast to EventListener to handle custom event
-    document.addEventListener('elementresized', handleElementResize as EventListener);
+    if (elementHeights[elementId]) {
+      return elementHeights[elementId];
+    }
     
-    return () => {
-      document.removeEventListener('elementresized', handleElementResize as EventListener);
-    };
-  }, [updateElementHeight]);
+    if (!elementObj) return rowHeight;
+    
+    // Provide fallback heights based on element type
+    switch(elementObj.type) {
+      case 'header':
+        return elementObj.content.level === 1 ? 60 : (elementObj.content.level === 2 ? 50 : 40);
+      case 'text':
+        // Estimate based on text length
+        const textLength = elementObj.content.text.length;
+        const estimatedLines = Math.max(1, Math.ceil(textLength / 80));
+        return estimatedLines * 24 + 20; // Add padding
+      case 'bulletList':
+      case 'numberList':
+        return elementObj.content.items.length * 30;
+      case 'table':
+        return elementObj.content.rows * 40;
+      case 'signature':
+        return 80;
+      default:
+        return rowHeight;
+    }
+  }, [elementHeights, rowHeight, elements]);
 
-  // Add to your existing useEffect hook or create a new one
+  // Find the next available position to place a new element (avoiding overlaps)
+  const findNextAvailablePosition = useCallback((type: string, isFloating?: boolean) => {
+    if (isFloating) {
+      // For floating elements, return a position in the center that's within canvas bounds
+      return {
+        x: Math.min(Math.max(width / 2 - 75, pageMargins.left), width - pageMargins.right - 350),
+        y: Math.min(Math.max(pageHeight / 2, pageMargins.top), pageHeight - pageMargins.bottom - 80)
+      };
+    }
+    
+    // For regular elements, find the next available row
+    if (elements.length === 0) {
+      return { x: horizontalPadding, y: pageMargins.top }; // Add top margin to the initial Y position
+    }
+    
+    // Find the lowest y position (bottom of the canvas content)
+    const regularElements = elements.filter(el => !el.isFloating);
+    if (regularElements.length === 0) {
+      return { x: horizontalPadding, y: pageMargins.top }; // Add top margin to the initial Y position
+    }
+    
+    // Organize elements by vertical position
+    const sortedElements = [...regularElements].sort((a, b) => 
+      a.position.y - b.position.y
+    );
+    
+    // Find the highest Y position + height
+    let highestY = 0;
+    for (const el of sortedElements) {
+      const elHeight = getElementHeight(el);
+      const elBottom = el.position.y + elHeight;
+      highestY = Math.max(highestY, elBottom);
+    }
+    
+    // Add minimal spacing
+    return { 
+      x: horizontalPadding,
+      y: highestY + 5  // Reduced from 10px to 5px spacing between elements for more compact layout
+    };
+  }, [elements, horizontalPadding, pageMargins.top, getElementHeight, width, pageHeight, pageMargins]);
+
+  // Handle element move events (triggered from ElementRenderer)
   useEffect(() => {
     const handleElementMoved = (e: CustomEvent) => {
       const { id, position, height } = e.detail;
       
-      // First find the moved element
-      const movedElement = elements.find(el => el.id === id);
-      if (!movedElement || movedElement.isFloating) return;
-      
-      // Find all elements that need to be moved down/up to avoid overlap
-      const elementsToAdjust = elements.filter(el => 
-        !el.isFloating && 
-        el.id !== id && 
-        el.position.y > position.y && 
-        el.position.y < position.y + height
-      );
-      
-      if (elementsToAdjust.length > 0) {
-        // Create a new array of elements with adjusted positions
+      if (id && position && height) {
+        // Create a copy of the elements array to work with
         const newElements = [...elements];
         
-        // Loop through elements needing adjustment and move them below the moved element
+        // Find the element that was moved
+        const movedElementIndex = newElements.findIndex(el => el.id === id);
+        if (movedElementIndex === -1) return; // Element not found
+        
+        const movedElement = newElements[movedElementIndex];
+        
+        // Skip if floating element (they're handled differently)
+        if (movedElement.isFloating) return;
+        
+        // Find elements that need to be repositioned to avoid overlap
+        const elementsToAdjust = newElements.filter(el => 
+          el.id !== id && 
+          !el.isFloating && 
+          el.position.y >= position.y && 
+          el.position.y < position.y + height
+        );
+        
+        // Adjust positions for affected elements
         elementsToAdjust.forEach(el => {
           const index = newElements.findIndex(item => item.id === el.id);
           if (index !== -1) {
@@ -189,380 +287,44 @@ export const Canvas = ({
     }
   }, [onElementFocus, setElements]);
 
-  // Get element height from cache or estimate
-  const getElementHeight = useCallback((elementOrId: Element | string): number => {
-    // If we received an id instead of an element
-    if (typeof elementOrId === 'string') {
-      const id = elementOrId;
-      // If we have cached height, use it
-      if (elementHeights[id]) {
-        return elementHeights[id];
-      }
-      
-      // Find the element by id
-      const element = elements.find(el => el.id === id);
-      if (!element) return rowHeight; // Default value if element not found
-      
-      elementOrId = element;
-    }
-    
-    // Now we have the element object
-    const element = elementOrId;
-    
-    // If we have cached height, use it
-    if (elementHeights[element.id]) {
-      return elementHeights[element.id];
-    }
-    
-    // Otherwise, use estimates
-    switch (element.type) {
-      case 'header':
-        return rowHeight;
-      case 'text':
-        // Estimate based on text length
-        const textLength = element.content.text.length;
-        const estimatedLines = Math.max(1, Math.ceil(textLength / 80));
-        return estimatedLines * 24 + 20; // Add padding
-      case 'bulletList':
-      case 'numberList':
-        return element.content.items.length * 30;
-      case 'table':
-        return element.content.rows * 40;
-      case 'signature':
-        return 80;
-      default:
-        return rowHeight;
-    }
-  }, [elementHeights, rowHeight, elements]);
-
-  // Find the next available position to place a new element (avoiding overlaps)
-  const findNextAvailablePosition = useCallback((type: string, isFloating?: boolean) => {
-    if (isFloating) {
-      // For floating elements, return a position in the center
-      return {
-        x: width / 2 - 75,
-        y: Math.min(pageHeight / 2, 200)
-      };
-    }
-    
-    // For regular elements, find the next available row
-    if (elements.length === 0) {
-      return { x: horizontalPadding, y: pageMargins.top }; // Add top margin to the initial Y position
-    }
-    
-    // Find the lowest y position (bottom of the canvas content)
-    const regularElements = elements.filter(el => !el.isFloating);
-    if (regularElements.length === 0) {
-      return { x: horizontalPadding, y: pageMargins.top }; // Add top margin to the initial Y position
-    }
-    
-    // Organize elements by vertical position
-    const sortedElements = [...regularElements].sort((a, b) => 
-      a.position.y - b.position.y
-    );
-    
-    // Find the highest Y position + height
-    let highestY = 0;
-    for (const el of sortedElements) {
-      const elHeight = getElementHeight(el);
-      const elBottom = el.position.y + elHeight;
-      highestY = Math.max(highestY, elBottom);
-    }
-    
-    // Add some spacing
-    const nextY = highestY + 10;
-    
-    // Snap to row grid
-    const snappedY = Math.ceil(nextY / rowHeight) * rowHeight;
-    
-    // Check if we're beyond page bounds
-    if (snappedY >= pageHeight - 100) {
-      // If we're near the page bounds, find the first element that extends beyond the page
-      // and position the new element at the same y as that element
-      const lastVisibleElement = sortedElements.find(el => 
-        el.position.y + getElementHeight(el) > pageHeight - 100
-      );
-      
-      // If no such element, place at the top
-      return { 
-        x: horizontalPadding, 
-        y: lastVisibleElement ? lastVisibleElement.position.y : pageMargins.top // Add top margin to the initial Y position
-      };
-    }
-    
-    return { x: horizontalPadding, y: snappedY };
-  }, [elements, width, pageHeight, horizontalPadding, rowHeight, getElementHeight, pageMargins.top]);
-
-  // Modify the reorderElements function to allow for more flexible positioning
-  const reorderElements = useCallback((draggedId: string, newY: number) => {
-    // First, separate the element being moved from the rest
-    const draggedElement = elements.find(el => el.id === draggedId);
-    if (!draggedElement || draggedElement.isFloating) return;
-  
-    // Separate floating and regular elements
-    const floatingElements = elements.filter(el => el.isFloating);
-    const regularElements = elements.filter(el => !el.isFloating && el.id !== draggedId);
-    
-    // Create a copy with the dragged element at the exact position user dropped it
-    const updatedDraggedElement = {
-      ...draggedElement,
-      position: {
-        ...draggedElement.position,
-        x: horizontalPadding,
-        y: newY  // Use the exact Y position where the user dropped it
-      }
-    };
-    
-    // Add the dragged element back to the array
-    const newElements = [...regularElements, updatedDraggedElement];
-    
-    // Only adjust elements that would overlap
-    const draggedHeight = getElementHeight(updatedDraggedElement);
-    const elementsToAdjust = newElements.filter(el => 
-      el.id !== draggedId && 
-      !el.isFloating &&
-      el.position.y > newY && 
-      el.position.y < newY + draggedHeight
-    );
-    
-    // If there are overlapping elements, adjust them
-    if (elementsToAdjust.length > 0) {
-      elementsToAdjust.forEach(el => {
-        const idx = newElements.findIndex(e => e.id === el.id);
-        if (idx !== -1) {
-          newElements[idx] = {
-            ...el,
-            position: {
-              ...el.position,
-              y: newY + draggedHeight + 10 // Position below the dragged element
-            }
-          };
-        }
-      });
-    }
-    
-    // Set the new state with updated elements plus floating elements
-    setElements([...newElements, ...floatingElements]);
-  }, [elements, horizontalPadding, getElementHeight, setElements]);
-
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ["ELEMENT", "FLOATING_ELEMENT", "MOVE_ELEMENT", "MOVE_FLOATING_ELEMENT"],
-    
-    hover: (item: DragItem, monitor) => {
-      if (!canvasRef.current) return;
-      
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const clientOffset = monitor.getClientOffset();
-      
-      if (!clientOffset) return;
-      
-      // Account for the canvas scaling (0.75) when calculating positions
-      const scaleCompensation = 1 / 0.75; // Inverse of scale to compensate
-      
-      // Calculate position relative to the scaled canvas
-      const position: Position = {
-        x: (clientOffset.x - canvasRect.left) * scaleCompensation,
-        y: (clientOffset.y - canvasRect.top) * scaleCompensation,
-      };
-      
-      // For regular elements, snap to rows but keep exact cursor position for preview
-      if (!item.isFloating) {
-        position.x = horizontalPadding;
-        // Store exact position for preview but we'll snap when actually dropping
-      }
-      
-      // Make sure we don't update too frequently to avoid performance issues
-      // Use debounced updates for smoother performance
-      setDropPreview({
-        position,
-        type: item.type,
-        isFloating: item.isFloating,
-        icon: item.preview?.icon,
-        label: item.preview?.label
-      });
-    },
-    
-    drop: (item: DragItem, monitor) => {
-      setDropPreview(null); // Clear preview when dropped
-      
-      const canvasRect = canvasRef.current?.getBoundingClientRect();
-      if (!canvasRect) return;
-
-      const dropOffset = monitor.getClientOffset();
-      if (!dropOffset) return;
-
-      // Compensate for the canvas scaling
-      const scaleCompensation = 1 / 0.75;
-      
-      let position: Position = {
-        x: (dropOffset.x - canvasRect.left) * scaleCompensation,
-        y: (dropOffset.y - canvasRect.top) * scaleCompensation,
-      };
-
-      // Allow elements to be placed as far down as needed, but at least at top margin
-      position.y = Math.max(pageMargins.top, position.y);
-
-      // CASE 1: Moving an existing element (item.isMoving is true)
-      if (item.isMoving && item.id) {
-        console.log("Moving existing element:", item.id, "to position:", position);
-        
-        if (item.isFloating) {
-          // For floating elements (signatures), keep them within the visible area
-          updateElementPosition(item.id, {
-            x: Math.max(0, Math.min(position.x, width - 350)),
-            y: Math.max(pageMargins.top, position.y)
-          });
-        } else {
-          // For regular elements, snap to row grid
-          const snappedY = Math.floor(position.y / rowHeight) * rowHeight;
-          // Allow positioning anywhere in the document
-          reorderElements(item.id, snappedY);
-        }
-      } 
-      // CASE 2: Adding a new element from the toolbar
-      else {
-        console.log("Adding new element of type:", item.type);
-        
-        if (!item.isFloating) {
-          // For regular elements, use exact drop position but snap to grid
-          position.y = Math.floor(position.y / rowHeight) * rowHeight;
-          position.x = horizontalPadding;
-        }
-        createNewElement(item.type, position, item.isFloating);
-      }
-      
-      return { id: item.id }; // Return a result to indicate successful drop
-    },
-    
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop(),
-    }),
-  }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, horizontalPadding, pageMargins.top]);
-
-  // Clear preview when not hovering
-  useEffect(() => {
-    if (!isOver) {
-      setDropPreview(null);
-    }
-  }, [isOver]);
-
-  const createNewElement = useCallback((type: string, position: Position, isFloating?: boolean) => {
-    let newElement: Element;
-    const id = uuidv4();
-
-    // Default formatting based on element type
-    const defaultFormatting: TextFormatting = 
-      type === 'header' ? { fontSize: 24, bold: true } :
-      type === 'text' ? { fontSize: 16 } :
-      type === 'bulletList' ? { fontSize: 16 } :
-      type === 'numberList' ? { fontSize: 16 } :
-      type === 'table' ? { fontSize: 14 } :
-      { fontSize: 16 };
-
-    switch (type) {
-      case "header":
-        newElement = {
-          id,
-          type: "header",
-          position,
-          content: { text: "New Header", level: 1 },
-          formatting: defaultFormatting
-        };
-        break;
-      case "text":
-        newElement = {
-          id,
-          type: "text",
-          position,
-          content: { text: "New text block" },
-          formatting: defaultFormatting
-        };
-        break;
-      case "bulletList":
-        newElement = {
-          id,
-          type: "bulletList",
-          position,
-          content: { items: [{ id: uuidv4(), text: "Item 1" }] },
-          formatting: defaultFormatting
-        };
-        break;
-      case "numberList":
-        newElement = {
-          id,
-          type: "numberList",
-          position,
-          content: { items: [{ id: uuidv4(), text: "Item 1" }] },
-          formatting: defaultFormatting
-        };
-        break;
-      case "table":
-        newElement = {
-          id,
-          type: "table",
-          position,
-          content: { rows: 2, cols: 2, data: [["", ""], ["", ""]] },
-          formatting: defaultFormatting
-        };
-        break;
-      case "signature":
-        newElement = {
-          id,
-          type: "signature",
-          position,
-          isFloating: true,
-          content: { label: "Signature" }
-          // No formatting for signature
-        };
-        break;
-      case "columnLayout":
-        newElement = {
-          id,
-          type: "columnLayout",
-          position,
-          content: { 
-            columns: [
-              { id: `col-${Date.now()}-1`, width: 50, elements: [] },
-              { id: `col-${Date.now()}-2`, width: 50, elements: [] }
-            ] 
-          },
-          formatting: defaultFormatting
-        };
-        break;
-      default:
-        return;
-    }
-
-    setElements(prev => [...prev, newElement]);
-    
-    // Focus the new element
-    if (onElementFocus) {
-      onElementFocus(id);
-    }
-  }, [onElementFocus, setElements]);
-
-  // Update the updateElementPosition function to handle signatures specially
-
-const updateElementPosition = useCallback((id: string, position: Position) => {
-  setElements(prev =>
-    prev.map(el => {
+  // Update element position
+  const updateElementPosition = useCallback((id: string, position: Position) => {
+    setElements(prev => prev.map(el => {
       if (el.id === id) {
-        // For signature elements, only update position, don't allow resizing
-        if (el.type === 'signature' && el.isFloating) {
+        // For floating elements, ensure they stay within canvas boundaries
+        if (el.isFloating) {
+          // Calculate the element's width and height
+          const elWidth = el.type === "signature" ? 350 : 200;
+          const elHeight = getElementHeight(el);
+          
+          // Constrain position to canvas margins
+          const constrainedX = Math.max(
+            pageMargins.left, 
+            Math.min(position.x, width - pageMargins.right - elWidth)
+          );
+          
+          const constrainedY = Math.max(
+            pageMargins.top, 
+            Math.min(position.y, pageHeight - pageMargins.bottom - elHeight)
+          );
+          
           return { 
             ...el, 
-            position, 
-            // Ensure signature maintains fixed dimensions (no resize during move)
+            position: { 
+              x: constrainedX, 
+              y: constrainedY
+            } 
           };
         }
+        
+        // For regular elements, just update the position
         return { ...el, position };
       }
       return el;
-    })
-  );
-}, [setElements]);
+    }));
+  }, [setElements, getElementHeight, width, pageHeight, pageMargins]);
 
+  // Update element content
   const updateElementContent = useCallback((id: string, content: any) => {
     setElements(prev =>
       prev.map(el => (el.id === id ? { ...el, content } : el))
@@ -623,190 +385,394 @@ const updateElementPosition = useCallback((id: string, position: Position) => {
     }
   };
 
-  // Improve the handleDrop function
-  const handleDrop = useCallback((item: DragItem, monitor: any) => {
-    if (!monitor.didDrop() && canvasRef.current) {
-      // Get the mouse position relative to the canvas
-      const dropOffset = monitor.getClientOffset();
-      if (!dropOffset) return;
+  // Improved reorderElements function to handle overlapping elements properly
+  const reorderElements = useCallback((draggedId: string, newY: number) => {
+    // First, separate the element being moved from the rest
+    const draggedElement = elements.find(el => el.id === draggedId);
+    if (!draggedElement || draggedElement.isFloating) return;
+  
+    // Separate floating and regular elements
+    const floatingElements = elements.filter(el => el.isFloating);
+    const regularElements = elements.filter(el => !el.isFloating && el.id !== draggedId);
+    
+    // Create a copy with the dragged element at the exact position user dropped it
+    const updatedDraggedElement = {
+      ...draggedElement,
+      position: {
+        ...draggedElement.position,
+        x: horizontalPadding,
+        y: Math.max(newY, pageMargins.top)  // Ensure it's not above the top margin
+      }
+    };
+    
+    // Sort regular elements by vertical position for sequential processing
+    const sortedElements = [...regularElements].sort((a, b) => a.position.y - b.position.y);
+    
+    // Add the dragged element to the sorted array
+    const newElements = [...sortedElements];
+    
+    // Get the height of the dragged element
+    const draggedHeight = getElementHeight(updatedDraggedElement);
+    
+    // Find elements that would be overlapped by the dragged element
+    const overlappedElements = sortedElements.filter(el => 
+      !el.isFloating && 
+      ((el.position.y >= newY && el.position.y < newY + draggedHeight) ||
+       (newY >= el.position.y && newY < el.position.y + getElementHeight(el)))
+    );
+    
+    // If there are overlapping elements, shift them down
+    if (overlappedElements.length > 0) {
+      // Element is being dropped in a position that would cause overlap
+      // Find all elements that need to be moved down
+      const elementsToShift = sortedElements.filter(el => 
+        el.position.y >= overlappedElements[0].position.y && el.id !== draggedId
+      );
       
-      // Get canvas position
+      // Update positions for all elements that need to shift
+      elementsToShift.forEach(el => {
+        const idx = newElements.findIndex(e => e.id === el.id);
+        if (idx !== -1) {
+          newElements[idx] = {
+            ...el,
+            position: {
+              ...el.position,
+              y: newY + draggedHeight + 5 // Reduced from 10px to 5px for more compact layout
+            }
+          };
+        }
+      });
+    }
+    
+    // Add the dragged element to the new elements array
+    newElements.push(updatedDraggedElement);
+    
+    // Set the new state with updated elements plus floating elements
+    setElements([...newElements, ...floatingElements]);
+  }, [elements, horizontalPadding, getElementHeight, setElements, pageMargins.top]);
+
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ["ELEMENT", "FLOATING_ELEMENT", "MOVE_ELEMENT", "MOVE_FLOATING_ELEMENT"],
+    
+    hover: (item: DragItem, monitor) => {
+      if (!canvasRef.current) return;
+      
       const canvasRect = canvasRef.current.getBoundingClientRect();
+      const clientOffset = monitor.getClientOffset();
       
-      // Calculate the drop position within the canvas
-      const dropPositionInCanvas = {
-        x: dropOffset.x - canvasRect.left,
-        y: dropOffset.y - canvasRect.top
+      if (!clientOffset) return;
+      
+      // Account for the canvas scaling (0.75) when calculating positions
+      const scaleCompensation = 1 / 0.75; // Inverse of scale to compensate
+      
+      // Calculate position relative to the scaled canvas
+      const position: Position = {
+        x: (clientOffset.x - canvasRect.left) * scaleCompensation,
+        y: (clientOffset.y - canvasRect.top) * scaleCompensation,
       };
       
-      // If this is an existing element being moved
-      if (item.id && item.isMoving) {
-        // Find the exact row where the drop happened
-        const rowIndex = Math.floor(dropPositionInCanvas.y / rowHeight);
-        const exactY = rowIndex * rowHeight;
+      // For regular elements, snap to rows but keep exact cursor position for preview
+      if (!item.isFloating) {
+        position.x = horizontalPadding;
+        // Enforce top margin constraint
+        position.y = Math.max(position.y, pageMargins.top);
+      } else {
+        // Constrain floating elements within page margins
+        const elWidth = item.type === "signature" ? 350 : 200;
+        const elHeight = 80; // Default height for floating elements
         
-        // Update element position
-        const updatedElements = elements.map(el => 
-          el.id === item.id 
-            ? { 
-                ...el, 
-                position: { 
-                  x: horizontalPadding, 
-                  y: exactY
-                } 
-              }
-            : el
+        position.x = Math.max(
+          pageMargins.left, 
+          Math.min(position.x, width - pageMargins.right - elWidth)
         );
-        
-        // Reposition any overlapping elements
-        const droppedElement = updatedElements.find(el => el.id === item.id);
-        if (droppedElement && !droppedElement.isFloating) {
-          const height = getElementHeight(droppedElement); // Now passing Element instead of string
-          
-          // Find elements that would overlap
-          const overlappingElements = updatedElements.filter(el => 
-            !el.isFloating &&
-            el.id !== item.id &&
-            el.position.y >= exactY &&
-            el.position.y < exactY + height
-          );
-          
-          // Reposition overlapping elements
-          if (overlappingElements.length > 0) {
-            overlappingElements.forEach(el => {
-              const idx = updatedElements.findIndex(e => e.id === el.id);
-              if (idx !== -1) {
-                updatedElements[idx] = {
-                  ...el,
-                  position: {
-                    ...el.position,
-                    y: exactY + height + 10 // Add margin
-                  }
-                };
-              }
-            });
-          }
-        }
-        
-        if (onElementsChange) {
-          onElementsChange(updatedElements);
-        } else {
-          setLocalElements(updatedElements);
-        }
+        position.y = Math.max(
+          pageMargins.top, 
+          Math.min(position.y, pageHeight - pageMargins.bottom - elHeight)
+        );
       }
-      // For new elements being created, similar logic...
-    }
-  }, [elements, onElementsChange, setLocalElements, horizontalPadding, rowHeight, getElementHeight]);
-
-  // Add or update the visualization for where an element will be dropped
-  const renderDropIndicator = () => {
-    if (isOver && canDrop && dropPreview) {
-      const rowIndex = Math.floor(dropPreview.position.y / rowHeight);
-      const indicatorY = rowIndex * rowHeight;
       
-      return (
-        <div 
-          className="absolute left-0 right-0 bg-blue-100 border border-blue-300"
-          style={{
-            top: `${indicatorY}px`,
-            height: `${rowHeight}px`,
-            zIndex: 0,
-            pointerEvents: 'none',
-            transition: 'all 0.15s ease-out',
-            boxShadow: 'inset 0 0 5px rgba(59, 130, 246, 0.3)'
-          }}
-        />
-      );
-    }
-    return null;
-  };
+      // Make sure we don't update too frequently to avoid performance issues
+      // Use debounced updates for smoother performance
+      setDropPreview({
+        position,
+        type: item.type,
+        isFloating: item.isFloating,
+        icon: item.preview?.icon,
+        label: item.preview?.label
+      });
+    },
+    
+    drop: (item: DragItem, monitor) => {
+      setDropPreview(null); // Clear preview when dropped
+      
+      const canvasRect = canvasRef.current?.getBoundingClientRect();
+      if (!canvasRect) return;
 
-  // Add a state variable for showing the print preview
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
+      const dropOffset = monitor.getClientOffset();
+      if (!dropOffset) return;
+
+      // Compensate for the canvas scaling
+      const scaleCompensation = 1 / 0.75;
+      
+      let position: Position = {
+        x: (dropOffset.x - canvasRect.left) * scaleCompensation,
+        y: (dropOffset.y - canvasRect.top) * scaleCompensation,
+      };
+
+      // Ensure position is within the canvas margins
+      position.y = Math.max(pageMargins.top, position.y);
+      position.x = Math.max(pageMargins.left, position.x);
+
+      // CASE 1: Moving an existing element (item.isMoving is true)
+      if (item.isMoving && item.id) {
+        console.log("Moving existing element:", item.id, "to position:", position);
+        
+        if (item.isFloating) {
+          // For floating elements (signatures), keep them within the visible area
+          updateElementPosition(item.id, {
+            x: Math.max(pageMargins.left, Math.min(position.x, width - pageMargins.right - 350)),
+            y: Math.max(pageMargins.top, Math.min(position.y, pageHeight - pageMargins.bottom - 80))
+          });
+        } else {
+          // For regular elements, snap to row grid
+          const snappedY = Math.floor(position.y / rowHeight) * rowHeight;
+          // Ensure it's at least at the top margin
+          const finalY = Math.max(snappedY, pageMargins.top);
+          
+          // Re-order elements to handle overlap
+          reorderElements(item.id, finalY);
+        }
+      } 
+      // CASE 2: Adding a new element from the toolbar
+      else {
+        console.log("Adding new element of type:", item.type);
+        
+        if (!item.isFloating) {
+          // For regular elements, use next available position without overlap
+          const snappedY = Math.floor(position.y / rowHeight) * rowHeight;
+          position = { 
+            x: horizontalPadding, 
+            y: Math.max(snappedY, pageMargins.top)
+          };
+          
+          // Find any overlapping elements at this position
+          const overlappingElements = elements.filter(el => {
+            if (el.isFloating) return false; // Ignore floating elements
+            
+            // Check if the new element would overlap with this one
+            const elHeight = getElementHeight(el);
+            return (position.y >= el.position.y && position.y < el.position.y + elHeight) ||
+                   (el.position.y >= position.y && el.position.y < position.y + rowHeight);
+          });
+          
+          // If there's an overlap, find the next available position
+          if (overlappingElements.length > 0) {
+            position = findNextAvailablePosition(item.type, item.isFloating);
+          }
+        } else {
+          // For floating elements (signatures), constrain within bounds
+          const elWidth = item.type === "signature" ? 350 : 200;
+          position = {
+            x: Math.min(position.x, width - pageMargins.right - elWidth),
+            y: Math.min(position.y, pageHeight - pageMargins.bottom - 80)
+          };
+        }
+        
+        // Create new element at the determined position
+        createNewElement(item.type, position, item.isFloating);
+      }
+      
+      return { id: item.id }; // Return a result to indicate successful drop
+    },
+    
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
+    }),
+  }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, 
+       horizontalPadding, pageMargins, updateElementPosition, getElementHeight]);
+
+  // Clear preview when not hovering
+  useEffect(() => {
+    if (!isOver) {
+      setDropPreview(null);
+    }
+  }, [isOver]);
+
+  const createNewElement = useCallback((type: string, position: Position, isFloating?: boolean) => {
+    let newElement: Element;
+    const id = uuidv4();
+
+    // Default formatting based on element type
+    const defaultFormatting: TextFormatting = {
+      fontSize: type === 'header' ? 24 : 16,
+      alignment: 'left',
+    };
+
+    switch (type) {
+      case "header":
+        newElement = {
+          id,
+          type: "header",
+          position,
+          content: {
+            text: "New Header",
+            level: 1
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      case "text":
+        newElement = {
+          id,
+          type: "text",
+          position,
+          content: {
+            text: ""
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      case "bulletList":
+        newElement = {
+          id,
+          type: "bulletList",
+          position,
+          content: {
+            items: [{ id: uuidv4(), text: "List item 1" }]
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      case "numberList":
+        newElement = {
+          id,
+          type: "numberList",
+          position,
+          content: {
+            items: [{ id: uuidv4(), text: "List item 1" }]
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      case "table":
+        newElement = {
+          id,
+          type: "table",
+          position,
+          content: {
+            rows: 3,
+            cols: 3,
+            data: Array(3).fill(Array(3).fill(""))
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      case "signature":
+        newElement = {
+          id,
+          type: "signature",
+          position,
+          isFloating: true,
+          content: {
+            label: "Signature"
+          },
+          formatting: defaultFormatting,
+        };
+        break;
+      default:
+        return; // Unknown element type
+    }
+
+    setElements(prev => [...prev, newElement]);
+    
+    // Auto-focus newly created element
+    if (onElementFocus) {
+      setTimeout(() => onElementFocus(id), 100);
+    }
+  }, [setElements, onElementFocus]);
+
+  // Get the rendered elements ordered by vertical position
+  const renderedElements = [...elements].sort((a, b) => {
+    // Sort by vertical position for non-floating elements
+    if (!a.isFloating && !b.isFloating) {
+      return a.position.y - b.position.y;
+    }
+    // Floating elements come last
+    if (a.isFloating && !b.isFloating) return 1;
+    if (!a.isFloating && b.isFloating) return -1;
+    return 0;
+  });
 
   return (
-    <div className="flex flex-col items-center pb-10">
-      {/* Print preview button */}
-      <div className="mb-4 self-end">
+    <div className="flex flex-col h-full">
+      {/* Print Preview Button */}
+      <div className="flex justify-end pr-4 mb-2">
         <button
+          type="button"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
           onClick={() => setShowPrintPreview(true)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          <Printer size={16} />
-          <span>Print Preview</span>
+          <Printer className="w-4 h-4" />
+          <span>Preview</span>
         </button>
       </div>
       
+      {/* Canvas area with drop target */}
       <div 
-        ref={(node) => {
-          if (node) {
-            canvasRef.current = node;
-            drop(node);
-          }
-        }}
-        className={`relative bg-white shadow-md mx-auto overflow-hidden`}
-        style={{
-          width: `${width}px`,
-          height: `${pageHeight}px`,
-          border: isOver && canDrop ? "2px dashed #4299e1" : "1px solid #e2e8f0",
-          marginTop: "12px",
-          transform: "scale(0.75)", // Scale down for better fit on screen
-          transformOrigin: "top center", // Keep the top aligned when scaling
-        }}
+        className="flex-1 overflow-auto"
         onClick={handleCanvasClick}
       >
-        {/* Page boundary indicator */}
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-red-200 z-20"></div>
-        
-        {/* Row grid indicators */}
-        {Array.from({ length: Math.floor(pageHeight / rowHeight) }).map((_, index) => (
-          <div 
-            key={index}
-            className="absolute w-full h-px bg-gray-100"
-            style={{ top: `${index * rowHeight}px` }}
-          />
-        ))}
-        
-        {/* Show margin guidelines */}
         <div 
-          className="absolute border border-dashed border-gray-300 pointer-events-none"
-          style={{
-            top: `${pageMargins.top}px`,
-            left: `${pageMargins.left}px`,
-            right: `${pageMargins.right}px`,
-            bottom: `${pageMargins.bottom}px`,
-            width: `calc(100% - ${pageMargins.left + pageMargins.right}px)`,
-            height: `calc(100% - ${pageMargins.top + pageMargins.bottom}px)`
+          ref={node => {
+            drop(node);
+            canvasRef.current = node;
           }}
-        />
-        
-        {/* Render elements with updated focus handling */}
-        {elements.map((element) => (
-          <ElementRenderer
-            key={element.id}
-            element={element}
-            canvasWidth={width}
-            horizontalPadding={horizontalPadding}
-            topMargin={pageMargins.top}
-            onDelete={handleDeleteElement}
-            onPositionChange={(position) => updateElementPosition(element.id, position)}
-            onContentChange={(content) => updateElementContent(element.id, content)}
-            onHeightChange={(height) => updateElementHeight(element.id, height)}
-            onFormattingChange={(formatting) => updateElementFormatting(element.id, formatting)}
-            isActive={element.id === activeElementId}
-            onFocus={() => handleElementFocus(element.id)}
+          className="relative mx-auto bg-white rounded-lg shadow border-2 border-gray-200 overflow-hidden scale-75 origin-top" 
+          style={{ 
+            width: `${width}px`,
+            height: `${pageHeight}px`,
+            transition: 'all 0.2s ease',
+            minHeight: '1000px'
+          }}
+        >
+          {/* Visualize page margins */}
+          <div 
+            className="absolute border border-dashed border-gray-300 pointer-events-none" 
+            style={{
+              top: `${pageMargins.top}px`,
+              left: `${pageMargins.left}px`,
+              right: `${pageMargins.right}px`,
+              bottom: `${pageMargins.bottom}px`,
+              width: `${width - (pageMargins.left + pageMargins.right)}px`,
+              height: `${pageHeight - (pageMargins.top + pageMargins.bottom)}px`,
+            }}
           />
-        ))}
-        
-        {/* Render drop preview */}
-        {renderDropPreview()}
 
-        {/* Display drop indicator */}
-        {renderDropIndicator()}
+          {/* Render elements */}
+          {renderedElements.map(element => (
+            <ElementRenderer
+              key={element.id}
+              element={element}
+              canvasWidth={width}
+              horizontalPadding={horizontalPadding}
+              topMargin={pageMargins.top} 
+              onDelete={() => handleDeleteElement(element.id)}
+              onPositionChange={(position) => updateElementPosition(element.id, position)}
+              onContentChange={(content) => updateElementContent(element.id, content)}
+              onHeightChange={(height) => handleElementHeightChange(element.id, height)}
+              onFormattingChange={(formatting) => updateElementFormatting(element.id, formatting)}
+              isActive={element.id === activeElementId}
+              onFocus={() => handleElementFocus(element.id)}
+            />
+          ))}
 
+          {/* Render drop preview */}
+          {renderDropPreview()}
+        </div>
       </div>
-      
-      {/* Show the print preview modal when enabled */}
+
+      {/* Print preview modal */}
       {showPrintPreview && (
         <PrintPreview
           elements={elements}

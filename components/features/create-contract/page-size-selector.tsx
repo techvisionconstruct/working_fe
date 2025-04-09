@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 import { 
   Select, 
   SelectContent, 
@@ -15,14 +15,18 @@ interface PageSizeSelectorProps {
   onSizeChange: (size: PageSize) => void;
 }
 
-export const PageSizeSelector = ({ 
+// Memoize the component to prevent unnecessary re-renders
+export const PageSizeSelector = memo(({ 
   currentSize, 
   onSizeChange 
 }: PageSizeSelectorProps) => {
   // Use a callback to handle selection changes instead of directly passing the event
   const handleSizeChange = useCallback((value: string) => {
-    onSizeChange(value as PageSize);
-  }, [onSizeChange]);
+    // Only trigger the change if the value is actually different
+    if (value !== currentSize) {
+      onSizeChange(value as PageSize);
+    }
+  }, [onSizeChange, currentSize]);
 
   return (
     <div className="flex items-center gap-2">
@@ -43,4 +47,4 @@ export const PageSizeSelector = ({
       </Select>
     </div>
   );
-};
+});
