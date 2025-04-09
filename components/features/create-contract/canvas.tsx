@@ -100,6 +100,13 @@ export const Canvas = ({
     label?: string;
   } | null>(null);
   
+  // Track elements that need to move during drag
+  const [elementsToMove, setElementsToMove] = useState<{
+    id: string;
+    targetPosition: Position;
+    originalPosition: Position;
+  }[]>([]);
+  
   // State to track the height of each element
   const [elementHeights, setElementHeights] = useState<Record<string, number>>({});
   
@@ -347,10 +354,10 @@ export const Canvas = ({
       left: `${dropPreview.position.x}px`,
       top: `${dropPreview.position.y}px`,
       zIndex: 1000,
-      opacity: 0.8,
+      opacity: 0.9,
       pointerEvents: 'none',
-      transition: 'all 0.1s ease',
-      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.15s ease-out', // Faster transition for snappier feeling
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)', // Enhanced shadow for better visibility
     } as React.CSSProperties;
     
     // Different preview styling based on element type
@@ -359,28 +366,48 @@ export const Canvas = ({
       return (
         <div 
           style={previewStyle}
-          className="border-2 border-dashed border-blue-500 bg-blue-50 p-4 rounded animate-pulse"
+          className="border-2 border-dashed border-blue-500 bg-blue-50/80 p-4 rounded-md animate-pulse"
         >
           <div className="flex flex-col items-center">
-            {dropPreview.icon && <div className="text-blue-500">{dropPreview.icon}</div>}
-            <span className="text-sm font-medium">{dropPreview.label || 'Signature'}</span>
+            {dropPreview.icon && <div className="text-blue-500 mb-1">{dropPreview.icon}</div>}
+            <span className="text-sm font-medium text-blue-700">{dropPreview.label || 'Signature'}</span>
           </div>
         </div>
       );
     } else {
       // Regular element preview (full width)
       return (
-        <div 
-          style={{
-            ...previewStyle,
-            width: `${width - (horizontalPadding * 2)}px`,
-            height: `${rowHeight}px`,
-          }}
-          className="border-2 border-dashed border-blue-500 bg-blue-50 rounded flex items-center px-3 animate-pulse"
-        >
-          {dropPreview.icon && <span className="mr-2 text-blue-500">{dropPreview.icon}</span>}
-          <span className="font-medium">{dropPreview.label || dropPreview.type}</span>
-        </div>
+        <>
+          {/* Enhanced insertion indicator line with animated pulse */}
+          <div 
+            style={{
+              position: 'absolute',
+              left: `${pageMargins.left}px`,
+              top: `${dropPreview.position.y - 2}px`,
+              width: `${width - (pageMargins.left + pageMargins.right)}px`,
+              height: '4px',
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
+              borderRadius: '2px',
+              zIndex: 999,
+              pointerEvents: 'none',
+              animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              boxShadow: '0 0 8px rgba(59, 130, 246, 0.6)', // Glow effect
+            }}
+          />
+          
+          {/* Element preview */}
+          <div 
+            style={{
+              ...previewStyle,
+              width: `${width - (horizontalPadding * 2)}px`,
+              height: `${rowHeight}px`,
+            }}
+            className="border-2 border-dashed border-blue-500 bg-blue-50/80 rounded-md flex items-center px-3 animate-pulse"
+          >
+            {dropPreview.icon && <span className="mr-2 text-blue-500">{dropPreview.icon}</span>}
+            <span className="font-medium text-blue-700">{dropPreview.label || dropPreview.type}</span>
+          </div>
+        </>
       );
     }
   };
@@ -476,6 +503,53 @@ export const Canvas = ({
         position.x = horizontalPadding;
         // Enforce top margin constraint
         position.y = Math.max(position.y, pageMargins.top);
+        
+        // Calculate which elements would need to move to accommodate this element
+        const draggedHeight = item.id ? getElementHeight(item.id) : rowHeight;
+        
+        // Find elements that would be overlapped by the dragged element
+        const overlappedElements = elements.filter(el => {
+          if (el.isFloating || (item.id && el.id === item.id)) return false;
+          
+          const elHeight = getElementHeight(el);
+          return (position.y >= el.position.y && position.y < el.position.y + elHeight) ||
+                 (el.position.y >= position.y && el.position.y < position.y + draggedHeight);
+        });
+        
+        if (overlappedElements.length > 0) {
+          // Sort elements by vertical position
+          const sortedElements = [...elements]
+            .filter(el => !el.isFloating && (!item.id || el.id !== item.id))
+            .sort((a, b) => a.position.y - b.position.y);
+          
+          // Find the first element that needs to move
+          const firstOverlappedIndex = sortedElements.findIndex(el => 
+            overlappedElements.some(oe => oe.id === el.id)
+          );
+          
+          if (firstOverlappedIndex !== -1) {
+            // Calculate new positions for elements that need to move
+            const elementsToShift = sortedElements.slice(firstOverlappedIndex);
+            const newTargetY = position.y + draggedHeight + 5; // 5px spacing
+            
+            // Create animation targets for elements that need to move
+            const moveTargets = elementsToShift.map(el => ({
+              id: el.id,
+              originalPosition: { ...el.position },
+              targetPosition: { 
+                x: el.position.x,
+                y: newTargetY + elementsToShift.indexOf(el) * (getElementHeight(el) + 5)
+              }
+            }));
+            
+            // Update state to trigger animations
+            setElementsToMove(moveTargets);
+          } else {
+            setElementsToMove([]);
+          }
+        } else {
+          setElementsToMove([]);
+        }
       } else {
         // Constrain floating elements within page margins
         const elWidth = item.type === "signature" ? 350 : 200;
@@ -489,10 +563,12 @@ export const Canvas = ({
           pageMargins.top, 
           Math.min(position.y, pageHeight - pageMargins.bottom - elHeight)
         );
+        
+        // Clear any movement animations for floating elements
+        setElementsToMove([]);
       }
       
-      // Make sure we don't update too frequently to avoid performance issues
-      // Use debounced updates for smoother performance
+      // Update the drop preview
       setDropPreview({
         position,
         type: item.type,
@@ -504,6 +580,7 @@ export const Canvas = ({
     
     drop: (item: DragItem, monitor) => {
       setDropPreview(null); // Clear preview when dropped
+      setElementsToMove([]); // Reset element movement animations
       
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       if (!canvasRect) return;
@@ -592,10 +669,11 @@ export const Canvas = ({
   }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, 
        horizontalPadding, pageMargins, updateElementPosition, getElementHeight]);
 
-  // Clear preview when not hovering
+  // Clear preview and animations when not hovering
   useEffect(() => {
     if (!isOver) {
       setDropPreview(null);
+      setElementsToMove([]);
     }
   }, [isOver]);
 
@@ -750,22 +828,34 @@ export const Canvas = ({
           />
 
           {/* Render elements */}
-          {renderedElements.map(element => (
-            <ElementRenderer
-              key={element.id}
-              element={element}
-              canvasWidth={width}
-              horizontalPadding={horizontalPadding}
-              topMargin={pageMargins.top} 
-              onDelete={() => handleDeleteElement(element.id)}
-              onPositionChange={(position) => updateElementPosition(element.id, position)}
-              onContentChange={(content) => updateElementContent(element.id, content)}
-              onHeightChange={(height) => handleElementHeightChange(element.id, height)}
-              onFormattingChange={(formatting) => updateElementFormatting(element.id, formatting)}
-              isActive={element.id === activeElementId}
-              onFocus={() => handleElementFocus(element.id)}
-            />
-          ))}
+          {renderedElements.map(element => {
+            // Find if this element has a movement animation
+            const moveAnimation = elementsToMove.find(move => move.id === element.id);
+            
+            // Calculate the style for animation
+            const animationStyle = moveAnimation ? {
+              transform: `translateY(${moveAnimation.targetPosition.y - moveAnimation.originalPosition.y}px)`,
+              transition: 'transform 0.3s ease-out'
+            } : {};
+            
+            return (
+              <div key={element.id} style={animationStyle}>
+                <ElementRenderer
+                  element={element}
+                  canvasWidth={width}
+                  horizontalPadding={horizontalPadding}
+                  topMargin={pageMargins.top} 
+                  onDelete={() => handleDeleteElement(element.id)}
+                  onPositionChange={(position) => updateElementPosition(element.id, position)}
+                  onContentChange={(content) => updateElementContent(element.id, content)}
+                  onHeightChange={(height) => handleElementHeightChange(element.id, height)}
+                  onFormattingChange={(formatting) => updateElementFormatting(element.id, formatting)}
+                  isActive={element.id === activeElementId}
+                  onFocus={() => handleElementFocus(element.id)}
+                />
+              </div>
+            );
+          })}
 
           {/* Render drop preview */}
           {renderDropPreview()}

@@ -5,6 +5,9 @@ import { Element, PageSize } from "./utils/types";
 import { getPageDimensions } from "./utils/page-sizes";
 import { X, Printer, Download } from "lucide-react";
 import { PageMargins } from "./margin-controls";
+import { BulletListElement } from "./elements/bullet-list-element";
+import { NumberListElement } from "./elements/number-list-element"; 
+import { TableElement } from "./elements/table-element";
 
 interface PrintPreviewProps {
   elements: Element[];
@@ -313,8 +316,8 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
         ...styles,
         lineHeight: '1.5', // Increased line height for better spacing
         fontWeight: 'bold',
-        marginTop: level === 1 ? '12px' : level === 2 ? '10px' : '8px',
-        marginBottom: level === 1 ? '12px' : level === 2 ? '10px' : '8px',
+        marginTop: level === 1 ? '10px' : level === 2 ? '8px' : '6px',
+        marginBottom: level === 1 ? '10px' : level === 2 ? '8px' : '6px',
         fontSize: level === 1 ? '24px' : level === 2 ? '20px' : '18px',
         padding: '0', // Remove any default padding
         display: 'block', // Ensure block display
@@ -353,75 +356,58 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
       );
     }
     
-    case 'bulletList':
+    case 'bulletList': {
+      // Pass isPrintPreview prop to BulletListElement for proper display in preview
+      const bulletListStyles = {
+        ...styles,
+        margin: '4px 0', // Reduced margin for more compact appearance
+      };
+      
+      // Import and reuse the BulletListElement component from our element components
+      // which properly handles bullets in print preview mode
       return (
-        <div style={styles}>
-          <ul>
-            {element.content.items.map((item: any) => (
-              <li key={item.id}>{item.text}</li>
-            ))}
-          </ul>
+        <div style={bulletListStyles}>
+          <BulletListElement
+            content={element.content}
+            onChange={() => {}} // No-op since this is preview only
+            formatting={element.formatting}
+            isPrintPreview={true}
+          />
         </div>
       );
+    }
     
-    case 'numberList':
+    case 'numberList': {
+      // Pass isPrintPreview prop to NumberListElement for proper display in preview
+      const numberListStyles = {
+        ...styles,
+        margin: '4px 0', // Reduced margin for more compact appearance
+      };
+      
+      // Import and reuse the NumberListElement component from our element components
+      // which properly handles numbers in print preview mode
       return (
-        <div style={styles}>
-          <ol>
-            {element.content.items.map((item: any) => (
-              <li key={item.id}>{item.text}</li>
-            ))}
-          </ol>
+        <div style={numberListStyles}>
+          <NumberListElement
+            content={element.content}
+            onChange={() => {}} // No-op since this is preview only
+            formatting={element.formatting}
+            isPrintPreview={true}
+          />
         </div>
       );
+    }
     
     case 'table':
       return (
         <div style={styles}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {element.content.data.map((row: any[], rowIndex: number) => (
-                <tr key={rowIndex}>
-                  {row.map((cell, colIndex) => {
-                    // Apply cell-specific formatting for complex cell data objects
-                    const cellText = typeof cell === 'string' ? cell : cell.text;
-                    const cellStyles: React.CSSProperties = { border: '1px solid #ddd', padding: '8px' };
-                    
-                    // If cell has its own formatting, apply it
-                    if (typeof cell === 'object' && cell.formatting) {
-                      if (cell.formatting.fontSize) {
-                        cellStyles.fontSize = `${cell.formatting.fontSize}px`;
-                      }
-                      if (cell.formatting.bold) {
-                        cellStyles.fontWeight = 'bold';
-                      }
-                      if (cell.formatting.italic) {
-                        cellStyles.fontStyle = 'italic';
-                      }
-                      if (cell.formatting.underline) {
-                        cellStyles.textDecoration = 'underline';
-                      }
-                      if (cell.formatting.color) {
-                        cellStyles.color = cell.formatting.color;
-                      }
-                      // Apply text alignment
-                      if (cell.formatting.textAlign) {
-                        cellStyles.textAlign = cell.formatting.textAlign;
-                      } else if (cell.formatting.alignment) {
-                        cellStyles.textAlign = cell.formatting.alignment;
-                      }
-                    }
-                    
-                    return (
-                      <td key={colIndex} style={cellStyles}>
-                        {cellText}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TableElement
+            content={element.content}
+            onChange={() => {}} // No-op since this is preview only
+            formatting={element.formatting}
+            contentWidth={contentWidth}
+            isPrintPreview={true}
+          />
         </div>
       );
     
@@ -430,7 +416,7 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
         <div style={{ 
           ...styles,
           padding: '10px',
-          width: '200px',
+          width: isFloating ? '350px' : '200px', // Increased from 200px to 350px for floating signatures
           textAlign: 'center'
         }}>
           <div>{element.content.label || 'Signature'}</div>

@@ -12,6 +12,7 @@ interface TextElementProps {
   element?: { id: string };
   formatting?: TextFormatting;
   onFormattingChange?: (formatting: TextFormatting) => void;
+  isPrintPreview?: boolean; // Add support for print preview mode
 }
 
 export const TextElement = ({ 
@@ -19,7 +20,8 @@ export const TextElement = ({
   onChange, 
   element,
   formatting = { fontSize: 16 },
-  onFormattingChange
+  onFormattingChange,
+  isPrintPreview = false // Default to false
 }: TextElementProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -64,24 +66,47 @@ export const TextElement = ({
     textDecoration: formatting?.underline ? "underline" : "none",
     color: formatting?.color || "#000000",
     fontSize: `${formatting?.fontSize || 16}px`,
-    textAlign: formatting?.alignment || "left",
-    lineHeight: "1.35" // Add consistent line height for better spacing
+    textAlign: formatting?.alignment || formatting?.textAlign || "left",
+    lineHeight: formatting?.lineHeight ? String(formatting.lineHeight) : "1.35",
+    fontFamily: formatting?.fontFamily || "Arial, sans-serif",
   };
+
+  // If in print preview mode, render formatted content directly
+  if (isPrintPreview) {
+    return (
+      <div 
+        ref={containerRef}
+        className="w-full"
+        style={{ 
+          minHeight: '22px',
+          overflow: 'visible',
+          margin: '0',
+          padding: '2px 4px',
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
+          whiteSpace: 'pre-wrap',
+          width: '100%',
+          boxSizing: 'border-box',
+          ...textStyle
+        }}
+        dangerouslySetInnerHTML={{ __html: content.text }}
+      />
+    );
+  }
 
   return (
     <div 
       ref={containerRef}
-      className="w-full transition-colors"
+      className={`w-full transition-colors ${isFocused ? 'bg-blue-50 rounded' : ''}`}
       style={{ 
-        minHeight: '22px', // Reduced from 30px for even more compact rows
+        minHeight: '22px',
         overflow: 'visible',
-        margin: '0', // Remove margin
-        wordWrap: 'break-word', // Ensure text wraps properly
-        overflowWrap: 'break-word', // Modern browsers
-        whiteSpace: 'pre-wrap', // Preserve whitespace but wrap text
-        width: '100%', // Ensure full width
-        boxSizing: 'border-box', // Include padding in width calculation
-        ...textStyle // Apply formatting styles to the container
+        margin: '0',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word',
+        whiteSpace: 'pre-wrap',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
       data-element-id={element?.id}
     >

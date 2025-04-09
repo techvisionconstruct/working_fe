@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { TipTapEditor } from "../utils/tiptap-editor";
 import { TextFormatting } from "../utils/types";
 
@@ -12,20 +12,52 @@ interface HeaderElementProps {
   onChange: (content: any) => void;
   formatting?: TextFormatting;
   onFormattingChange?: (formatting: TextFormatting) => void;
+  isPrintPreview?: boolean;
 }
 
 export const HeaderElement = ({ 
   content, 
   onChange,
   formatting = { fontSize: 24, bold: true },
-  onFormattingChange
+  onFormattingChange,
+  isPrintPreview = false
 }: HeaderElementProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   
+  // Create a merged formatting object that uses the user's formatting choices
+  // but ensures a base level of styling for headers
+  const mergedFormatting = {
+    bold: true, // Headers should always be bold by default
+    fontSize: 24, // Default size for H1
+    ...formatting, // Override with user's formatting choices
+  };
+  
+  // Use proper font size based on header level if not explicitly set
+  useEffect(() => {
+    if (!onFormattingChange) return;
+
+    // Only adjust fontSize if it matches the default for a different level
+    const isUsingDefaultFontSize = 
+      formatting?.fontSize === 24 || 
+      formatting?.fontSize === 20 || 
+      formatting?.fontSize === 18;
+      
+    if (isUsingDefaultFontSize) {
+      // Set appropriate default size based on level
+      const newSize = content.level === 1 ? 24 : content.level === 2 ? 20 : 18;
+      
+      if (newSize !== formatting?.fontSize) {
+        onFormattingChange({
+          ...mergedFormatting,
+          fontSize: newSize
+        });
+      }
+    }
+  }, [content.level, formatting, mergedFormatting, onFormattingChange]);
+  
   const handleTextChange = (html: string) => {
-    // Strip HTML tags for the header since we want to keep it as simple text
-    // but still allow formatting properties to be applied
+    // Extract text content while preserving formatting information
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const plainText = tempDiv.textContent || tempDiv.innerText || '';
@@ -57,56 +89,44 @@ export const HeaderElement = ({
     const tag = getHeaderTag();
     return content.text ? `<${tag}>${content.text}</${tag}>` : '';
   };
-
-  // Add more precise font size mapping to match PDF output exactly
-  const getFontSize = () => {
-    switch(content.level) {
-      case 1: return { fontSize: 24 }; // H1 header
-      case 2: return { fontSize: 20 }; // H2 header
-      case 3: return { fontSize: 18 }; // H3 header
-      default: return { fontSize: 24 };
-    }
-  };
   
-  // Get the appropriate font size for this header level
-  const levelSpecificFormatting = getFontSize();
-  
-  // Create a stable formatting object that doesn't change on every render
-  // This is crucial to prevent the infinite update loop
-  const mergedFormatting = useCallback(() => ({
-    ...formatting,
-    fontSize: levelSpecificFormatting.fontSize,
-    bold: true // Headers should always be bold
-  }), [formatting, levelSpecificFormatting.fontSize])();
-  
-  // Skip automatic formatting updates from the editor
-  // This breaks the circular update chain that causes the infinite loop
-  const handleFormattingChange = useCallback((newFormatting: TextFormatting) => {
-    if (!onFormattingChange) return;
-    
-    // Only pass through formatting changes that aren't related to the header level
-    // (like color, alignment, etc.) but preserve the level-specific fontSize
-    onFormattingChange({
-      ...newFormatting,
-      fontSize: levelSpecificFormatting.fontSize,
-      bold: true
-    });
-  }, [onFormattingChange, levelSpecificFormatting.fontSize]);
+  // Apply inline styles based on the formatting
+  const headerStyle = {
+    fontSize: `${mergedFormatting.fontSize || 24}px`,
+    fontWeight: mergedFormatting.bold !== false ? 'bold' : 'normal', // Default to bold unless explicitly set to false
+    fontStyle: mergedFormatting.italic ? 'italic' : 'normal',
+    textDecoration: mergedFormatting.underline ? 'underline' : 'none',
+    color: mergedFormatting.color || 'inherit',
+    textAlign: mergedFormatting.alignment || mergedFormatting.textAlign || 'left',
+    marginTop: isPrintPreview ? '0.5em' : '0',
+    marginBottom: isPrintPreview ? '0.2em' : '0',
+    padding: 0,
+    lineHeight: mergedFormatting.lineHeight ? String(mergedFormatting.lineHeight) : '1.35',
+    fontFamily: mergedFormatting.fontFamily || 'inherit',
+  } as React.CSSProperties;
 
   return (
     <div 
       ref={containerRef}
       className={`w-full transition-colors ${isFocused ? 'bg-blue-50 rounded' : ''}`}
     >
-      <TipTapEditor
-        value={getEditorContent()}
-        onChange={handleTextChange}
-        formatting={mergedFormatting}
-        onFormattingChange={onFormattingChange}
-        placeholder="Header text..."
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-      />
+      {isPrintPreview ? (
+        // In print preview, just render the text with the correct styling
+        <div style={headerStyle}>
+          {content.text || `Heading ${content.level}`}
+        </div>
+      ) : (
+        // In edit mode, use the TipTap editor with proper header formatting
+        <TipTapEditor
+          value={getEditorContent()}
+          onChange={handleTextChange}
+          formatting={mergedFormatting}
+          onFormattingChange={onFormattingChange}
+          placeholder={`Heading ${content.level}...`}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+      )}
     </div>
   );
 };

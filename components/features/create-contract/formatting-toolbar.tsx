@@ -2,7 +2,7 @@
 
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shared";
 import { TextFormatting } from "./utils/types";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type } from "lucide-react";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type, MoreVertical } from "lucide-react";
 
 interface FormattingToolbarProps {
   formatting: TextFormatting;
@@ -12,6 +12,29 @@ interface FormattingToolbarProps {
   onHeaderLevelChange?: (level: number) => void;
   headerLevel?: number;
 }
+
+// Available font families
+const FONT_FAMILIES = [
+  { value: "Arial, sans-serif", label: "Arial" },
+  { value: "Verdana, sans-serif", label: "Verdana" },
+  { value: "Helvetica, sans-serif", label: "Helvetica" },
+  { value: "Times New Roman, serif", label: "Times New Roman" },
+  { value: "Georgia, serif", label: "Georgia" },
+  { value: "Courier New, monospace", label: "Courier New" },
+  { value: "Tahoma, sans-serif", label: "Tahoma" },
+  { value: "Palatino, serif", label: "Palatino" },
+];
+
+// Line spacing options
+const LINE_HEIGHT_OPTIONS = [
+  { value: 1, label: "1.0" },
+  { value: 1.15, label: "1.15" },
+  { value: 1.35, label: "1.35" },
+  { value: 1.5, label: "1.5" },
+  { value: 1.75, label: "1.75" },
+  { value: 2, label: "2.0" },
+  { value: 2.5, label: "2.5" },
+];
 
 export const FormattingToolbar = ({ 
   formatting, 
@@ -52,6 +75,16 @@ export const FormattingToolbar = ({
     onFormattingChange({ ...formatting, color });
   };
 
+  const setFontFamily = (fontFamily: string) => {
+    if (isDisabled) return;
+    onFormattingChange({ ...formatting, fontFamily });
+  };
+
+  const setLineHeight = (lineHeight: number) => {
+    if (isDisabled) return;
+    onFormattingChange({ ...formatting, lineHeight });
+  };
+
   const isHeaderSelected = activeElementType === "header";
   
   return (
@@ -84,6 +117,43 @@ export const FormattingToolbar = ({
           <div className="h-8 w-px bg-gray-300 mx-1"></div>
         </>
       )}
+      
+      {/* Font Family Selector */}
+      <Select
+        value={formatting.fontFamily || "Arial, sans-serif"}
+        onValueChange={setFontFamily}
+        disabled={isDisabled}
+      >
+        <SelectTrigger className="h-8 w-32 text-xs">
+          <SelectValue placeholder="Font" />
+        </SelectTrigger>
+        <SelectContent>
+          {FONT_FAMILIES.map((font) => (
+            <SelectItem key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+              {font.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={String(formatting.fontSize || 16)}
+        onValueChange={(value) => setFontSize(Number(value))}
+        disabled={isDisabled}
+      >
+        <SelectTrigger className="h-8 w-16 text-xs">
+          <SelectValue placeholder="Size" />
+        </SelectTrigger>
+        <SelectContent>
+          {[12, 14, 16, 18, 20, 24, 28, 32].map((size) => (
+            <SelectItem key={size} value={String(size)}>
+              {size}px
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <div className="h-8 w-px bg-gray-300 mx-1"></div>
       
       <Button
         variant="ghost"
@@ -120,6 +190,28 @@ export const FormattingToolbar = ({
       
       <div className="h-8 w-px bg-gray-300 mx-1"></div>
       
+      {/* Line Spacing Control */}
+      <Select
+        value={String(formatting.lineHeight || 1.35)}
+        onValueChange={(value) => setLineHeight(Number(value))}
+        disabled={isDisabled}
+      >
+        <SelectTrigger className="h-8 w-16 text-xs" title="Line Spacing">
+          <div className="flex items-center justify-center gap-1">
+            <MoreVertical size={14} className="flex-shrink-0" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {LINE_HEIGHT_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={String(option.value)}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <div className="h-8 w-px bg-gray-300 mx-1"></div>
+      
       <Button
         variant="ghost"
         size="sm"
@@ -152,25 +244,6 @@ export const FormattingToolbar = ({
       >
         <AlignRight size={16} />
       </Button>
-      
-      <div className="h-8 w-px bg-gray-300 mx-1"></div>
-      
-      <Select
-        value={String(formatting.fontSize || 16)}
-        onValueChange={(value) => setFontSize(Number(value))}
-        disabled={isDisabled}
-      >
-        <SelectTrigger className="h-8 w-16 text-xs">
-          <SelectValue placeholder="Size" />
-        </SelectTrigger>
-        <SelectContent>
-          {[12, 14, 16, 18, 20, 24, 28, 32].map((size) => (
-            <SelectItem key={size} value={String(size)}>
-              {size}px
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
       
       <div className="h-8 w-px bg-gray-300 mx-1"></div>
       

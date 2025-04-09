@@ -7,6 +7,8 @@ import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
+import FontFamily from '@tiptap/extension-font-family';
+import { Extension } from '@tiptap/core';
 import { TextFormatting } from "./types";
 
 interface TipTapEditorProps {
@@ -45,6 +47,29 @@ export const TipTapEditor = ({
       TextStyle,
       Color,
       Underline,
+      FontFamily.configure({
+        types: ['textStyle'],
+      }),
+      Extension.create({
+        name: 'lineHeight',
+        addGlobalAttributes() {
+          return [
+            {
+              types: ['paragraph', 'heading'],
+              attributes: {
+                lineHeight: {
+                  default: 1.35,
+                  parseHTML: element => element.style.lineHeight,
+                  renderHTML: attributes => {
+                    if (!attributes.lineHeight) return {}
+                    return { style: `line-height: ${attributes.lineHeight}` }
+                  },
+                },
+              },
+            },
+          ]
+        },
+      }),
     ],
     content: value || `<p>${placeholder}</p>`,
     editorProps: {
@@ -116,6 +141,15 @@ export const TipTapEditor = ({
             element.style.fontSize = `${formatting.fontSize}px`;
           }
         }
+
+        if (formatting.fontFamily) {
+          editor.chain().setFontFamily(formatting.fontFamily).run();
+        }
+
+        if (formatting.lineHeight) {
+          editor.chain().updateAttributes('paragraph', { lineHeight: formatting.lineHeight }).run();
+          editor.chain().updateAttributes('heading', { lineHeight: formatting.lineHeight }).run();
+        }
       }
     }
   }, [editor, formatting, localFormatting]);
@@ -154,6 +188,27 @@ export const TipTapEditor = ({
       case 'color':
         editor.chain().setColor(value as string).focus().run();
         newFormatting.color = value as string;
+        break;
+      case 'fontFamily':
+        // Apply font family to both the editor and the formatting state
+        editor.chain().setFontFamily(value as string).focus().run();
+        newFormatting.fontFamily = value as string;
+        // Update the editor's font family style
+        const editorElement = editor.view.dom as HTMLElement;
+        if (editorElement) {
+          editorElement.style.fontFamily = value as string;
+        }
+        break;
+      case 'lineHeight':
+        // Fix: Use updateAttributes instead of setAttributes
+        editor.chain().updateAttributes('paragraph', { lineHeight: value }).focus().run();
+        editor.chain().updateAttributes('heading', { lineHeight: value }).focus().run();
+        newFormatting.lineHeight = value as number;
+        // Update the editor's line height style
+        const editorDom = editor.view.dom as HTMLElement;
+        if (editorDom) {
+          editorDom.style.lineHeight = String(value);
+        }
         break;
     }
     

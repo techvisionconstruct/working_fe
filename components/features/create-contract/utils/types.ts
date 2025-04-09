@@ -13,6 +13,8 @@ export interface TextFormatting {
   fontSize?: number;
   alignment?: 'left' | 'center' | 'right';
   textAlign?: 'left' | 'center' | 'right'; // Add textAlign as an alternative to alignment
+  fontFamily?: string; // Add support for font family
+  lineHeight?: number; // Add support for line spacing
 }
 
 export type ElementType = 

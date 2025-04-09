@@ -156,71 +156,78 @@ export const ElementRenderer = ({
 
   // Handle element click to set focus
   const handleElementClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent canvas click handler from firing
     if (onFocus) {
-      e.stopPropagation(); // Prevent event from reaching canvas
       onFocus();
     }
   };
 
+  // Render the appropriate element type based on the type property
   const renderElement = () => {
-    // Pass formatting and onFormattingChange to all element types that can be formatted
+    const contentWidth = canvasWidth - (horizontalPadding * 2);
+    
     switch (element.type) {
       case "header":
         return (
-          <HeaderElement
-            content={element.content}
-            onChange={onContentChange}
+          <HeaderElement 
+            content={element.content} 
+            onChange={onContentChange} 
             formatting={element.formatting}
             onFormattingChange={onFormattingChange}
+            isPrintPreview={isPrintPreview}
           />
         );
       case "text":
         return (
-          <TextElement
-            content={element.content}
-            onChange={onContentChange}
-            element={{id: element.id}}
+          <TextElement 
+            content={element.content} 
+            onChange={onContentChange} 
             formatting={element.formatting}
             onFormattingChange={onFormattingChange}
+            isPrintPreview={isPrintPreview}
           />
         );
       case "bulletList":
         return (
-          <BulletListElement
-            content={element.content}
+          <BulletListElement 
+            content={element.content} 
             onChange={onContentChange}
             formatting={element.formatting}
             onFormattingChange={onFormattingChange}
+            isPrintPreview={isPrintPreview}
           />
         );
       case "numberList":
         return (
-          <NumberListElement
-            content={element.content}
+          <NumberListElement 
+            content={element.content} 
             onChange={onContentChange}
             formatting={element.formatting}
             onFormattingChange={onFormattingChange}
+            isPrintPreview={isPrintPreview}
           />
         );
       case "table":
         return (
-          <TableElement
-            content={element.content}
+          <TableElement 
+            content={element.content} 
             onChange={onContentChange}
             formatting={element.formatting}
             onFormattingChange={onFormattingChange}
+            contentWidth={contentWidth}
+            isPrintPreview={isPrintPreview}
           />
         );
       case "signature":
         return (
-          <SignatureElement
-            content={element.content}
+          <SignatureElement 
+            content={element.content} 
             onChange={onContentChange}
             isPrintPreview={isPrintPreview}
           />
         );
       default:
-        return <div>Unknown element type</div>;
+        return <div>Unknown element type: {element.type}</div>;
     }
   };
 
