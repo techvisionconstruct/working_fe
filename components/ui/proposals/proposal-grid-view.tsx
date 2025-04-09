@@ -71,9 +71,9 @@ export default function ProposalGridView({
         filteredAndSortedProposals.map((proposal, index) => (
           <Card
             key={proposal.id}
-            className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6"
+            className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
           >
-            <div className="w-full h-44 relative -mt-20">
+            <div className="w-full h-30 relative">
               <Image
                 src={proposal.image || "/placeholder-image.jpg"}
                 alt={proposal.name}

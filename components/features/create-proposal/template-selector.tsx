@@ -23,7 +23,7 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
                : ""
            }`}
          >
-           <div className="w-full h-44 relative -mt-20">
+           <div className="w-full h-30 relative">
              <Image
                src={template.imageUrl || "/placeholder.svg"}
                alt={template.title}
@@ -32,7 +32,7 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
              />
            </div>
            <CardContent>
-             <h1 className="text-xl font-bold">{template.title}</h1>
+             <h1 className="text-xl font-bold mt-2">{template.title}</h1>
              <p className="mt-1 text-sm text-black/50 line-clamp-3">
                {template.description}
              </p>
@@ -90,6 +90,7 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
                      // Add markup_percentage to each element
                      const templateWithMarkup = {
                        ...template,
+                       image: template.imageUrl,
                        categories: template.categories.map(cat => ({
                          ...cat,
                          elements: cat.elements.map(el => ({

@@ -48,9 +48,9 @@ export default function TemplateGridView({
         filteredAndSortedTemplates.map((template) => (
           <Card
             key={template.id}
-            className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6"
+            className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
           >
-            <div className="w-full h-44 relative -mt-20">
+            <div className="w-full h-30 relative">
               <Image
                  src={template.image || "/placeholder-image.jpg"}
                 alt={template.name}
