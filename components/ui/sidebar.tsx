@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import Cookie from "js-cookie";
 import { 
   Avatar, 
   AvatarFallback, 
@@ -90,6 +91,7 @@ const ICON_LEFT_POSITION = "1.75rem";
 
 export function Sidenav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [activeItem, setActiveItem] = useState("");
   const [hoverItem, setHoverItem] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -201,6 +203,11 @@ export function Sidenav() {
 
   const getIconTransform = () => {
     return isCollapsed ? "translateX(-50%) translateY(-50%)" : "translateY(-50%)";
+  };
+
+  const handleLogout = () => {
+    Cookie.remove("auth-token", { path: "/" });
+    router.push("/login");
   };
 
   return (
@@ -356,7 +363,7 @@ export function Sidenav() {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent text-red-600">
+              <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
