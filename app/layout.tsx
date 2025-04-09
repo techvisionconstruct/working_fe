@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import "@/assets/style/globals.css";
 
 const geistSans = Geist({
@@ -35,17 +36,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const bodyClasses = [
-    geistSans.variable, 
-    geistMono.variable, 
-    dmSans.variable, 
-    openSans.variable, 
-    "antialiased"
+    geistSans.variable,
+    geistMono.variable,
+    dmSans.variable,
+    openSans.variable,
+    "antialiased",
   ].join(" ");
-  
+
   return (
     <html lang="en">
       <body className={bodyClasses}>
-        {children}
+        <GoogleOAuthProvider
+          clientId="
+567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com"
+        >
+          {children}
+        </GoogleOAuthProvider>
       </body>
     </html>
   );
