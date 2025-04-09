@@ -182,4 +182,5 @@ export type ProposalElement = {
 
 export interface Template extends Omit<ProposalData, "variables"> {
   variables: Omit<Variable, "value">[]
+  image: string
 }
