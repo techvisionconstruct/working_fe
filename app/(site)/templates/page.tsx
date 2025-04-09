@@ -13,6 +13,7 @@ import { SortByComponent } from "@/components/shared/ui/sort-by-component";
 import { SearchComponent } from "@/components/shared/ui/search-component";
 import { SortOption } from "@/types/sort";
 import TemplateGridView from "@/components/ui/templates/template-grid-view";
+import TemplateListView from "@/components/ui/templates/template-list-view";
 
 export default function TemplatePage() {
   const [sortOption, setSortOption] = useState<SortOption>({
@@ -67,7 +68,12 @@ export default function TemplatePage() {
               searchQuery={searchQuery}
             />
           </TabsContent>
-          <TabsContent value="list"></TabsContent>
+          <TabsContent value="list">
+            <TemplateListView
+              sortOption={sortOption}
+              searchQuery={searchQuery}
+            />
+          </TabsContent>
         </div>
       </Tabs>
     </div>

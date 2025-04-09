@@ -1,6 +1,6 @@
 import { SortOption } from "./sort";
 
-export interface TemplateGridProps {
+export interface TemplateProps {
   sortOption: SortOption;
   searchQuery?: string;
 }

@@ -4,7 +4,6 @@ import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { ProposalsGridProps } from "@/types/proposals";
 import { getProposals } from "@/hooks/api/proposals/get-proposals";
-import { AnimatedCard } from "./animations/proposal-grid-view-animations";
 
 export default function ProposalGridView({
   sortOption,
@@ -70,76 +69,79 @@ export default function ProposalGridView({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {filteredAndSortedProposals.length > 0 ? (
         filteredAndSortedProposals.map((proposal, index) => (
-          <AnimatedCard key={proposal.id} index={index}>
-            <Card className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6">
-              <div className="w-full h-44 relative -mt-20">
-                <Image
-                  src={proposal.image}
-                  alt={proposal.name}
-                  fill
-                  className="object-cover"
-                />
+          <Card
+            key={proposal.id}
+            className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6"
+          >
+            <div className="w-full h-44 relative -mt-20">
+              <Image
+                src={proposal.image || "/placeholder-image.jpg"}
+                alt={proposal.name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority={index < 4}
+              />
+            </div>
+            <CardContent>
+              <h1 className="text-xl font-bold mt-2">{proposal.name}</h1>
+              <p className="mt-1 text-sm text-black/50 line-clamp-3">
+                {proposal.description}
+              </p>
+
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex flex-wrap gap-2 max-w-full">
+                  {proposal.project_modules.slice(0, 4).map((category) => (
+                    <Badge
+                      key={category.id}
+                      variant="outline"
+                      className="font-bold uppercase text-xs"
+                    >
+                      {category.module.name}
+                    </Badge>
+                  ))}
+                  {proposal.project_modules.length > 4 && (
+                    <Badge
+                      variant="outline"
+                      className="font-bold uppercase text-xs"
+                    >
+                      +{proposal.project_modules.length - 4} more
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <CardContent>
-                <h1 className="text-xl font-bold mt-2">{proposal.name}</h1>
-                <p className="mt-1 text-sm text-black/50 line-clamp-3">
-                  {proposal.description}
+              <div className="flex gap-2 mt-2">
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <span className="uppercase font-bold">Variables</span>
+                  <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
+                    {proposal.project_parameters?.length || 0}
+                  </span>
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <span className="uppercase font-bold">Categories</span>
+                  <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
+                    {proposal.project_modules?.length || 0}
+                  </span>
+                </Badge>
+              </div>
+
+              <div className="flex justify-between items-center mt-4 ml-1">
+                <p className="text-sm font-bold">
+                  {new Date(proposal.created_at).toLocaleDateString("en-US", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })}
                 </p>
-
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex flex-wrap gap-2 max-w-full">
-                    {proposal.project_modules.slice(0, 4).map((category) => (
-                      <Badge
-                        key={category.id}
-                        variant="outline"
-                        className="font-bold uppercase text-xs"
-                      >
-                        {category.module.name}
-                      </Badge>
-                    ))}
-                    {proposal.project_modules.length > 4 && (
-                      <Badge
-                        variant="outline"
-                        className="font-bold uppercase text-xs"
-                      >
-                        +{proposal.project_modules.length - 4} more
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <span className="uppercase font-bold">Variables</span>
-                    <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                      {proposal.project_parameters?.length || 0}
-                    </span>
-                  </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <span className="uppercase font-bold">Categories</span>
-                    <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                      {proposal.project_modules?.length || 0}
-                    </span>
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center mt-4 ml-1">
-                  <p className="text-sm font-bold">
-                    {new Date(proposal.created_at).toLocaleDateString("en-US", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <Link
-                    href={`proposals/${proposal.id}`}
-                    className="text-sm font-bold hover:underline"
-                  >
-                    Read More
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </AnimatedCard>
+                <Link
+                  href={`proposals/${proposal.id}`}
+                  className="text-sm font-bold hover:underline"
+                >
+                  Read More
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         ))
       ) : (
         <div className="col-span-3 py-8 text-center">

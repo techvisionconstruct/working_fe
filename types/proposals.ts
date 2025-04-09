@@ -146,6 +146,7 @@ export interface ProposalData {
   clientPhone?: string
   useGlobalMarkup?: boolean
   globalMarkupPercentage?: number
+  imageUrl?: string
 }
 
 export interface Variable {

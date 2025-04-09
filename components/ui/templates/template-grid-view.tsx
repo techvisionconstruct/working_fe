@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import Image from "next/image";
 import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
-import { TemplateGridProps } from "@/types/templates";
+import { TemplateProps } from "@/types/templates";
 import { getTemplates } from "@/hooks/api/templates/get-templates";
 
 export default function TemplateGridView({
   sortOption,
   searchQuery = "",
-}: TemplateGridProps) {
+}: TemplateProps) {
   const { templates, isLoading, error } = getTemplates();
 
   const filteredAndSortedTemplates = useMemo(() => {
@@ -52,7 +52,7 @@ export default function TemplateGridView({
           >
             <div className="w-full h-44 relative -mt-20">
               <Image
-                src={template.image}
+                 src={template.image || "/placeholder-image.jpg"}
                 alt={template.name}
                 fill
                 className="object-cover"
@@ -103,7 +103,11 @@ export default function TemplateGridView({
 
               <div className="flex justify-between items-center mt-4 ml-1">
                 <p className="text-sm font-bold">
-                  {new Date(template.created_at).toLocaleDateString()}
+                {new Date(template.created_at).toLocaleDateString("en-US", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })}
                 </p>
                 <Link
                   href={`templates/${template.id}`}
