@@ -251,7 +251,7 @@ export const ContractEditor = () => {
             <Canvas 
               pageSize={pageSize} 
               pageMargins={pageMargins}
-              elements={currentPageElements} // Only pass elements for the current page
+              elements={elements} // Pass ALL elements instead of just current page elements
               onElementsChange={handleElementsChange}
               activeElementId={activeElementId}
               onElementFocus={handleElementFocus}

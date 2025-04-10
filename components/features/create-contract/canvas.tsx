@@ -513,9 +513,10 @@ export const Canvas = ({
         // Calculate which elements would need to move to accommodate this element
         const draggedHeight = item.id ? getElementHeight(item.id) : rowHeight;
         
-        // Find elements that would be overlapped by the dragged element
+        // Find elements that would be overlapped by the dragged element - only consider elements on current page
         const overlappedElements = elements.filter(el => {
           if (el.isFloating || (item.id && el.id === item.id)) return false;
+          if (el.pageNumber && el.pageNumber !== currentPage) return false;
           
           const elHeight = getElementHeight(el);
           return (position.y >= el.position.y && position.y < el.position.y + elHeight) ||
@@ -795,8 +796,11 @@ export const Canvas = ({
     }
   }, [setElements, onElementFocus, currentPage]);
 
+  // Filter elements for the current page before rendering
+  const currentPageElements = elements.filter(el => el.pageNumber === currentPage || !el.pageNumber);
+  
   // Get the rendered elements ordered by vertical position
-  const renderedElements = [...elements].sort((a, b) => {
+  const renderedElements = [...currentPageElements].sort((a, b) => {
     // Sort by vertical position for non-floating elements
     if (!a.isFloating && !b.isFloating) {
       return a.position.y - b.position.y;
@@ -890,10 +894,11 @@ export const Canvas = ({
       {/* Print preview modal */}
       {showPrintPreview && (
         <PrintPreview
-          elements={elements}
+          elements={allElements} // Pass ALL elements instead of just current page elements
           pageSize={pageSize}
           pageMargins={pageMargins}
           onClose={() => setShowPrintPreview(false)}
+          allPages={Math.max(1, ...allElements.map(el => el.pageNumber || 1))} // Calculate max page number, ensuring at least 1 page
         />
       )}
     </div>
