@@ -753,7 +753,9 @@ export const Canvas = ({
           position,
           isFloating: true,
           content: {
-            label: "Signature"
+            label: "Signature",
+            initials: false,
+            signatureType: "draw"
           },
           formatting: defaultFormatting,
         };
