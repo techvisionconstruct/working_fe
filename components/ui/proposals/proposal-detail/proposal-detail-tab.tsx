@@ -14,20 +14,40 @@ import {
   TableCell,
 } from "@/components/shared";
 import { Pencil, Mail } from "lucide-react";
-import { Proposal } from "@/types/proposals";
+import { Proposal, ProjectElement, ProjectParameter } from "@/types/proposals";
+import { calculateCost } from "@/helpers/calculate-cost";
 
 interface ProposalDetailTabProps {
   proposal: Proposal;
   totalAmount: number;
 }
 
+const convertParametersToVariables = (parameters: ProjectParameter[]) => {
+  return parameters.map(param => ({
+    id: param.parameter.id,
+    name: param.parameter.name,
+    value: param.value.toString(),
+    type: param.parameter.category
+  }));
+};
+
+const calculateMaterialCost = (element: ProjectElement, parameters: ProjectParameter[]) => {
+  const variables = convertParametersToVariables(parameters);
+  return Number(calculateCost(element.formula, variables).toFixed(2));
+};
+
+const calculateLaborCost = (element: ProjectElement, parameters: ProjectParameter[]) => {
+  const variables = convertParametersToVariables(parameters);
+  return Number(calculateCost(element.labor_formula, variables).toFixed(2));
+};
+
 export default function ProposalDetailTab({
   proposal,
   totalAmount,
 }: ProposalDetailTabProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div className="md:col-span-2 space-y-8">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="md:col-span-3 space-y-4">
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Description</h2>
           <div className="prose prose-slate max-w-none">
@@ -37,8 +57,8 @@ export default function ProposalDetailTab({
           </div>
         </div>
         {proposal.project_modules && proposal.project_modules.length > 0 && (
-          <div className="space-y-8">
-            <h2 className="text-xl font-semibold">Project Modules</h2>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold">Project Modules</h2>
             {proposal.project_modules.map((moduleItem) => (
               <div key={moduleItem.id} className="space-y-4">
                 <h3 className="text-lg font-semibold">
@@ -49,11 +69,13 @@ export default function ProposalDetailTab({
                     <TableHeader>
                       <TableRow>
                         <TableHead>Element</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead className="text-right">Labor Cost</TableHead>
-                        <TableHead className="text-right">Markup</TableHead>
+                        <TableHead>Material Formula</TableHead>
+                        <TableHead>Labor Formula</TableHead>
+                        <TableHead>Material Cost</TableHead>
+                        <TableHead>Labor Cost</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Markup</TableHead>
+                        <TableHead className="text-right">Total with Markup</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -68,18 +90,29 @@ export default function ProposalDetailTab({
                             <TableCell className="font-medium">
                               {element.element.name}
                             </TableCell>
-                            <TableCell>{element.element.description}</TableCell>
-                            <TableCell className="text-right">
-                              {element.quantity}
+                            <TableCell>
+                              {element.formula}
+                            </TableCell>
+                            <TableCell>
+                              {element.labor_formula}
                             </TableCell>
                             <TableCell className="text-right">
-                              {element.labor_cost}
+                              {calculateMaterialCost(element, proposal.project_parameters)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {calculateLaborCost(element, proposal.project_parameters)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(calculateMaterialCost(element, proposal.project_parameters) + 
+                                calculateLaborCost(element, proposal.project_parameters)).toFixed(2)}
                             </TableCell>
                             <TableCell className="text-right">
                               {element.markup}%
                             </TableCell>
                             <TableCell className="text-right font-semibold">
-                              {element.total}
+                              {((calculateMaterialCost(element, proposal.project_parameters) + 
+                                calculateLaborCost(element, proposal.project_parameters)) * 
+                                (1 + element.markup/100)).toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))}

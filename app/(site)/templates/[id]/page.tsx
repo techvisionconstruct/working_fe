@@ -28,9 +28,6 @@ export default function TemplatePage({
     error: elementsError,
   } = getTemplateElements(id);
 
-  console.log("Template:", template);
-  console.log("Elements:", elements);
-
   const error = templateError || elementsError;
   const isLoading = isLoadingTemplate || isLoadingElements;
 
