@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/shared";
 import { ProposalsGridProps } from "@/types/proposals";
 import { getProposals } from "@/hooks/api/proposals/get-proposals";
+import { ListLoader } from "@/components/loader/list-loader";
 
 export default function ProposalListView({
   sortOption,
@@ -35,19 +36,17 @@ export default function ProposalListView({
       return 0;
     });
   }, [sortOption, searchQuery, proposals]);
-  
+
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <p className="text-lg font-medium">Loading proposals...</p>
-      </div>
-    );
+    return <ListLoader />;
   }
 
   if (error) {
     return (
       <div className="flex justify-center items-center py-12 text-red-500">
-        <p className="text-lg font-medium">Failed to load proposals: {error.message}</p>
+        <p className="text-lg font-medium">
+          Failed to load proposals: {error.message}
+        </p>
       </div>
     );
   }
@@ -65,13 +64,13 @@ export default function ProposalListView({
               type: "spring",
               stiffness: 400,
               damping: 28,
-              duration: 0.3
+              duration: 0.3,
             }}
             // Simple hover effect
-            whileHover={{ 
-              scale: 1.01, 
+            whileHover={{
+              scale: 1.01,
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.08)",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
             className={`border rounded-md p-4 ${
               index % 2 === 0 ? "bg-[#e8e8e8]" : "bg-white"
@@ -137,7 +136,7 @@ export default function ProposalListView({
                   >
                     <span className="uppercase font-bold">Categories</span>
                     <span
-                     className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
+                      className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
                     >
                       {proposal.project_parameters?.length || 0}
                     </span>

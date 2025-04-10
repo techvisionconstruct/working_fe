@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/shared";
 import { getTemplates } from "@/hooks/api/templates/get-templates";
 import { TemplateProps } from "@/types/templates";
+import { ListLoader } from "@/components/loader/list-loader";
 
 export default function TemplateListView({
   sortOption,
@@ -37,9 +38,7 @@ export default function TemplateListView({
   
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <p className="text-lg font-medium">Loading templates...</p>
-      </div>
+      <ListLoader />
     );
   }
 
