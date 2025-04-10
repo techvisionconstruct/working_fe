@@ -416,28 +416,11 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
         <div style={{ 
           ...styles,
           padding: '10px',
-          width: isFloating ? '250px' : '200px', // Adjusted to match the updated signature component width
+          width: isFloating ? '350px' : '200px', // Increased from 200px to 350px for floating signatures
           textAlign: 'center'
         }}>
           <div>{element.content.label || 'Signature'}</div>
-          {element.content.signatureType === 'initials' && element.content.initials ? (
-            <div style={{ 
-              height: '60px', 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '10px auto'
-            }}>
-              <span style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                fontStyle: 'italic',
-                color: '#2563eb' // blue-600
-              }}>
-                {element.content.initials}
-              </span>
-            </div>
-          ) : element.content.imageData ? (
+          {element.content.imageData ? (
             <img 
               src={element.content.imageData} 
               alt="Signature" 
@@ -448,6 +431,23 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
                 display: 'block'
               }}
             />
+          ) : element.content.signatureType === 'initials' && element.content.initials ? (
+            <div style={{ 
+              height: '60px', 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '10px auto'
+            }}>
+              <span style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                fontStyle: 'italic',
+                color: '#2563eb' // blue-600
+              }}>
+                {element.content.initials}
+              </span>
+            </div>
           ) : (
             <div style={{ height: '60px', borderBottom: '1px solid #ccc', marginTop: '10px' }}></div>
           )}

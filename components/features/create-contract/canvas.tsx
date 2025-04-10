@@ -754,7 +754,8 @@ export const Canvas = ({
           isFloating: true,
           content: {
             label: "Signature",
-            signatureType: "image" // Required property according to SignatureElement type
+            initials: false,
+            signatureType: "draw"
           },
           formatting: defaultFormatting,
         };
