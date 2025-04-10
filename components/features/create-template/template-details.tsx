@@ -7,16 +7,16 @@ import { Template, TemplateDetailsProps } from "@/types/templates";
 export default function TemplateDetails({ template, onUpdateTemplate, onNext }: TemplateDetailsProps) {
   const [title, setTitle] = useState(template.title);
   const [description, setDescription] = useState(template.description);
-  const [imageUrl, setImageUrl] = useState(template.imageUrl);
-  const [previewUrl, setPreviewUrl] = useState(template.imageUrl || "");
+  const [imageUrl, setImageUrl] = useState(template.image);
+  const [previewUrl, setPreviewUrl] = useState(template.image || "");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Sync with template prop changes (only on mount)
   useEffect(() => {
     setTitle(template.title);
     setDescription(template.description);
-    setImageUrl(template.imageUrl);
-    setPreviewUrl(template.imageUrl || "");
+    setImageUrl(template.image);
+    setPreviewUrl(template.image || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -33,7 +33,7 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
     // Save to parent component
     onUpdateTemplate({
       ...template,
-      imageUrl: objectUrl,
+      image: file,
     });
     
     return () => URL.revokeObjectURL(objectUrl);
@@ -45,11 +45,14 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
       ...template,
       title,
       description,
-      imageUrl: previewUrl, 
+      image: imageUrl || selectedFile, 
     });
     onNext();
   };
-
+  console.log('selectedFile:', selectedFile);
+  console.log('template.image:', template.image);
+  console.log('previewUrl:', previewUrl);
+  console.log('imageUrl:', imageUrl);
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-4">Template Details</h2>
@@ -71,7 +74,7 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
                   ...template,
                   title: newTitle,
                   description,
-                  imageUrl: previewUrl || imageUrl,
+                  image: selectedFile,
                 });
               }}
               placeholder="Enter template title"
@@ -124,7 +127,7 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
                 ...template,
                 title,
                 description: newDescription,
-                imageUrl: previewUrl || imageUrl,
+                image: selectedFile,
               });
             }}
             placeholder="Enter template description"
