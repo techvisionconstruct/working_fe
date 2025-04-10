@@ -12,6 +12,8 @@ import TemplateVariables from "@/components/features/create-template/template-va
 import TemplateCategories from "@/components/features/create-template/template-categories";
 import TemplatePreview from "@/components/features/create-template/template-preview";
 import { Template } from "@/types/templates";
+import { postTemplate } from '@/hooks/api/templates/post-template'
+
 
 const emptyTemplate: Template = {
   id: 0,
@@ -20,7 +22,7 @@ const emptyTemplate: Template = {
   categories: [],
   variables: [],
   created_at: new Date().toISOString().split('T')[0],
-  imageUrl: "/placeholder-image.jpg"
+  image: ""
 };
 
 export default function CreateTemplatePage() {
@@ -104,7 +106,17 @@ export default function CreateTemplatePage() {
             />
           </TabsContent>
         </Tabs>
+
+        <div className="flex justify-end mt-6">
+          <button
+            className="bg-primary text-white py-2 px-4 rounded-md"
+            onClick={() => postTemplate(currentTemplate)}
+          >
+            Save Template
+          </button>
+        </div>
       </div>
+      
     </div>
   );
 }
