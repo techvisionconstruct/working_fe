@@ -146,6 +146,7 @@ export interface ProposalData {
   clientPhone?: string
   useGlobalMarkup?: boolean
   globalMarkupPercentage?: number
+  imageUrl?: string
 }
 
 export interface Variable {
@@ -181,4 +182,5 @@ export type ProposalElement = {
 
 export interface Template extends Omit<ProposalData, "variables"> {
   variables: Omit<Variable, "value">[]
+  image: string
 }

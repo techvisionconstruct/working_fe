@@ -450,7 +450,7 @@ export function CostCalculation({
             <Card key={category.id} className="overflow-hidden">
               <CardContent>
                 <div className="flex flex-row items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold"> {category.name}</h3>
+                  <h3 className="text-lg font-bold mt-4"> {category.name}</h3>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -629,7 +629,7 @@ export function CostCalculation({
 
       <Card className="overflow-hidden border-primary/20 bg-muted/20">
         <CardContent>
-          <h3 className="text-lg font-bold flex items-center mb-4">
+          <h3 className="text-lg font-bold flex items-center mb-4 mt-4">
             <DollarSignIcon className="h-5 w-5" />
             Cost Summary
           </h3>

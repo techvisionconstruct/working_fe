@@ -48,7 +48,7 @@ export default function ProposalDetails({
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-bold">Proposal Information</h3>
+              <h3 className="text-lg font-bold mt-4">Proposal Information</h3>
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="title">Proposal Title</Label>
@@ -81,7 +81,7 @@ export default function ProposalDetails({
       <Card>
         <CardContent>
           <div className="space-y-4">
-            <h3 className="text-lg font-bold">Client Information</h3>
+            <h3 className="text-lg font-bold mt-4">Client Information</h3>
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="clientName">Client Name</Label>

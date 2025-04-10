@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { Card, CardContent, Button, Badge } from "@/components/shared"
 import type { Template } from "@/types/proposals"
-import { templates } from "@/data/templates"
+import { getTemplates } from "@/hooks/api/templates/get-templates"
 
 interface TemplateSelectorProps {
   onSelectTemplate: (template: Template) => void
@@ -11,6 +11,16 @@ interface TemplateSelectorProps {
 }
 
 export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: TemplateSelectorProps) {
+  const { templates, isLoading, error } = getTemplates()
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center py-12">Loading templates...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center py-12">Error loading templates: {error.message}</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -23,58 +33,58 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
                : ""
            }`}
          >
-           <div className="w-full h-44 relative -mt-20">
+           <div className="w-full h-30 relative">
              <Image
-               src={template.imageUrl || "/placeholder.svg"}
-               alt={template.title}
+               src={template.image || "/placeholder-image.jpg"}
+               alt={template.name}
                fill
                className="object-cover"
              />
            </div>
            <CardContent>
-             <h1 className="text-xl font-bold">{template.title}</h1>
+             <h1 className="text-xl font-bold mt-2">{template.name}</h1>
              <p className="mt-1 text-sm text-black/50 line-clamp-3">
                {template.description}
              </p>
 
              <div className="flex justify-between items-center mt-4">
                <div className="flex flex-wrap gap-2 max-w-full">
-                 {template.categories.slice(0, 4).map((category) => (
+                 {template.modules.slice(0, 4).map((module) => (
                    <Badge
-                     key={category.id}
+                     key={module.id}
                      variant="outline"
                      className="font-bold uppercase text-xs"
                    >
-                     {category.name}
+                     {module.name}
                    </Badge>
                  ))}
-                 {template.categories.length > 4 && (
+                 {template.modules.length > 4 && (
                    <Badge
                      variant="outline"
                      className="font-bold uppercase text-xs"
                    >
-                     +{template.categories.length - 4} more
+                     +{template.modules.length - 4} more
                    </Badge>
                  )}
                </div>
              </div>
              <div className="flex gap-2 mt-2">
                <Badge variant="outline" className="flex items-center gap-1">
-                 <span className="uppercase font-bold">Variables</span>
+                 <span className="uppercase font-bold">Parameters</span>
                  <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                   {template.variables?.length || 0}
+                   {template.parameters?.length || 0}
                  </span>
                </Badge>
                <Badge variant="outline" className="flex items-center gap-1">
-                 <span className="uppercase font-bold">Categories</span>
+                 <span className="uppercase font-bold">Modules</span>
                  <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
-                   {template.categories?.length || 0}
+                   {template.modules?.length || 0}
                  </span>
                </Badge>
              </div>
 
              <div className="flex justify-between items-center mt-4 ml-1">
-               <p className="text-sm font-bold">{template.created_at}</p>
+               <p className="text-sm font-bold">{new Date(template.created_at).toLocaleDateString()}</p>
                
                {selectedTemplateId === template.id ? (
                  <Button 
@@ -87,18 +97,14 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
                  <Button 
                    className="text-sm font-bold uppercase" 
                    onClick={() => {
-                     // Add markup_percentage to each element
-                     const templateWithMarkup = {
+                     // Map API template to expected format
+                     const mappedTemplate = {
                        ...template,
-                       categories: template.categories.map(cat => ({
-                         ...cat,
-                         elements: cat.elements.map(el => ({
-                           ...el,
-                           markup_percentage: 2
-                         }))
-                       }))
+                       title: template.name,
+                       variables: [], // Add if available from API
+                       categories: [], // Add if available from API
                      };
-                     onSelectTemplate(templateWithMarkup);
+                     onSelectTemplate(mappedTemplate);
                    }}
                  >
                    Use this template

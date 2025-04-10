@@ -6,7 +6,7 @@ export function CardDescription({ className, ...props }: React.ComponentProps<"d
   return (
     <div
       data-slot="card-description"
-      className={cn("p-6 pt-0", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   )

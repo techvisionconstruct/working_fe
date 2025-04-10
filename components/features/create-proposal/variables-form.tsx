@@ -93,7 +93,7 @@ export function VariablesForm({
       {Object.entries(groupedVariables).map(([type, vars]) => (
         <Card key={type} className="overflow-hidden">
           <CardContent>
-            <h3 className="text-lg font-bold"> {type} Variables</h3>
+            <h3 className="text-lg font-bold mt-4"> {type} Variables</h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {vars.map((variable) => (
                 <div key={variable.id} className="space-y-2">

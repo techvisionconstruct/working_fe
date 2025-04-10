@@ -13,6 +13,8 @@ import { SortByComponent } from "@/components/shared/ui/sort-by-component";
 import { SearchComponent } from "@/components/shared/ui/search-component";
 import { SortOption } from "@/types/sort";
 import TemplateGridView from "@/components/ui/templates/template-grid-view";
+import TemplateListView from "@/components/ui/templates/template-list-view";
+import Link from "next/link";
 
 export default function TemplatePage() {
   const [sortOption, setSortOption] = useState<SortOption>({
@@ -39,7 +41,11 @@ export default function TemplatePage() {
                 <h1 className="text-3xl font-bold">Templates</h1>
                 <p>Manage and track your templates.</p>
               </div>
-              <Button className="uppercase font-bold">New Template</Button>
+              <Link href={'/templates/create'}>
+              <Button className="uppercase font-bold">
+                New Template
+              </Button>
+              </Link>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3 flex-wrap">
@@ -67,7 +73,12 @@ export default function TemplatePage() {
               searchQuery={searchQuery}
             />
           </TabsContent>
-          <TabsContent value="list"></TabsContent>
+          <TabsContent value="list">
+            <TemplateListView
+              sortOption={sortOption}
+              searchQuery={searchQuery}
+            />
+          </TabsContent>
         </div>
       </Tabs>
     </div>

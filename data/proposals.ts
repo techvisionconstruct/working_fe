@@ -7,6 +7,7 @@ export const emptyProposal: ProposalData = {
   categories: [],
   variables: [],
   created_at: new Date().toISOString().split("T")[0],
+  image: "",
   imageUrl: "",
   useGlobalMarkup: false,
   globalMarkupPercentage: 15,
