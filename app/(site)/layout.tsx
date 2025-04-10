@@ -10,7 +10,7 @@ export default function SiteLayout({
       <div className="w-full md:w-auto shrink-0">
         <Sidenav />
       </div>
-      <main className="flex-1 overflow-auto px-4 md:px-6 lg:px-8">
+      <main className="flex-1 overflow-auto">
         {children}
       </main>
     </div>
