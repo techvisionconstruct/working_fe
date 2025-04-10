@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Tabs,
   TabsList,
@@ -17,6 +18,11 @@ import TemplateListView from "@/components/ui/templates/template-list-view";
 import Link from "next/link";
 
 export default function TemplatePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const viewParam = searchParams.get("view");
+  const [activeTab, setActiveTab] = useState<string>(viewParam === "list" ? "list" : "grid");
+
   const [sortOption, setSortOption] = useState<SortOption>({
     value: "date-descending",
     label: "Date (Newest First)",
@@ -31,9 +37,14 @@ export default function TemplatePage() {
     setSearchQuery(query);
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/templates?view=${value}`, { scroll: false });
+  };
+
   return (
-    <div>
-      <Tabs defaultValue="grid">
+    <div className="container mx-auto px-4">
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
         <div className="sticky top-0 z-10 w-full left-0 bg-background">
           <div className="container mx-auto pt-6 pb-2">
             <div className="flex justify-between items-center mb-6">

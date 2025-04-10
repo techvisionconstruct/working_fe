@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   Tabs,
@@ -18,12 +19,18 @@ import ProposalListView from "@/components/ui/proposals/proposal-list-view";
 import Link from "next/link";
 
 export default function ProposalPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const viewParam = searchParams.get("view");
+  const [activeTab, setActiveTab] = useState<string>(viewParam === "list" ? "list" : "grid");
+
   const [sortOption, setSortOption] = useState<SortOption>({
     value: "date-descending",
     label: "Date (Newest First)",
   });
 
   const [searchQuery, setSearchQuery] = useState<string>("");
+  
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
   };
@@ -32,9 +39,14 @@ export default function ProposalPage() {
     setSortOption(newSortOption);
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/proposals?view=${value}`, { scroll: false });
+  };
+
   return (
-    <div>
-      <Tabs defaultValue="grid">
+    <div className="container mx-auto px-4">
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
         <div className="sticky top-0 z-10 w-full left-0 bg-background">
           <div className="container mx-auto pt-6 pb-2">
             <div className="flex justify-between items-center mb-6">
@@ -42,7 +54,9 @@ export default function ProposalPage() {
                 <h1 className="text-3xl font-bold">Proposals</h1>
                 <p>Manage and track client proposals.</p>
               </div>
-              <Link href={'/proposals/create'}><Button className="uppercase font-bold">New Proposals</Button></Link>
+              <Link href={"/proposals/create"}>
+                <Button className="uppercase font-bold">New Proposal</Button>
+              </Link>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3 flex-wrap">
