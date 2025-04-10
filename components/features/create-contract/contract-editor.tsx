@@ -3,16 +3,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { v4 as uuidv4 } from "uuid";
 import { ElementToolbar } from "./element-toolbar";
 import { Canvas } from "./canvas";
 import { PageSizeSelector } from "./page-size-selector";
-import { PageSize, TextFormatting, Element, HeaderElement } from "./utils/types";
+import { PageSize, TextFormatting, Element, HeaderElement, Page } from "./utils/types";
 import { FormattingToolbar } from "./formatting-toolbar";
 import { MarginControls, PageMargins } from "./margin-controls";
+import { PageNavigation } from "./page-navigation";
 
 export const ContractEditor = () => {
   // Initialize with lowercase "a4" to match the PageSize type
   const [pageSize, setPageSize] = useState<PageSize>("a4");
+  
+  // Store all pages
+  const [pages, setPages] = useState<Page[]>([{
+    id: uuidv4(),
+    pageNumber: 1
+  }]);
+  
+  // Track current page
+  const [currentPage, setCurrentPage] = useState<number>(1);
   
   // Store all elements
   const [elements, setElements] = useState<Element[]>([]);
@@ -33,6 +44,9 @@ export const ContractEditor = () => {
     left: 40
   });
 
+  // Filter elements for the current page
+  const currentPageElements = elements.filter(el => el.pageNumber === currentPage || !el.pageNumber);
+  
   // Get active element
   const activeElement = elements.find(el => el.id === activeElementId);
 
@@ -51,13 +65,72 @@ export const ContractEditor = () => {
 
   // Memoize elements change handler
   const handleElementsChange = useCallback((newElements: Element[]) => {
-    setElements(newElements);
-  }, []);
+    // Ensure all new elements have a pageNumber assigned
+    const updatedElements = newElements.map(el => {
+      if (el.pageNumber === undefined) {
+        return {
+          ...el,
+          pageNumber: currentPage
+        };
+      }
+      return el;
+    });
+    
+    setElements(updatedElements);
+  }, [currentPage]);
 
   // Add a handler for margin changes
   const handleMarginsChange = useCallback((margins: PageMargins) => {
     setPageMargins(margins);
   }, []);
+
+  // Handle page change
+  const handlePageChange = useCallback((pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    // Clear active element when changing pages
+    setActiveElementId(null);
+  }, []);
+
+  // Handle adding a new page
+  const handleAddPage = useCallback(() => {
+    const newPageNumber = pages.length + 1;
+    const newPage: Page = {
+      id: uuidv4(),
+      pageNumber: newPageNumber
+    };
+    
+    setPages(prevPages => [...prevPages, newPage]);
+    setCurrentPage(newPageNumber); // Navigate to the new page
+  }, [pages]);
+
+  // Handle deleting a page
+  const handleDeletePage = useCallback((pageNumber: number) => {
+    // Don't delete if there's only one page
+    if (pages.length <= 1) return;
+    
+    // Remove the page
+    setPages(prevPages => prevPages.filter(page => page.pageNumber !== pageNumber));
+    
+    // Renumber remaining pages to ensure sequential numbering
+    setPages(prevPages => prevPages.map((page, index) => ({
+      ...page,
+      pageNumber: index + 1
+    })));
+    
+    // Delete all elements on the deleted page
+    setElements(prevElements => prevElements.filter(el => el.pageNumber !== pageNumber));
+    
+    // Update pageNumber for elements on pages after the deleted page
+    setElements(prevElements => prevElements.map(el => {
+      if (el.pageNumber && el.pageNumber > pageNumber) {
+        return {
+          ...el,
+          pageNumber: el.pageNumber - 1
+        };
+      }
+      return el;
+    }));
+  }, [pages]);
 
   // Update formatting when active element changes
   useEffect(() => {
@@ -162,15 +235,27 @@ export const ContractEditor = () => {
           <ElementToolbar />
         </div>
         
+        {/* Add Page Navigation */}
+        <div className="px-4 py-2 bg-gray-50 border-b">
+          <PageNavigation
+            currentPage={currentPage}
+            totalPages={pages.length}
+            onPageChange={handlePageChange}
+            onAddPage={handleAddPage}
+            onDeletePage={handleDeletePage}
+          />
+        </div>
+        
         <div className="flex flex-1">
           <div className="flex-1 bg-gray-100">
             <Canvas 
               pageSize={pageSize} 
-              pageMargins={pageMargins} // Pass margins to Canvas
-              elements={elements}
+              pageMargins={pageMargins}
+              elements={currentPageElements} // Only pass elements for the current page
               onElementsChange={handleElementsChange}
               activeElementId={activeElementId}
               onElementFocus={handleElementFocus}
+              currentPage={currentPage} // Pass current page to Canvas
             />
           </div>
         </div>

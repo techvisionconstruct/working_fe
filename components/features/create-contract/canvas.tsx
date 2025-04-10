@@ -31,6 +31,7 @@ interface CanvasProps {
   onElementsChange?: (elements: Element[]) => void;
   activeElementId?: string | null;
   onElementFocus?: (elementId: string | null) => void;
+  currentPage: number; // Required currentPage prop
 }
 
 // Local storage key for saving element positions
@@ -42,13 +43,17 @@ export const Canvas = ({
   elements: externalElements,
   onElementsChange,
   activeElementId,
-  onElementFocus
+  onElementFocus,
+  currentPage
 }: CanvasProps) => {
   // Use local state if no external elements are provided
   const [localElements, setLocalElements] = useState<Element[]>([]);
   
   // Determine which elements state to use
-  const elements = externalElements !== undefined ? externalElements : localElements;
+  const allElements = externalElements !== undefined ? externalElements : localElements;
+  
+  // Filter elements to only show those on the current page
+  const elements = allElements.filter(el => el.pageNumber === currentPage || !el.pageNumber);
   const setElements = useCallback((newElements: Element[] | ((prev: Element[]) => Element[])) => {
     if (onElementsChange && externalElements !== undefined) {
       if (typeof newElements === 'function') {
@@ -176,7 +181,8 @@ export const Canvas = ({
     }
     
     // Find the lowest y position (bottom of the canvas content)
-    const regularElements = elements.filter(el => !el.isFloating);
+    // Only consider elements on the current page
+    const regularElements = elements.filter(el => !el.isFloating && (el.pageNumber === currentPage || !el.pageNumber));
     if (regularElements.length === 0) {
       return { x: horizontalPadding, y: pageMargins.top }; // Add top margin to the initial Y position
     }
@@ -655,7 +661,7 @@ export const Canvas = ({
           };
         }
         
-        // Create new element at the determined position
+        // Create new element at the determined position and assign it to the current page
         createNewElement(item.type, position, item.isFloating);
       }
       
@@ -667,7 +673,7 @@ export const Canvas = ({
       canDrop: !!monitor.canDrop(),
     }),
   }), [elements, rowHeight, width, pageHeight, reorderElements, findNextAvailablePosition, 
-       horizontalPadding, pageMargins, updateElementPosition, getElementHeight]);
+       horizontalPadding, pageMargins, updateElementPosition, getElementHeight, currentPage]);
 
   // Clear preview and animations when not hovering
   useEffect(() => {
@@ -678,99 +684,116 @@ export const Canvas = ({
   }, [isOver]);
 
   const createNewElement = useCallback((type: string, position: Position, isFloating?: boolean) => {
-    let newElement: Element;
     const id = uuidv4();
-
-    // Default formatting based on element type
     const defaultFormatting: TextFormatting = {
       fontSize: type === 'header' ? 24 : 16,
-      alignment: 'left',
+      alignment: 'left'
     };
-
+    
+    // Create element based on type
     switch (type) {
       case "header":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "header",
+          isFloating,
           position,
           content: {
             text: "New Header",
             level: 1
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
       case "text":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "text",
+          isFloating,
           position,
           content: {
-            text: ""
+            text: "Enter your text here..."
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
       case "bulletList":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "bulletList",
+          isFloating,
           position,
           content: {
-            items: [{ id: uuidv4(), text: "List item 1" }]
+            items: [
+              { id: uuidv4(), text: "Item 1" },
+              { id: uuidv4(), text: "Item 2" },
+              { id: uuidv4(), text: "Item 3" }
+            ]
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
       case "numberList":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "numberList",
+          isFloating,
           position,
           content: {
-            items: [{ id: uuidv4(), text: "List item 1" }]
+            items: [
+              { id: uuidv4(), text: "Item 1" },
+              { id: uuidv4(), text: "Item 2" },
+              { id: uuidv4(), text: "Item 3" }
+            ]
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
       case "table":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "table",
+          isFloating,
           position,
           content: {
             rows: 3,
             cols: 3,
-            data: Array(3).fill(Array(3).fill(""))
+            data: [
+              ['Header 1', 'Header 2', 'Header 3'],
+              ['Cell 1', 'Cell 2', 'Cell 3'],
+              ['Cell 4', 'Cell 5', 'Cell 6']
+            ]
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
       case "signature":
-        newElement = {
+        setElements(prev => [...prev, {
           id,
           type: "signature",
+          isFloating: true, // Force floating for signatures
           position,
-          isFloating: true,
           content: {
             label: "Signature",
             initials: false,
-            signatureType: "draw"
+            signatureType: "signature"
           },
           formatting: defaultFormatting,
-        };
+          pageNumber: currentPage, // Assign current page number
+        }]);
         break;
-      default:
-        return; // Unknown element type
     }
-
-    setElements(prev => [...prev, newElement]);
     
-    // Auto-focus newly created element
+    // Focus the new element after a short delay to allow rendering
     if (onElementFocus) {
       setTimeout(() => onElementFocus(id), 100);
     }
-  }, [setElements, onElementFocus]);
+  }, [setElements, onElementFocus, currentPage]);
 
   // Get the rendered elements ordered by vertical position
   const renderedElements = [...elements].sort((a, b) => {

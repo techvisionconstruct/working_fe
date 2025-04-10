@@ -26,6 +26,12 @@ export type ElementType =
   | "signature"
   | "columnLayout";
 
+// Page interface to represent a single page in the contract
+export interface Page {
+  id: string;
+  pageNumber: number;
+}
+
 // Base Element interface with formatting support
 export interface ElementBase {
   id: string;
@@ -34,6 +40,7 @@ export interface ElementBase {
   content: any;
   isFloating?: boolean;
   formatting?: TextFormatting; // Add formatting to base element
+  pageNumber?: number; // Add pageNumber to track which page the element belongs to
 }
 
 export interface HeaderElement extends ElementBase {
