@@ -4,6 +4,7 @@ import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { ProposalsGridProps } from "@/types/proposals";
 import { getProposals } from "@/hooks/api/proposals/get-proposals";
+import { GridLoader } from "@/components/loader/grid-loader";
 
 export default function ProposalGridView({
   sortOption,
@@ -56,6 +57,10 @@ export default function ProposalGridView({
       return 0;
     });
   }, [proposals, sortOption, searchQuery]);
+
+  if (isLoading) {
+    return <GridLoader />;
+  }
 
   if (!Array.isArray(proposals) || proposals.length === 0) {
     return (

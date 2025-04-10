@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getProposalById } from "@/hooks/api/proposals/get-proposal-by-id";
 import {
   Card,
@@ -33,8 +34,17 @@ export default function ProposalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<string>(tabParam === "contract" ? "contract" : "proposal");
   const { proposal, isLoading, error } = getProposalById(id);
   const [totalAmount, setTotalAmount] = useState<number>(0);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/proposals/${id}?tab=${value}`, { scroll: false });
+  };
 
   useEffect(() => {
     if (proposal) {
@@ -118,6 +128,7 @@ export default function ProposalDetailPage({
 
   return (
     <div>
+      <div className="container mx-auto px-4">
       <div className="relative w-full h-[300px] mt-6 mb-6 overflow-hidden rounded-xl">
         <Image
           src={proposal.image || "/placeholder-image.jpg"}
@@ -127,10 +138,8 @@ export default function ProposalDetailPage({
           priority
         />
       </div>
-
-      <div className="container mx-auto px-4">
         <div className="space-y-8 pb-20">
-          <Tabs defaultValue="proposal" className="w-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex justify-between items-start mb-2">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">

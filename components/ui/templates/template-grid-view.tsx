@@ -4,6 +4,7 @@ import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { TemplateProps } from "@/types/templates";
 import { getTemplates } from "@/hooks/api/templates/get-templates";
+import { GridLoader } from "@/components/loader/grid-loader";
 
 export default function TemplateGridView({
   sortOption,
@@ -41,6 +42,11 @@ export default function TemplateGridView({
       return 0;
     });
   }, [sortOption, searchQuery, templates]);
+
+   if (isLoading) {
+      return <GridLoader />;
+    }
+  
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

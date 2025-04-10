@@ -56,41 +56,42 @@ export default function TemplatePage({
 
   return (
     <div>
-      <div className="relative w-full h-[300px] mt-6 mb-6 overflow-hidden rounded-xl">
-        <Image
-          src={template.image || "/placeholder-image.jpg"}
-          alt={template.name}
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
-
-      <div className="container mx-auto px-4">          <div className="space-y-8 pb-20">
-            <div className="flex justify-between items-start mb-4">
-              <div className="space-y-4">
-                <h1 className="text-4xl font-bold tracking-tight">
-                  {template.name}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-sm">
-                  <span>
-                    Created on {new Date(template.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-md font-medium">
-                  Create Proposal
-                </button>
-                <button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 py-2 rounded-md font-medium">
-                  Edit Template
-                </button>
-                <button className="border hover:bg-muted px-5 py-2 rounded-md font-medium">
-                  Download
-                </button>
+      <div className="container mx-auto px-4">
+        <div className="relative w-full h-[300px] mt-6 mb-6 overflow-hidden rounded-xl">
+          <Image
+            src={template.image || "/placeholder-image.jpg"}
+            alt={template.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+        <div className="space-y-8 pb-20">
+          <div className="flex justify-between items-start mb-4">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold tracking-tight">
+                {template.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-sm">
+                <span>
+                  Created on{" "}
+                  {new Date(template.created_at).toLocaleDateString()}
+                </span>
               </div>
             </div>
-            <Separator className="my-4" />
+            <div className="flex gap-3">
+              <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-md font-medium">
+                Create Proposal
+              </button>
+              <button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 py-2 rounded-md font-medium">
+                Edit Template
+              </button>
+              <button className="border hover:bg-muted px-5 py-2 rounded-md font-medium">
+                Download
+              </button>
+            </div>
+          </div>
+          <Separator className="my-4" />
 
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Description</h2>
@@ -107,7 +108,10 @@ export default function TemplatePage({
             <h2 className="text-xl font-semibold">Template Elements</h2>
             {Object.entries(elementsByModule).map(
               ([moduleName, moduleElements]) => (
-                <div key={moduleName} className="card border rounded-lg shadow-sm">
+                <div
+                  key={moduleName}
+                  className="card border rounded-lg shadow-sm"
+                >
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-4 text-center">
                       {moduleName}
@@ -116,9 +120,15 @@ export default function TemplatePage({
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-muted/60">
-                            <th className="text-left py-3 px-4 text-sm font-medium">Element</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium">Material Formula</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium">Labor Formula</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium">
+                              Element
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium">
+                              Material Formula
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium">
+                              Labor Formula
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -130,7 +140,9 @@ export default function TemplatePage({
                               }`}
                             >
                               <td className="py-3 px-4">
-                                <span className="font-medium">{element.name}</span>
+                                <span className="font-medium">
+                                  {element.name}
+                                </span>
                               </td>
                               <td className="py-3 px-4">
                                 <code className="font-mono bg-muted/50 p-1 rounded text-sm">
