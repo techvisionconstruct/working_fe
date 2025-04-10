@@ -80,7 +80,6 @@ export default function ContractDetailTab({
 
   const handleToggleEditMode = (newValue: boolean) => {
     if (isEditable && !newValue) {
-      console.log("Saving contract data:", contractData);
     }
     setIsEditable(newValue);
   };

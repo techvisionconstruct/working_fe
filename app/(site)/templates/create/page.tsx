@@ -27,20 +27,13 @@ export default function CreateTemplatePage() {
   const [currentTemplate, setCurrentTemplate] = useState<Template>(emptyTemplate);
   const [activeTab, setActiveTab] = useState("details");
 
-  // Debug: log template state changes
-  useEffect(() => {
-    console.log("Current template state:", currentTemplate);
-  }, [currentTemplate]);
-
   const updateTemplate = (updatedTemplate: Template | ((prevTemplate: Template) => Template)) => {
     if (typeof updatedTemplate === 'function') {
       setCurrentTemplate(prevState => {
         const newState = updatedTemplate(prevState);
-        console.log("Template updated with function to:", newState);
         return newState;
       });
     } else {
-      console.log("Template updated directly to:", updatedTemplate);
       setCurrentTemplate(updatedTemplate);
     }
   };

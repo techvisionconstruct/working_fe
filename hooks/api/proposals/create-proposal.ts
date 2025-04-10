@@ -15,7 +15,6 @@ export const useCreateProposal = () => {
     setIsLoading(true);
     setError(null);
     
-    console.log(proposalData); 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(`${apiUrl}/api/projects/project/new/`, {
