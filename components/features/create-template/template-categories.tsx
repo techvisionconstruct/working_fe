@@ -28,29 +28,20 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  
-  // Use the categories hook to fetch modules/categories
   const { modules, isLoading, error } = useCategories();
-  console.log("Modules:", modules);
   
-  // Filter modules based on search query
   const filteredModules = modules?.filter((module) => 
     module.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
-  
-  // Element form states
+
   const [elementName, setElementName] = useState("");
   const [materialCostFormula, setMaterialCostFormula] = useState("");
   const [laborCostFormula, setLaborCostFormula] = useState("");
   
-  // Sync categories state with template prop when it changes
   useEffect(() => {
     setCategories(template.categories || []);
   }, [template.categories]);
-
-  // Update parent component state after any change to categories
   useEffect(() => {
-    // Only update if categories have been initialized (not first render)
     if (categories.length > 0 || template.categories?.length > 0) {
       onUpdateTemplate({
         ...template,
@@ -73,7 +64,6 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
     setNewCategoryName("");
     setSelectedCategory(newCategory.id);
 
-    // Update the template
     onUpdateTemplate({
       ...template,
       categories: updatedCategories
@@ -84,8 +74,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
     const updatedCategories = categories.filter((category: Category) => category.id !== id);
     setCategories(updatedCategories);
     setSelectedCategory(null);
-    
-    // Update the template
+
     onUpdateTemplate({
       ...template,
       categories: updatedCategories
@@ -160,7 +149,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
       </p>
 
       <div className="space-y-6">
-        {/* Add new category */}
+    
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <Input
