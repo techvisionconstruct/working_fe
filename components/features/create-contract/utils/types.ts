@@ -84,7 +84,9 @@ export interface SignatureElement extends ElementBase {
   isFloating: true;
   content: {
     label: string;
-    imageData?: string; // Add imageData property that's being used in the code
+    imageData?: string;
+    initials?: string;
+    signatureType: 'image' | 'initials';
   };
 }
 
