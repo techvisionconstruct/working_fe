@@ -25,7 +25,7 @@ export const SignatureElement = ({
   isPrintPreview = false
 }: SignatureElementProps) => {
   const [dragActive, setDragActive] = useState(false);
-  const [signatureType, setSignatureType] = useState<'image' | 'initials'>(content.signatureType);
+  const [signatureType, setSignatureType] = useState<'image' | 'initials'>('image');
   const [initialsValue, setInitialsValue] = useState(content.initials || '');
   const [labelValue, setLabelValue] = useState(content.label || 'Signature');
   const [imageData, setImageData] = useState(content.imageData);
@@ -34,7 +34,7 @@ export const SignatureElement = ({
   const initialsInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setSignatureType(content.signatureType);
+    // Don't update the signatureType from content to keep our default
     setInitialsValue(content.initials || '');
     setLabelValue(content.label || 'Signature');
     setImageData(content.imageData);
@@ -140,7 +140,8 @@ export const SignatureElement = ({
       onChange({
         ...content,
         label: labelValue,
-        imageData: savedSignature
+        imageData: savedSignature,
+        signatureType: 'image'
       });
     }
   }, []);

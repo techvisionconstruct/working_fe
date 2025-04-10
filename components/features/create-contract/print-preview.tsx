@@ -431,6 +431,23 @@ const ElementPreview = ({ element, contentWidth, isFloating }: ElementPreviewPro
                 display: 'block'
               }}
             />
+          ) : element.content.signatureType === 'initials' && element.content.initials ? (
+            <div style={{ 
+              height: '60px', 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '10px auto'
+            }}>
+              <span style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                fontStyle: 'italic',
+                color: '#2563eb' // blue-600
+              }}>
+                {element.content.initials}
+              </span>
+            </div>
           ) : (
             <div style={{ height: '60px', borderBottom: '1px solid #ccc', marginTop: '10px' }}></div>
           )}
