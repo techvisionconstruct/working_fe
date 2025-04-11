@@ -100,29 +100,45 @@ export function VariablesForm({
     setVariables(updatedVariables);
   };
 
+  // Inside the VariablesForm component
+
   const handleAddVariable = () => {
-    if (!newVariable.name || !newVariable.type) return;
+    // Validate required fields
+    if (!newVariable.name || !newVariable.type) {
+      console.error("Variable name and type are required");
+      return;
+    }
 
+    // Generate a new unique ID
     const newId =
-      variables.length > 0 ? Math.max(...variables.map((v) => v.id)) + 1 : 1;
+      variables.length > 0
+        ? Math.max(...variables.map((v) => v.id || 0)) + 1
+        : 1;
 
-    const variableToAdd: Variable = {
+    // Create the new variable object
+    const variableToAdd = {
       id: newId,
       name: newVariable.name,
       type: newVariable.type,
       value: newVariable.value || "0",
     };
 
-    // Update parent state
-    setVariables([...variables, variableToAdd]);
+    console.log("Adding new variable:", variableToAdd);
+
+    // Update parent state with the new variable array
+    const updatedVariables = [...variables, variableToAdd];
+    setVariables(updatedVariables);
 
     // Update local input values
     setInputValues((prev) => ({
       ...prev,
-      [newId]: newVariable.value || "0",
+      [newId]: variableToAdd.value,
     }));
 
+    // Reset the new variable form
     setNewVariable({ name: "", type: "", value: "0" });
+
+    // Close the dialog
     setIsDialogOpen(false);
   };
 

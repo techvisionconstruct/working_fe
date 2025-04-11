@@ -148,7 +148,7 @@ export function CostCalculation({
   });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isElementDialogOpen, setIsElementDialogOpen] = useState(false);
-  const [editingElement, setEditingElement] = useState<Element | null>(null);
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
     null
   );
@@ -163,13 +163,11 @@ export function CostCalculation({
     }
   }, [localProposal, onUpdateProposal]);
 
-  console.log("localProposal", localProposal);
-
   const calculatedCosts = useMemo(() => {
     // Map template_elements to their respective categories
     const elementsByCategory = localProposal.template_elements.reduce(
       (acc, templateElement) => {
-        const categoryId = templateElement.module.id; // Assuming `element.id` maps to the category
+        const categoryId = templateElement.module.id;
         if (!acc[categoryId]) {
           acc[categoryId] = [];
         }
@@ -180,16 +178,10 @@ export function CostCalculation({
     );
 
     return localProposal.modules.map((category) => {
-      const elements = elementsByCategory[category.id] || []; // Get elements for this category
-      console.log(category.id, elementsByCategory, elements);
-      elements.map((templateElement, index) => {
-        console.log("templateElement", templateElement);
-      });
+      const elements = elementsByCategory[category.id] || [];
       return {
         ...category,
         elements: elements.map((templateElement) => {
-          console.log("templateElement", templateElement);
-          console.log("localProposal.variables", localProposal);
           const materialFormulaHasErrors = checkFormulaErrors(
             templateElement.material_cost.toString(),
             localProposal.parameters
@@ -215,7 +207,6 @@ export function CostCalculation({
               );
 
           const baseCost = materialCost + laborCost;
-          console.log("baseCost", baseCost);
           const markupPercentage = localProposal.useGlobalMarkup
             ? localProposal.globalMarkupPercentage || 15
             : templateElement.markup_percentage || 10;
@@ -238,7 +229,6 @@ export function CostCalculation({
   }, [
     localProposal.modules,
     localProposal.template_elements,
-    localProposal.variables,
     localProposal.useGlobalMarkup,
     localProposal.globalMarkupPercentage,
     localProposal.parameters,
@@ -282,7 +272,6 @@ export function CostCalculation({
   const handleAddCategory = () => {
     if (!newCategory.name) return;
 
-    // Check if modules exists and use it instead of categories
     const newId =
       localProposal.modules && localProposal.modules.length > 0
         ? Math.max(...localProposal.modules.map((c) => c.id)) + 1
@@ -291,7 +280,6 @@ export function CostCalculation({
     const moduleToAdd = {
       id: newId,
       name: newCategory.name,
-      elements: [],
     };
 
     const updatedProposal = {
@@ -305,13 +293,20 @@ export function CostCalculation({
   };
 
   const handleRemoveCategory = (categoryId: number) => {
+    // Remove the category from modules
     const updatedModules = localProposal.modules.filter(
       (module) => module.id !== categoryId
+    );
+
+    // Also remove all template_elements associated with this category
+    const updatedTemplateElements = localProposal.template_elements.filter(
+      (element) => element.module.id !== categoryId
     );
 
     setLocalProposal({
       ...localProposal,
       modules: updatedModules,
+      template_elements: updatedTemplateElements,
     });
   };
 
@@ -321,19 +316,19 @@ export function CostCalculation({
       name: "",
       material_cost: "",
       labor_cost: "",
-      markup_percentage: 10, // Default markup percentage
+      markup_percentage: 10,
     });
-    setEditingElement(null);
+    setEditingElementId(null);
     setEditingCategoryId(null);
     setIsElementDialogOpen(true);
   };
 
-  const openEditElementDialog = (element: Element, categoryId: number) => {
-    setEditingElement(element);
+  const openEditElementDialog = (element: any, categoryId: number) => {
+    setEditingElementId(element.id);
     setEditingCategoryId(categoryId);
     setNewElement({
       categoryId,
-      name: element.name,
+      name: element.element.name,
       material_cost: element.material_cost,
       labor_cost: element.labor_cost,
       markup_percentage: element.markup_percentage,
@@ -344,27 +339,17 @@ export function CostCalculation({
   const handleAddElement = () => {
     if (!newElement.categoryId || !newElement.name) return;
 
-    // Create a new template element
-    const newTemplateElement = {
-      id: Math.random().toString(),
-      module: { id: newElement.categoryId },
-      element: {
-        id: Math.random().toString(),
-        name: newElement.name,
-      },
-      material_cost: newElement.material_cost,
-      labor_cost: newElement.labor_cost,
-      markup_percentage: newElement.markup_percentage,
-    };
-
-    // If editing, update the existing element
-    if (editingElement && editingCategoryId) {
+    if (editingElementId) {
+      // Update existing element
       const updatedTemplateElements = localProposal.template_elements.map(
         (template) => {
-          if (template.id === editingElement.id) {
+          if (template.id === editingElementId) {
             return {
               ...template,
-              element: { ...template.element, name: newElement.name },
+              element: {
+                ...template.element,
+                name: newElement.name,
+              },
               material_cost: newElement.material_cost,
               labor_cost: newElement.labor_cost,
               markup_percentage: newElement.markup_percentage,
@@ -379,7 +364,21 @@ export function CostCalculation({
         template_elements: updatedTemplateElements,
       });
     } else {
-      // Otherwise add a new element
+      // Add new element
+      const newElementId = Math.random().toString(36).substring(2, 9);
+
+      const newTemplateElement = {
+        id: newElementId,
+        module: { id: newElement.categoryId },
+        element: {
+          id: newElementId,
+          name: newElement.name,
+        },
+        material_cost: newElement.material_cost,
+        labor_cost: newElement.labor_cost,
+        markup_percentage: newElement.markup_percentage,
+      };
+
       setLocalProposal({
         ...localProposal,
         template_elements: [
@@ -397,14 +396,14 @@ export function CostCalculation({
       labor_cost: "",
       markup_percentage: 10,
     });
-    setEditingElement(null);
+    setEditingElementId(null);
     setEditingCategoryId(null);
     setIsElementDialogOpen(false);
   };
 
   const handleRemoveElement = (categoryId: number, elementId: string) => {
     const updatedTemplateElements = localProposal.template_elements.filter(
-      (template) => template.id !== elementId
+      (element) => element.id !== elementId
     );
 
     setLocalProposal({
@@ -416,8 +415,6 @@ export function CostCalculation({
   const handleContinue = () => {
     onNext();
   };
-
-  console.log("calculatedCosts", calculatedCosts);
 
   return (
     <div className="space-y-4">
@@ -471,7 +468,6 @@ export function CostCalculation({
         </Dialog>
       </div>
 
-      {/* Replace the old dialog with our new ElementDialog component */}
       <ElementDialog
         isOpen={isElementDialogOpen}
         onOpenChange={setIsElementDialogOpen}
@@ -480,7 +476,7 @@ export function CostCalculation({
         onSave={handleAddElement}
         onCancel={() => setIsElementDialogOpen(false)}
         variables={localProposal.parameters || []}
-        isEditing={!!editingElement}
+        isEditing={!!editingElementId}
       />
 
       <div className="grid grid-cols-1 gap-6">
