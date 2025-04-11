@@ -11,26 +11,26 @@ import {
   Input,
 } from "@/components/shared";
 import { FormulaBuilder } from "./formula-builder";
-import { ElementDialogProps } from "@/types/create-proposal";
 
-export default function ElementDialog({
-  isElementDialogOpen,
-  setIsElementDialogOpen,
-  newElement,
-  setNewElement,
-  handleAddElement,
-  editingElement,
+export function ElementDialog({
+  isOpen,
+  onOpenChange,
+  element,
+  onChange,
+  onSave,
+  onCancel,
   variables,
-}: ElementDialogProps) {
+  isEditing,
+}) {
   return (
-    <Dialog open={isElementDialogOpen} onOpenChange={setIsElementDialogOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {editingElement ? "Edit Element" : "Add New Element"}
+            {isEditing ? "Edit Element" : "Add New Element"}
           </DialogTitle>
           <DialogDescription>
-            {editingElement
+            {isEditing
               ? "Update the details for this cost element"
               : "Create a new element with material and labor cost formulas"}
           </DialogDescription>
@@ -40,10 +40,8 @@ export default function ElementDialog({
             <Label htmlFor="element-name">Element Name</Label>
             <Input
               id="element-name"
-              value={newElement.name}
-              onChange={(e) =>
-                setNewElement({ ...newElement, name: e.target.value })
-              }
+              value={element.name}
+              onChange={(e) => onChange({ ...element, name: e.target.value })}
               placeholder="e.g., Wall Painting"
             />
           </div>
@@ -51,9 +49,9 @@ export default function ElementDialog({
             <Label htmlFor="material-cost">Material Cost Formula</Label>
             <FormulaBuilder
               variables={variables}
-              value={newElement.material_cost}
+              value={element.material_cost}
               onChange={(value) =>
-                setNewElement({ ...newElement, material_cost: value })
+                onChange({ ...element, material_cost: value })
               }
               placeholder="e.g., Wall Length * Wall Width * Paint Cost"
             />
@@ -62,23 +60,35 @@ export default function ElementDialog({
             <Label htmlFor="labor-cost">Labor Cost Formula</Label>
             <FormulaBuilder
               variables={variables}
-              value={newElement.labor_cost}
-              onChange={(value) =>
-                setNewElement({ ...newElement, labor_cost: value })
-              }
+              value={element.labor_cost}
+              onChange={(value) => onChange({ ...element, labor_cost: value })}
               placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="markup-percentage">Markup Percentage (%)</Label>
+            <Input
+              id="markup-percentage"
+              type="number"
+              min="0"
+              max="100"
+              value={element.markup_percentage}
+              onChange={(e) =>
+                onChange({
+                  ...element,
+                  markup_percentage: Number(e.target.value),
+                })
+              }
+              placeholder="10"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsElementDialogOpen(false)}
-          >
+          <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={handleAddElement}>
-            {editingElement ? "Update Element" : "Add Element"}
+          <Button onClick={onSave}>
+            {isEditing ? "Update Element" : "Add Element"}
           </Button>
         </DialogFooter>
       </DialogContent>

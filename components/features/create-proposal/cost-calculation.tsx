@@ -41,6 +41,91 @@ import { FormulaBuilder } from "./formula-builder";
 import { CostCalculationProps } from "@/types/create-proposal";
 import { checkFormulaErrors } from "@/helpers/calculate-cost";
 
+// Extracted ElementDialog component
+function ElementDialog({
+  isOpen,
+  onOpenChange,
+  element,
+  onChange,
+  onSave,
+  onCancel,
+  variables,
+  isEditing,
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing ? "Edit Element" : "Add New Element"}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? "Update the details for this cost element"
+              : "Create a new element with material and labor cost formulas"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="element-name">Element Name</Label>
+            <Input
+              id="element-name"
+              value={element.name}
+              onChange={(e) => onChange({ ...element, name: e.target.value })}
+              placeholder="e.g., Wall Painting"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="material-cost">Material Cost Formula</Label>
+            <FormulaBuilder
+              variables={variables}
+              value={element.material_cost}
+              onChange={(value) =>
+                onChange({ ...element, material_cost: value })
+              }
+              placeholder="e.g., Wall Length * Wall Width * Paint Cost"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="labor-cost">Labor Cost Formula</Label>
+            <FormulaBuilder
+              variables={variables}
+              value={element.labor_cost}
+              onChange={(value) => onChange({ ...element, labor_cost: value })}
+              placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="markup-percentage">Markup Percentage (%)</Label>
+            <Input
+              id="markup-percentage"
+              type="number"
+              min="0"
+              max="100"
+              value={element.markup_percentage}
+              onChange={(e) =>
+                onChange({
+                  ...element,
+                  markup_percentage: Number(e.target.value),
+                })
+              }
+              placeholder="10"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={onSave}>
+            {isEditing ? "Update Element" : "Add Element"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CostCalculation({
   proposal,
   onNext,
@@ -59,7 +144,7 @@ export function CostCalculation({
     name: "",
     material_cost: "",
     labor_cost: "",
-    markup_percentage: 2,
+    markup_percentage: 10,
   });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isElementDialogOpen, setIsElementDialogOpen] = useState(false);
@@ -77,8 +162,9 @@ export function CostCalculation({
       onUpdateProposal(localProposal);
     }
   }, [localProposal, onUpdateProposal]);
+
   console.log("localProposal", localProposal);
-  
+
   const calculatedCosts = useMemo(() => {
     // Map template_elements to their respective categories
     const elementsByCategory = localProposal.template_elements.reduce(
@@ -92,18 +178,18 @@ export function CostCalculation({
       },
       {} as Record<number, typeof localProposal.template_elements>
     );
-    
+
     return localProposal.modules.map((category) => {
       const elements = elementsByCategory[category.id] || []; // Get elements for this category
-      console.log(category.id,elementsByCategory, elements);
+      console.log(category.id, elementsByCategory, elements);
       elements.map((templateElement, index) => {
-        console.log('templateElement', templateElement)
-      })
+        console.log("templateElement", templateElement);
+      });
       return {
         ...category,
         elements: elements.map((templateElement) => {
-          console.log('templateElement', templateElement)
-          console.log('localProposal.variables', localProposal)
+          console.log("templateElement", templateElement);
+          console.log("localProposal.variables", localProposal);
           const materialFormulaHasErrors = checkFormulaErrors(
             templateElement.material_cost.toString(),
             localProposal.parameters
@@ -129,7 +215,7 @@ export function CostCalculation({
               );
 
           const baseCost = materialCost + laborCost;
-          console.log('baseCost', baseCost)
+          console.log("baseCost", baseCost);
           const markupPercentage = localProposal.useGlobalMarkup
             ? localProposal.globalMarkupPercentage || 15
             : templateElement.markup_percentage || 10;
@@ -155,7 +241,9 @@ export function CostCalculation({
     localProposal.variables,
     localProposal.useGlobalMarkup,
     localProposal.globalMarkupPercentage,
+    localProposal.parameters,
   ]);
+
   const totalMaterialCost = useMemo(() => {
     return calculatedCosts.reduce((total, category) => {
       return (
@@ -190,15 +278,17 @@ export function CostCalculation({
   }, [calculatedCosts]);
 
   const grandTotal = totalMaterialCost + totalLaborCost + totalMarkupAmount;
+
   const handleAddCategory = () => {
     if (!newCategory.name) return;
 
+    // Check if modules exists and use it instead of categories
     const newId =
-      localProposal.categories.length > 0
-        ? Math.max(...localProposal.categories.map((c) => c.id)) + 1
+      localProposal.modules && localProposal.modules.length > 0
+        ? Math.max(...localProposal.modules.map((c) => c.id)) + 1
         : 1;
 
-    const categoryToAdd: Category = {
+    const moduleToAdd = {
       id: newId,
       name: newCategory.name,
       elements: [],
@@ -206,7 +296,7 @@ export function CostCalculation({
 
     const updatedProposal = {
       ...localProposal,
-      categories: [...localProposal.categories, categoryToAdd],
+      modules: [...(localProposal.modules || []), moduleToAdd],
     };
 
     setLocalProposal(updatedProposal);
@@ -215,13 +305,13 @@ export function CostCalculation({
   };
 
   const handleRemoveCategory = (categoryId: number) => {
-    const updatedCategories = localProposal.categories.filter(
-      (category) => category.id !== categoryId
+    const updatedModules = localProposal.modules.filter(
+      (module) => module.id !== categoryId
     );
 
     setLocalProposal({
       ...localProposal,
-      categories: updatedCategories,
+      modules: updatedModules,
     });
   };
 
@@ -254,51 +344,52 @@ export function CostCalculation({
   const handleAddElement = () => {
     if (!newElement.categoryId || !newElement.name) return;
 
-    const updatedCategories = localProposal.categories.map((category) => {
-      if (category.id === newElement.categoryId) {
-        if (editingElement && editingCategoryId === category.id) {
-          return {
-            ...category,
-            elements: category.elements.map((el) =>
-              el.id === editingElement.id
-                ? {
-                    ...el,
-                    name: newElement.name,
-                    material_cost: newElement.material_cost,
-                    labor_cost: newElement.labor_cost,
-                    markup_percentage: newElement.markup_percentage,
-                  }
-                : el
-            ),
-          };
+    // Create a new template element
+    const newTemplateElement = {
+      id: Math.random().toString(),
+      module: { id: newElement.categoryId },
+      element: {
+        id: Math.random().toString(),
+        name: newElement.name,
+      },
+      material_cost: newElement.material_cost,
+      labor_cost: newElement.labor_cost,
+      markup_percentage: newElement.markup_percentage,
+    };
+
+    // If editing, update the existing element
+    if (editingElement && editingCategoryId) {
+      const updatedTemplateElements = localProposal.template_elements.map(
+        (template) => {
+          if (template.id === editingElement.id) {
+            return {
+              ...template,
+              element: { ...template.element, name: newElement.name },
+              material_cost: newElement.material_cost,
+              labor_cost: newElement.labor_cost,
+              markup_percentage: newElement.markup_percentage,
+            };
+          }
+          return template;
         }
+      );
 
-        const newId =
-          category.elements.length > 0
-            ? Math.max(...category.elements.map((e) => e.id)) + 1
-            : 1;
+      setLocalProposal({
+        ...localProposal,
+        template_elements: updatedTemplateElements,
+      });
+    } else {
+      // Otherwise add a new element
+      setLocalProposal({
+        ...localProposal,
+        template_elements: [
+          ...localProposal.template_elements,
+          newTemplateElement,
+        ],
+      });
+    }
 
-        const elementToAdd: Element = {
-          id: newId,
-          name: newElement.name,
-          material_cost: newElement.material_cost,
-          labor_cost: newElement.labor_cost,
-          markup_percentage: newElement.markup_percentage,
-        };
-
-        return {
-          ...category,
-          elements: [...category.elements, elementToAdd],
-        };
-      }
-      return category;
-    });
-
-    setLocalProposal({
-      ...localProposal,
-      categories: updatedCategories,
-    });
-
+    // Reset state
     setNewElement({
       categoryId: null,
       name: "",
@@ -311,29 +402,23 @@ export function CostCalculation({
     setIsElementDialogOpen(false);
   };
 
-  const handleRemoveElement = (categoryId: number, elementId: number) => {
-    const updatedCategories = localProposal.categories.map((category) => {
-      if (category.id === categoryId) {
-        return {
-          ...category,
-          elements: category.elements.filter(
-            (element) => element.id !== elementId
-          ),
-        };
-      }
-      return category;
-    });
+  const handleRemoveElement = (categoryId: number, elementId: string) => {
+    const updatedTemplateElements = localProposal.template_elements.filter(
+      (template) => template.id !== elementId
+    );
 
     setLocalProposal({
       ...localProposal,
-      categories: updatedCategories,
+      template_elements: updatedTemplateElements,
     });
   };
 
   const handleContinue = () => {
     onNext();
   };
-  console.log('calculatedCosts', calculatedCosts)
+
+  console.log("calculatedCosts", calculatedCosts);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -386,83 +471,17 @@ export function CostCalculation({
         </Dialog>
       </div>
 
-      <Dialog open={isElementDialogOpen} onOpenChange={setIsElementDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingElement ? "Edit Element" : "Add New Element"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingElement
-                ? "Update the details for this cost element"
-                : "Create a new element with material and labor cost formulas"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="element-name">Element Name</Label>
-              <Input
-                id="element-name"
-                value={newElement.name}
-                onChange={(e) =>
-                  setNewElement({ ...newElement, name: e.target.value })
-                }
-                placeholder="e.g., Wall Painting"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="material-cost">Material Cost Formula</Label>
-              <FormulaBuilder
-                variables={localProposal.variables}
-                value={newElement.material_cost}
-                onChange={(value) =>
-                  setNewElement({ ...newElement, material_cost: value })
-                }
-                placeholder="e.g., Wall Length * Wall Width * Paint Cost"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="labor-cost">Labor Cost Formula</Label>
-              <FormulaBuilder
-                variables={localProposal.variables}
-                value={newElement.labor_cost}
-                onChange={(value) =>
-                  setNewElement({ ...newElement, labor_cost: value })
-                }
-                placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="markup-percentage">Markup Percentage (%)</Label>
-              <Input
-                id="markup-percentage"
-                type="number"
-                min="0"
-                max="100"
-                value={newElement.markup_percentage}
-                onChange={(e) =>
-                  setNewElement({
-                    ...newElement,
-                    markup_percentage: Number(e.target.value),
-                  })
-                }
-                placeholder="10"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsElementDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddElement}>
-              {editingElement ? "Update Element" : "Add Element"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Replace the old dialog with our new ElementDialog component */}
+      <ElementDialog
+        isOpen={isElementDialogOpen}
+        onOpenChange={setIsElementDialogOpen}
+        element={newElement}
+        onChange={setNewElement}
+        onSave={handleAddElement}
+        onCancel={() => setIsElementDialogOpen(false)}
+        variables={localProposal.parameters || []}
+        isEditing={!!editingElement}
+      />
 
       <div className="grid grid-cols-1 gap-6">
         {calculatedCosts.length === 0 ? (

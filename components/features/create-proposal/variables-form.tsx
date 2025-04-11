@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Button,
-  Input,
-  Label,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/shared";
+import { useState, useEffect } from "react";
+import { Button, Input, Label, Card, CardContent } from "@/components/shared";
 import type { Variable } from "@/types/proposals";
 import { ArrowRightIcon, XCircleIcon } from "lucide-react";
 import AddVariable from "./add-variable";
@@ -25,6 +17,8 @@ export function VariablesForm({
   setVariables,
   onNext,
 }: VariablesFormProps) {
+  // Track input values with controlled inputs
+  const [inputValues, setInputValues] = useState<Record<number, string>>({});
   const [newVariable, setNewVariable] = useState({
     name: "",
     type: "",
@@ -32,10 +26,77 @@ export function VariablesForm({
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Initialize input values from props
+  useEffect(() => {
+    const initialValues: Record<number, string> = {};
+    variables.forEach((v) => {
+      initialValues[v.id] = v.value || "0";
+    });
+    setInputValues(initialValues);
+  }, [variables.length]); // Only run when variables are added/removed
+
   const handleVariableChange = (id: number, value: string) => {
+    // Update the input value in our local state
+    setInputValues((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+
+    // Immediately update parent state
     const updatedVariables = variables.map((variable) =>
       variable.id === id ? { ...variable, value } : variable
     );
+
+    // Debug to console to verify updates
+    console.log(`Variable ${id} changed to: ${value}`);
+    console.log("Updated variables:", updatedVariables);
+
+    // Update parent state
+    setVariables(updatedVariables);
+  };
+
+  const handleFocus = (id: number) => {
+    // When input is focused and value is "0", clear it
+    if (inputValues[id] === "0") {
+      setInputValues((prev) => ({
+        ...prev,
+        [id]: "",
+      }));
+    }
+  };
+
+  const handleBlur = (id: number) => {
+    // When input loses focus and is empty, set it back to "0"
+    if (!inputValues[id]) {
+      const newValue = "0";
+      setInputValues((prev) => ({
+        ...prev,
+        [id]: newValue,
+      }));
+
+      // Also update parent state
+      const updatedVariables = variables.map((variable) =>
+        variable.id === id ? { ...variable, value: newValue } : variable
+      );
+      setVariables(updatedVariables);
+    } else {
+      // Make sure parent state is updated with current input value
+      const currentValue = inputValues[id];
+      const updatedVariables = variables.map((variable) =>
+        variable.id === id ? { ...variable, value: currentValue } : variable
+      );
+      setVariables(updatedVariables);
+    }
+  };
+
+  const handleSaveAll = () => {
+    // Force save all current input values to parent state
+    const updatedVariables = variables.map((variable) => ({
+      ...variable,
+      value: inputValues[variable.id] || "0",
+    }));
+
+    console.log("Saving all variables:", updatedVariables);
     setVariables(updatedVariables);
   };
 
@@ -52,16 +113,32 @@ export function VariablesForm({
       value: newVariable.value || "0",
     };
 
+    // Update parent state
     setVariables([...variables, variableToAdd]);
+
+    // Update local input values
+    setInputValues((prev) => ({
+      ...prev,
+      [newId]: newVariable.value || "0",
+    }));
+
     setNewVariable({ name: "", type: "", value: "0" });
     setIsDialogOpen(false);
   };
 
   const handleRemoveVariable = (id: number) => {
     const updatedVariables = variables.filter((variable) => variable.id !== id);
+
+    // Update parent state
     setVariables(updatedVariables);
+
+    // Remove from local input values
+    const newInputValues = { ...inputValues };
+    delete newInputValues[id];
+    setInputValues(newInputValues);
   };
 
+  // Group variables by type using the props variables
   const groupedVariables: Record<string, Variable[]> = {};
   variables.forEach((variable) => {
     if (!groupedVariables[variable.type]) {
@@ -69,8 +146,6 @@ export function VariablesForm({
     }
     groupedVariables[variable.type].push(variable);
   });
-
-  const uniqueTypes = Array.from(new Set(variables.map((v) => v.type)));
 
   return (
     <div className="space-y-4">
@@ -81,13 +156,18 @@ export function VariablesForm({
             Define the values for each variable to calculate accurate costs
           </p>
         </div>
-        <AddVariable
-          newVariable={newVariable}
-          setNewVariable={setNewVariable}
-          handleAddVariable={handleAddVariable}
-          isDialogOpen={isDialogOpen}
-          setIsDialogOpen={setIsDialogOpen}
-        />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSaveAll} className="gap-1">
+            Save Values
+          </Button>
+          <AddVariable
+            newVariable={newVariable}
+            setNewVariable={setNewVariable}
+            handleAddVariable={handleAddVariable}
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+          />
+        </div>
       </div>
 
       {Object.entries(groupedVariables).map(([type, vars]) => (
@@ -118,10 +198,16 @@ export function VariablesForm({
                     <Input
                       id={`variable-${variable.id}`}
                       type="text"
-                      value={variable.value || "0"}
+                      value={
+                        inputValues[variable.id] !== undefined
+                          ? inputValues[variable.id]
+                          : variable.value || "0"
+                      }
                       onChange={(e) =>
                         handleVariableChange(variable.id, e.target.value)
                       }
+                      onFocus={() => handleFocus(variable.id)}
+                      onBlur={() => handleBlur(variable.id)}
                       className="font-mono"
                     />
                     <span className="text-sm text-muted-foreground">
@@ -154,7 +240,14 @@ export function VariablesForm({
       )}
 
       <div className="flex justify-end">
-        <Button onClick={onNext} className="gap-2">
+        <Button
+          onClick={() => {
+            // Save all values before proceeding
+            handleSaveAll();
+            onNext();
+          }}
+          className="gap-2"
+        >
           Review Costs <ArrowRightIcon className="h-4 w-4" />
         </Button>
       </div>

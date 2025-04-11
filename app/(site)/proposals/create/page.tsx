@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/shared";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared";
 import { TemplateSelector } from "@/components/features/create-proposal/template-selector";
 import { VariablesForm } from "@/components/features/create-proposal/variables-form";
 import { CostCalculation } from "@/components/features/create-proposal/cost-calculation";
@@ -19,6 +14,7 @@ export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
     useState<ProposalData>(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
+
   const handleTemplateSelect = (template: Template) => {
     const initializedVariables = template.parameters.map((variable) => ({
       ...variable,
@@ -27,6 +23,7 @@ export default function CreateProposalPage() {
 
     const newProposal: ProposalData = {
       ...template,
+      parameters: initializedVariables, // Make sure to use the initialized variables
     };
 
     setCurrentProposal(newProposal);
@@ -34,9 +31,14 @@ export default function CreateProposalPage() {
   };
 
   const updateVariables = (updatedVariables: Variable[]) => {
+    // Save the updated variables to the proposal state
     setCurrentProposal((prev) => ({
       ...prev,
+      parameters: updatedVariables, // Add the updated variables here
     }));
+
+    // Debug log to verify the update
+    console.log("Updated variables in parent:", updatedVariables);
   };
 
   const updateProposal = (updatedProposal: ProposalData) => {
@@ -44,9 +46,12 @@ export default function CreateProposalPage() {
   };
 
   const handleTabChange = (value: string) => {
+    // Save current state before changing tabs
+    console.log("Changing tab to:", value);
+    console.log("Current proposal state:", currentProposal);
     setActiveTab(value);
   };
-  console.log(currentProposal)
+
   return (
     <div className="container mx-auto mt-6 mb-2">
       <div className="mb-6">
@@ -63,18 +68,10 @@ export default function CreateProposalPage() {
         >
           <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="template">Template</TabsTrigger>
-            <TabsTrigger value="details">
-              Details
-            </TabsTrigger>
-            <TabsTrigger value="variables">
-              Variables
-            </TabsTrigger>
-            <TabsTrigger value="costs">
-              Cost Calculation
-            </TabsTrigger>
-            <TabsTrigger value="preview">
-              Preview
-            </TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="variables">Variables</TabsTrigger>
+            <TabsTrigger value="costs">Cost Calculation</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
           <TabsContent value="template">
@@ -83,7 +80,7 @@ export default function CreateProposalPage() {
               selectedTemplateId={currentProposal.id}
             />
           </TabsContent>
-          
+
           <TabsContent value="details">
             <ProposalDetails
               proposal={currentProposal}
@@ -91,10 +88,10 @@ export default function CreateProposalPage() {
               onNext={() => setActiveTab("variables")}
             />
           </TabsContent>
-          
+
           <TabsContent value="variables">
             <VariablesForm
-              variables={currentProposal.parameters}
+              variables={currentProposal.parameters || []}
               setVariables={updateVariables}
               onNext={() => setActiveTab("costs")}
             />
