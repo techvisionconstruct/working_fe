@@ -28,6 +28,8 @@ export default function TemplatePage({
     error: elementsError,
   } = getTemplateElements(id);
 
+console.log(template)
+console.log(elements)
   const error = templateError || elementsError;
   const isLoading = isLoadingTemplate || isLoadingElements;
 
@@ -148,12 +150,12 @@ export default function TemplatePage({
                               </td>
                               <td className="py-3 px-4">
                                 <code className="font-mono bg-muted/50 p-1 rounded text-sm">
-                                  {element.formula}
+                                  {element.material_cost}
                                 </code>
                               </td>
                               <td className="py-3 px-4">
                                 <code className="font-mono bg-muted/50 p-1 rounded text-sm">
-                                  {element.labor_formula}
+                                  {element.labor_cost}
                                 </code>
                               </td>
                             </tr>
@@ -173,14 +175,14 @@ export default function TemplatePage({
               Template dimensions and parameters
             </p>
             <div className="flex flex-wrap gap-3">
-              {template.parameters.map((variable, idx) => (
+              {template.parameters.map((parameter, idx) => (
                 <div
-                  key={idx}
+                  key={parameter.id}
                   className="flex justify-between w-[250px] items-center p-3 bg-muted/50 rounded-xl"
                 >
-                  <span className="font-medium">{variable.name}</span>
+                  <span className="font-medium">{parameter.name}</span>
                   <span className="text-muted-foreground">
-                    {variable.category}
+                    {parameter.type}
                   </span>
                 </div>
               ))}

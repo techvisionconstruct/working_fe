@@ -55,14 +55,13 @@ export default function TemplateVariables({
     if (!variableName.trim()) return;
 
     const newVariable = {
-      id: templateVariables.length + 1,
       name: variableName,
       type: variableType,
     };
 
     const updatedVariables = [...templateVariables, newVariable];
     setTemplateVariables(updatedVariables);
-    
+
     // Save to parent component
     onUpdateTemplate((prevTemplate) => ({
       ...prevTemplate,
@@ -79,7 +78,7 @@ export default function TemplateVariables({
       (variable) => variable.id !== id
     );
     setTemplateVariables(updatedVariables);
-    
+
     // Save to parent component
     onUpdateTemplate((prevTemplate) => ({
       ...prevTemplate,
@@ -198,7 +197,7 @@ export default function TemplateVariables({
                                     newVariable,
                                   ];
                                   setTemplateVariables(updatedVariables);
-                                  
+
                                   // Save to parent component
                                   onUpdateTemplate((prevTemplate) => ({
                                     ...prevTemplate,
@@ -210,14 +209,16 @@ export default function TemplateVariables({
                                     templateVariables.find(
                                       (v) =>
                                         v.name === parameter.name &&
-                                        v.type === (parameter.category || parameter.type)
+                                        v.type ===
+                                          (parameter.category || parameter.type)
                                     );
                                   if (variableToRemove) {
-                                    const updatedVariables = templateVariables.filter(
-                                      (v) => v.id !== variableToRemove.id
-                                    );
+                                    const updatedVariables =
+                                      templateVariables.filter(
+                                        (v) => v.id !== variableToRemove.id
+                                      );
                                     setTemplateVariables(updatedVariables);
-                                    
+
                                     // Save to parent component
                                     onUpdateTemplate((prevTemplate) => ({
                                       ...prevTemplate,

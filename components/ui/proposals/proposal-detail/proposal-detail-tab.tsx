@@ -27,7 +27,7 @@ const convertParametersToVariables = (parameters: ProjectParameter[]) => {
     id: param.parameter.id,
     name: param.parameter.name,
     value: param.value.toString(),
-    type: param.parameter.category
+    type: param.parameter.type
   }));
 };
 
@@ -140,7 +140,7 @@ export default function ProposalDetailTab({
                     <div className="flex items-center gap-2">
                       <span>{param.value}</span>
                       <span className="text-muted-foreground">
-                        {param.parameter.category}
+                        {param.parameter.type}
                       </span>
                     </div>
                   </div>

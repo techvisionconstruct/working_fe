@@ -25,11 +25,12 @@ export interface Category {
 }
 
 export interface Variable {
-  id: number;
+  // id: number;
   name: string;
   type: string;
   value?: string;
   category?: string;
+  
 }
 
 export interface Template {
@@ -39,7 +40,7 @@ export interface Template {
   categories: Category[];
   variables: Variable[];
   created_at: string;
-  imageUrl: string;
+  image: File;
 }
 
 export interface TemplateDetailsProps {

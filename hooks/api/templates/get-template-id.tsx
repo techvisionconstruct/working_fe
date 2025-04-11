@@ -20,7 +20,7 @@ interface Parameter {
   id: number;
   name: string;
   value: number;
-  category: string;
+  type: string;
 }
 
 interface Element {

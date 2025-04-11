@@ -48,6 +48,7 @@ export interface ProjectElement {
   labor_cost: number;
   markup: number;
   total: number;
+  material_cost: number;
 }
 
 export interface ProjectParameter {
@@ -56,7 +57,7 @@ export interface ProjectParameter {
     id: number;
     name: string;
     value: number;
-    category: string;
+    type: string;
   };
   value: number;
   formula: string;
@@ -137,7 +138,7 @@ export interface ProposalData {
   id: number
   title: string
   description: string
-  categories: Category[]
+  modules: Category[]
   variables: Variable[]
   created_at: string
   image: string
@@ -147,6 +148,8 @@ export interface ProposalData {
   useGlobalMarkup?: boolean
   globalMarkupPercentage?: number
   imageUrl?: string
+  parameters: Variable[]
+  template_elements: ProposalElement[]
 }
 
 export interface Variable {

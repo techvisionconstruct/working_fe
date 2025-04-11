@@ -4,6 +4,9 @@ export function calculateCost(formula: string, variables: Variable[]): number {
   // Create a simplified formula parser
   // This is a basic implementation and would need to be more robust in a real application
 
+  // If formula is undefined or empty, return 0
+  if (!formula) return 0;
+
   // Replace variable names with their values
   let calculationFormula = formula;
 
@@ -49,6 +52,7 @@ export const checkFormulaErrors = (
 ): boolean => {
   const variablePattern = /\b[A-Za-z_][A-Za-z0-9_ ]*[A-Za-z0-9_]\b/g;
   const matches = formula.match(variablePattern) || [];
+  console.log(variables)
   const validVariableNames = variables.map((v) => v.name);
   return matches.some((match) => !validVariableNames.includes(match));
 };

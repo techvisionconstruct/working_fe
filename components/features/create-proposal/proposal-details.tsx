@@ -124,7 +124,15 @@ export default function ProposalDetails({
         </CardContent>
       </Card>
       <div className="flex justify-end">
-        <Button type="submit">Review Variables<ArrowRightIcon className="h-4 w-4" /></Button>
+        <Button
+          onClick={() => {
+            onNext();
+          }}
+          className="gap-2"
+        >
+          Review Variables
+          <ArrowRightIcon className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

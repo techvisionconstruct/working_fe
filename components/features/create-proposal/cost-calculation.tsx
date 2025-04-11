@@ -41,6 +41,91 @@ import { FormulaBuilder } from "./formula-builder";
 import { CostCalculationProps } from "@/types/create-proposal";
 import { checkFormulaErrors } from "@/helpers/calculate-cost";
 
+// Extracted ElementDialog component
+function ElementDialog({
+  isOpen,
+  onOpenChange,
+  element,
+  onChange,
+  onSave,
+  onCancel,
+  variables,
+  isEditing,
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing ? "Edit Element" : "Add New Element"}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? "Update the details for this cost element"
+              : "Create a new element with material and labor cost formulas"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="element-name">Element Name</Label>
+            <Input
+              id="element-name"
+              value={element.name}
+              onChange={(e) => onChange({ ...element, name: e.target.value })}
+              placeholder="e.g., Wall Painting"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="material-cost">Material Cost Formula</Label>
+            <FormulaBuilder
+              variables={variables}
+              value={element.material_cost}
+              onChange={(value) =>
+                onChange({ ...element, material_cost: value })
+              }
+              placeholder="e.g., Wall Length * Wall Width * Paint Cost"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="labor-cost">Labor Cost Formula</Label>
+            <FormulaBuilder
+              variables={variables}
+              value={element.labor_cost}
+              onChange={(value) => onChange({ ...element, labor_cost: value })}
+              placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="markup-percentage">Markup Percentage (%)</Label>
+            <Input
+              id="markup-percentage"
+              type="number"
+              min="0"
+              max="100"
+              value={element.markup_percentage}
+              onChange={(e) =>
+                onChange({
+                  ...element,
+                  markup_percentage: Number(e.target.value),
+                })
+              }
+              placeholder="10"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={onSave}>
+            {isEditing ? "Update Element" : "Add Element"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CostCalculation({
   proposal,
   onNext,
@@ -59,11 +144,11 @@ export function CostCalculation({
     name: "",
     material_cost: "",
     labor_cost: "",
-    markup_percentage: 2, 
+    markup_percentage: 10,
   });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isElementDialogOpen, setIsElementDialogOpen] = useState(false);
-  const [editingElement, setEditingElement] = useState<Element | null>(null);
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
     null
   );
@@ -79,48 +164,75 @@ export function CostCalculation({
   }, [localProposal, onUpdateProposal]);
 
   const calculatedCosts = useMemo(() => {
-    return localProposal.categories.map((category) => ({
-      ...category,
-      elements: category.elements.map((element) => {
-        const materialFormulaHasErrors = checkFormulaErrors(
-          element.material_cost,
-          localProposal.variables
-        );
+    // Map template_elements to their respective categories
+    const elementsByCategory = localProposal.template_elements.reduce(
+      (acc, templateElement) => {
+        const categoryId = templateElement.module.id;
+        if (!acc[categoryId]) {
+          acc[categoryId] = [];
+        }
+        acc[categoryId].push(templateElement);
+        return acc;
+      },
+      {} as Record<number, typeof localProposal.template_elements>
+    );
 
-        const laborFormulaHasErrors = checkFormulaErrors(
-          element.labor_cost,
-          localProposal.variables
-        );
-        
-        const materialCost = materialFormulaHasErrors
-          ? 0
-          : calculateCost(element.material_cost, localProposal.variables);
-          
-        const laborCost = laborFormulaHasErrors
-          ? 0
-          : calculateCost(element.labor_cost, localProposal.variables);
-          
-        const baseCost = materialCost + laborCost;
-        
-        const markupPercentage = localProposal.useGlobalMarkup
-          ? localProposal.globalMarkupPercentage || 15
-          : element.markup_percentage || 10;
-          
-        const markupAmount = baseCost * (markupPercentage / 100);
+    return localProposal.modules.map((category) => {
+      const elements = elementsByCategory[category.id] || [];
+      return {
+        ...category,
+        elements: elements.map((templateElement) => {
+          const materialFormulaHasErrors = checkFormulaErrors(
+            templateElement.material_cost.toString(),
+            localProposal.parameters
+          );
 
-        return {
-          ...element,
-          materialFormulaHasErrors,
-          laborFormulaHasErrors,
-          calculatedMaterialCost: materialCost,
-          calculatedLaborCost: laborCost,
-          markupPercentage,
-          markupAmount,
-          totalWithMarkup: baseCost + markupAmount
-        };
-      }),
-    }));
-  }, [localProposal.categories, localProposal.variables, localProposal.useGlobalMarkup, localProposal.globalMarkupPercentage]);
+          const laborFormulaHasErrors = checkFormulaErrors(
+            templateElement.labor_cost.toString(),
+            localProposal.parameters
+          );
+
+          const materialCost = materialFormulaHasErrors
+            ? 0
+            : calculateCost(
+                templateElement.material_cost.toString(),
+                localProposal.parameters
+              );
+
+          const laborCost = laborFormulaHasErrors
+            ? 0
+            : calculateCost(
+                templateElement.labor_cost.toString(),
+                localProposal.parameters
+              );
+
+          const baseCost = materialCost + laborCost;
+          const markupPercentage = localProposal.useGlobalMarkup
+            ? localProposal.globalMarkupPercentage || 15
+            : templateElement.markup_percentage || 10;
+
+          const markupAmount = baseCost * (markupPercentage / 100);
+
+          return {
+            ...templateElement,
+            materialFormulaHasErrors,
+            laborFormulaHasErrors,
+            calculatedMaterialCost: materialCost,
+            calculatedLaborCost: laborCost,
+            markupPercentage,
+            markupAmount,
+            totalWithMarkup: baseCost + markupAmount,
+          };
+        }),
+      };
+    });
+  }, [
+    localProposal.modules,
+    localProposal.template_elements,
+    localProposal.useGlobalMarkup,
+    localProposal.globalMarkupPercentage,
+    localProposal.parameters,
+  ]);
 
   const totalMaterialCost = useMemo(() => {
     return calculatedCosts.reduce((total, category) => {
@@ -161,19 +273,18 @@ export function CostCalculation({
     if (!newCategory.name) return;
 
     const newId =
-      localProposal.categories.length > 0
-        ? Math.max(...localProposal.categories.map((c) => c.id)) + 1
+      localProposal.modules && localProposal.modules.length > 0
+        ? Math.max(...localProposal.modules.map((c) => c.id)) + 1
         : 1;
 
-    const categoryToAdd: Category = {
+    const moduleToAdd = {
       id: newId,
       name: newCategory.name,
-      elements: [],
     };
 
     const updatedProposal = {
       ...localProposal,
-      categories: [...localProposal.categories, categoryToAdd],
+      modules: [...(localProposal.modules || []), moduleToAdd],
     };
 
     setLocalProposal(updatedProposal);
@@ -182,13 +293,20 @@ export function CostCalculation({
   };
 
   const handleRemoveCategory = (categoryId: number) => {
-    const updatedCategories = localProposal.categories.filter(
-      (category) => category.id !== categoryId
+    // Remove the category from modules
+    const updatedModules = localProposal.modules.filter(
+      (module) => module.id !== categoryId
+    );
+
+    // Also remove all template_elements associated with this category
+    const updatedTemplateElements = localProposal.template_elements.filter(
+      (element) => element.module.id !== categoryId
     );
 
     setLocalProposal({
       ...localProposal,
-      categories: updatedCategories,
+      modules: updatedModules,
+      template_elements: updatedTemplateElements,
     });
   };
 
@@ -198,19 +316,19 @@ export function CostCalculation({
       name: "",
       material_cost: "",
       labor_cost: "",
-      markup_percentage: 10, // Default markup percentage
+      markup_percentage: 10,
     });
-    setEditingElement(null);
+    setEditingElementId(null);
     setEditingCategoryId(null);
     setIsElementDialogOpen(true);
   };
 
-  const openEditElementDialog = (element: Element, categoryId: number) => {
-    setEditingElement(element);
+  const openEditElementDialog = (element: any, categoryId: number) => {
+    setEditingElementId(element.id);
     setEditingCategoryId(categoryId);
     setNewElement({
       categoryId,
-      name: element.name,
+      name: element.element.name,
       material_cost: element.material_cost,
       labor_cost: element.labor_cost,
       markup_percentage: element.markup_percentage,
@@ -221,79 +339,76 @@ export function CostCalculation({
   const handleAddElement = () => {
     if (!newElement.categoryId || !newElement.name) return;
 
-    const updatedCategories = localProposal.categories.map((category) => {
-      if (category.id === newElement.categoryId) {
-        if (editingElement && editingCategoryId === category.id) {
-          return {
-            ...category,
-            elements: category.elements.map((el) =>
-              el.id === editingElement.id
-                ? {
-                    ...el,
-                    name: newElement.name,
-                    material_cost: newElement.material_cost,
-                    labor_cost: newElement.labor_cost,
-                    markup_percentage: newElement.markup_percentage,
-                  }
-                : el
-            ),
-          };
+    if (editingElementId) {
+      // Update existing element
+      const updatedTemplateElements = localProposal.template_elements.map(
+        (template) => {
+          if (template.id === editingElementId) {
+            return {
+              ...template,
+              element: {
+                ...template.element,
+                name: newElement.name,
+              },
+              material_cost: newElement.material_cost,
+              labor_cost: newElement.labor_cost,
+              markup_percentage: newElement.markup_percentage,
+            };
+          }
+          return template;
         }
+      );
 
-        const newId =
-          category.elements.length > 0
-            ? Math.max(...category.elements.map((e) => e.id)) + 1
-            : 1;
+      setLocalProposal({
+        ...localProposal,
+        template_elements: updatedTemplateElements,
+      });
+    } else {
+      // Add new element
+      const newElementId = Math.random().toString(36).substring(2, 9);
 
-        const elementToAdd: Element = {
-          id: newId,
+      const newTemplateElement = {
+        id: newElementId,
+        module: { id: newElement.categoryId },
+        element: {
+          id: newElementId,
           name: newElement.name,
-          material_cost: newElement.material_cost,
-          labor_cost: newElement.labor_cost,
-          markup_percentage: newElement.markup_percentage,
-        };
+        },
+        material_cost: newElement.material_cost,
+        labor_cost: newElement.labor_cost,
+        markup_percentage: newElement.markup_percentage,
+      };
 
-        return {
-          ...category,
-          elements: [...category.elements, elementToAdd],
-        };
-      }
-      return category;
-    });
+      setLocalProposal({
+        ...localProposal,
+        template_elements: [
+          ...localProposal.template_elements,
+          newTemplateElement,
+        ],
+      });
+    }
 
-    setLocalProposal({
-      ...localProposal,
-      categories: updatedCategories,
-    });
-
+    // Reset state
     setNewElement({
       categoryId: null,
       name: "",
       material_cost: "",
       labor_cost: "",
-      markup_percentage: 10, 
+      markup_percentage: 10,
     });
-    setEditingElement(null);
+    setEditingElementId(null);
     setEditingCategoryId(null);
     setIsElementDialogOpen(false);
   };
 
-  const handleRemoveElement = (categoryId: number, elementId: number) => {
-    const updatedCategories = localProposal.categories.map((category) => {
-      if (category.id === categoryId) {
-        return {
-          ...category,
-          elements: category.elements.filter(
-            (element) => element.id !== elementId
-          ),
-        };
-      }
-      return category;
-    });
+  const handleRemoveElement = (categoryId: number, elementId: string) => {
+    const updatedTemplateElements = localProposal.template_elements.filter(
+      (element) => element.id !== elementId
+    );
 
     setLocalProposal({
       ...localProposal,
-      categories: updatedCategories,
+      template_elements: updatedTemplateElements,
     });
   };
 
@@ -353,83 +468,16 @@ export function CostCalculation({
         </Dialog>
       </div>
 
-      <Dialog open={isElementDialogOpen} onOpenChange={setIsElementDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingElement ? "Edit Element" : "Add New Element"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingElement
-                ? "Update the details for this cost element"
-                : "Create a new element with material and labor cost formulas"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="element-name">Element Name</Label>
-              <Input
-                id="element-name"
-                value={newElement.name}
-                onChange={(e) =>
-                  setNewElement({ ...newElement, name: e.target.value })
-                }
-                placeholder="e.g., Wall Painting"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="material-cost">Material Cost Formula</Label>
-              <FormulaBuilder
-                variables={localProposal.variables}
-                value={newElement.material_cost}
-                onChange={(value) =>
-                  setNewElement({ ...newElement, material_cost: value })
-                }
-                placeholder="e.g., Wall Length * Wall Width * Paint Cost"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="labor-cost">Labor Cost Formula</Label>
-              <FormulaBuilder
-                variables={localProposal.variables}
-                value={newElement.labor_cost}
-                onChange={(value) =>
-                  setNewElement({ ...newElement, labor_cost: value })
-                }
-                placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="markup-percentage">Markup Percentage (%)</Label>
-              <Input
-                id="markup-percentage"
-                type="number"
-                min="0"
-                max="100"
-                value={newElement.markup_percentage}
-                onChange={(e) =>
-                  setNewElement({ 
-                    ...newElement, 
-                    markup_percentage: Number(e.target.value) 
-                  })
-                }
-                placeholder="10"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsElementDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddElement}>
-              {editingElement ? "Update Element" : "Add Element"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ElementDialog
+        isOpen={isElementDialogOpen}
+        onOpenChange={setIsElementDialogOpen}
+        element={newElement}
+        onChange={setNewElement}
+        onSave={handleAddElement}
+        onCancel={() => setIsElementDialogOpen(false)}
+        variables={localProposal.parameters || []}
+        isEditing={!!editingElementId}
+      />
 
       <div className="grid grid-cols-1 gap-6">
         {calculatedCosts.length === 0 ? (
@@ -485,7 +533,9 @@ export function CostCalculation({
                         <TableHead className="text-right">Labor Cost</TableHead>
                         <TableHead className="text-right">Base Total</TableHead>
                         <TableHead className="text-right">Markup %</TableHead>
-                        <TableHead className="text-right">Total with Markup</TableHead>
+                        <TableHead className="text-right">
+                          Total with Markup
+                        </TableHead>
                         <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -509,7 +559,7 @@ export function CostCalculation({
                         category.elements.map((element) => (
                           <TableRow key={element.id}>
                             <TableCell className="font-medium">
-                              {element.name}
+                              {element.element.name}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
                               <div className="flex items-center gap-1">
@@ -639,22 +689,24 @@ export function CostCalculation({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <Label htmlFor="use-global-markup">Use Global Markup</Label>
-                <Switch 
-                  id="use-global-markup" 
-                  checked={localProposal.useGlobalMarkup} 
+                <Switch
+                  id="use-global-markup"
+                  checked={localProposal.useGlobalMarkup}
                   onCheckedChange={(checked) => {
                     setLocalProposal({
                       ...localProposal,
-                      useGlobalMarkup: checked
+                      useGlobalMarkup: checked,
                     });
                   }}
                 />
               </div>
-              
+
               {localProposal.useGlobalMarkup && (
                 <div className="flex items-center space-x-2">
-                  <Label htmlFor="global-markup-percentage">Global Markup %:</Label>
-                  <Input 
+                  <Label htmlFor="global-markup-percentage">
+                    Global Markup %:
+                  </Label>
+                  <Input
                     id="global-markup-percentage"
                     type="number"
                     min="0"
@@ -664,7 +716,7 @@ export function CostCalculation({
                     onChange={(e) => {
                       setLocalProposal({
                         ...localProposal,
-                        globalMarkupPercentage: Number(e.target.value)
+                        globalMarkupPercentage: Number(e.target.value),
                       });
                     }}
                   />
@@ -672,8 +724,8 @@ export function CostCalculation({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {localProposal.useGlobalMarkup 
-                ? "Using the same markup percentage for all elements" 
+              {localProposal.useGlobalMarkup
+                ? "Using the same markup percentage for all elements"
                 : "Each element has its own markup percentage"}
             </p>
           </div>

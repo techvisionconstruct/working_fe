@@ -1,17 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/shared";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared";
 import TemplateDetails from "@/components/features/create-template/template-details";
 import TemplateVariables from "@/components/features/create-template/template-variables";
 import TemplateCategories from "@/components/features/create-template/template-categories";
 import TemplatePreview from "@/components/features/create-template/template-preview";
 import { Template } from "@/types/templates";
+import { postTemplate } from "@/hooks/api/templates/post-template";
 
 const emptyTemplate: Template = {
   id: 0,
@@ -19,17 +15,26 @@ const emptyTemplate: Template = {
   description: "",
   categories: [],
   variables: [],
-  created_at: new Date().toISOString().split('T')[0],
-  imageUrl: "/placeholder-image.jpg"
+  created_at: new Date().toISOString().split("T")[0],
+  image: null as unknown as File,
 };
 
 export default function CreateTemplatePage() {
-  const [currentTemplate, setCurrentTemplate] = useState<Template>(emptyTemplate);
+  const [currentTemplate, setCurrentTemplate] =
+    useState<Template>(emptyTemplate);
   const [activeTab, setActiveTab] = useState("details");
+  const [isSaved, setIsSaved] = useState(false);
 
-  const updateTemplate = (updatedTemplate: Template | ((prevTemplate: Template) => Template)) => {
-    if (typeof updatedTemplate === 'function') {
-      setCurrentTemplate(prevState => {
+  // Debug: log template state changes
+  useEffect(() => {
+    console.log("Current template state:", currentTemplate);
+  }, [currentTemplate]);
+
+  const updateTemplate = (
+    updatedTemplate: Template | ((prevTemplate: Template) => Template)
+  ) => {
+    if (typeof updatedTemplate === "function") {
+      setCurrentTemplate((prevState) => {
         const newState = updatedTemplate(prevState);
         return newState;
       });
@@ -42,12 +47,23 @@ export default function CreateTemplatePage() {
     setActiveTab(value);
   };
 
+  const handleSaveTemplate = async () => {
+    try {
+      await postTemplate(currentTemplate);
+      console.log("Saving template:", currentTemplate);
+      setIsSaved(true);
+    } catch (error) {
+      console.error("Error saving template:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 mt-6 mb-2">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Create New Template</h1>
         <p>
-          Build a professional template for future proposals by following these steps
+          Build a professional template for future proposals by following these
+          steps
         </p>
       </div>
       <div>
@@ -70,7 +86,7 @@ export default function CreateTemplatePage() {
               onNext={() => setActiveTab("variables")}
             />
           </TabsContent>
-          
+
           <TabsContent value="variables">
             <TemplateVariables
               variables={currentTemplate.variables}
@@ -79,7 +95,7 @@ export default function CreateTemplatePage() {
               onPrevious={() => setActiveTab("details")}
             />
           </TabsContent>
-          
+
           <TabsContent value="categories">
             <TemplateCategories
               template={currentTemplate}
@@ -88,12 +104,12 @@ export default function CreateTemplatePage() {
               onPrevious={() => setActiveTab("variables")}
             />
           </TabsContent>
-          
+
           <TabsContent value="preview">
             <TemplatePreview
               template={currentTemplate}
               onPrevious={() => setActiveTab("categories")}
-              onSave={() => console.log("Saving template:", currentTemplate)}
+              onSave={handleSaveTemplate}
             />
           </TabsContent>
         </Tabs>

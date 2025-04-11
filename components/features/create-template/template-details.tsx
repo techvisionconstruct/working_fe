@@ -4,50 +4,89 @@ import { useState, useEffect } from "react";
 import { Button, Input, Textarea, Card } from "@/components/shared";
 import { Template, TemplateDetailsProps } from "@/types/templates";
 
-export default function TemplateDetails({ template, onUpdateTemplate, onNext }: TemplateDetailsProps) {
+export default function TemplateDetails({
+  template,
+  onUpdateTemplate,
+  onNext,
+}: TemplateDetailsProps) {
   const [title, setTitle] = useState(template.title);
   const [description, setDescription] = useState(template.description);
-  const [imageUrl, setImageUrl] = useState(template.imageUrl);
-  const [previewUrl, setPreviewUrl] = useState(template.imageUrl || "");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
 
-  // Sync with template prop changes (only on mount)
+  // Sync with template prop changes and handle image preview
   useEffect(() => {
     setTitle(template.title);
     setDescription(template.description);
-    setImageUrl(template.imageUrl);
-    setPreviewUrl(template.imageUrl || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+
+    // Handle image preview for both File objects and string URLs
+    if (template.image) {
+      if (typeof template.image === "string") {
+        setPreviewUrl(template.image);
+      } else if (template.image instanceof File) {
+        setSelectedFile(template.image);
+        const objectUrl = URL.createObjectURL(template.image);
+        setPreviewUrl(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+      }
+    } else {
+      setPreviewUrl("");
+      setSelectedFile(null);
+    }
+  }, [template]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setSelectedFile(file);
-    
+
+    // Create object URL for preview
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
-    setImageUrl(file.name); 
-    
-    // Save to parent component
+
+    // Update the parent component with the file
     onUpdateTemplate({
       ...template,
-      imageUrl: objectUrl,
+      image: file,
     });
-    
+
     return () => URL.revokeObjectURL(objectUrl);
   };
 
   const handleSave = () => {
-    
+    // Save all current values to parent
     onUpdateTemplate({
       ...template,
       title,
       description,
-      imageUrl: previewUrl, 
+      image: selectedFile || template.image, // Keep existing image if no new file selected
     });
     onNext();
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+
+    // Update parent component
+    onUpdateTemplate({
+      ...template,
+      title: newTitle,
+    });
+  };
+
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const newDescription = e.target.value;
+    setDescription(newDescription);
+
+    // Update parent component
+    onUpdateTemplate({
+      ...template,
+      description: newDescription,
+    });
   };
 
   return (
@@ -62,23 +101,12 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
             <Input
               id="title"
               value={title}
-              onChange={(e) => {
-                const newTitle = e.target.value;
-                setTitle(newTitle);
-                
-                // Save to parent component as you type
-                onUpdateTemplate({
-                  ...template,
-                  title: newTitle,
-                  description,
-                  imageUrl: previewUrl || imageUrl,
-                });
-              }}
+              onChange={handleTitleChange}
               placeholder="Enter template title"
               className="w-full"
             />
           </div>
-          
+
           <div className="flex-1">
             <label htmlFor="templateImage" className="block mb-2 font-medium">
               Template Image
@@ -88,7 +116,7 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => document.getElementById('fileInput')?.click()}
+                  onClick={() => document.getElementById("fileInput")?.click()}
                   className="w-full md:w-auto"
                 >
                   Choose File
@@ -115,18 +143,7 @@ export default function TemplateDetails({ template, onUpdateTemplate, onNext }: 
           <Textarea
             id="description"
             value={description}
-            onChange={(e) => {
-              const newDescription = e.target.value;
-              setDescription(newDescription);
-              
-              // Save to parent component as you type
-              onUpdateTemplate({
-                ...template,
-                title,
-                description: newDescription,
-                imageUrl: previewUrl || imageUrl,
-              });
-            }}
+            onChange={handleDescriptionChange}
             placeholder="Enter template description"
             className="min-h-[120px] w-full"
           />

@@ -17,6 +17,7 @@ export interface TemplateElement {
   description?: string;
   image?: string;
   selected: boolean;
+  
 }
 
 interface GetTemplateElementsResult {

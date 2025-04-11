@@ -35,7 +35,7 @@ const convertParametersToVariables = (parameters: ProjectParameter[]) => {
     id: param.parameter.id,
     name: param.parameter.name,
     value: param.value.toString(),
-    type: param.parameter.category,
+    type: param.parameter.type,
   }));
 };
 
@@ -504,7 +504,7 @@ console.log(payload)
                                   </TableCell>
                                   <TableCell>{param.value}</TableCell>
                                   <TableCell>
-                                    {param.parameter.category}
+                                    {param.parameter.type}
                                   </TableCell>
                                 </TableRow>
                               ))}
