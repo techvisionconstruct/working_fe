@@ -1,19 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/shared";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared";
 import TemplateDetails from "@/components/features/create-template/template-details";
 import TemplateVariables from "@/components/features/create-template/template-variables";
 import TemplateCategories from "@/components/features/create-template/template-categories";
 import TemplatePreview from "@/components/features/create-template/template-preview";
 import { Template } from "@/types/templates";
-import { postTemplate } from '@/hooks/api/templates/post-template'
-
+import { postTemplate } from "@/hooks/api/templates/post-template";
 
 const emptyTemplate: Template = {
   id: 0,
@@ -21,12 +15,13 @@ const emptyTemplate: Template = {
   description: "",
   categories: [],
   variables: [],
-  created_at: new Date().toISOString().split('T')[0],
-  image: ""
+  created_at: new Date().toISOString().split("T")[0],
+  image: "",
 };
 
 export default function CreateTemplatePage() {
-  const [currentTemplate, setCurrentTemplate] = useState<Template>(emptyTemplate);
+  const [currentTemplate, setCurrentTemplate] =
+    useState<Template>(emptyTemplate);
   const [activeTab, setActiveTab] = useState("details");
 
   // Debug: log template state changes
@@ -34,9 +29,11 @@ export default function CreateTemplatePage() {
     console.log("Current template state:", currentTemplate);
   }, [currentTemplate]);
 
-  const updateTemplate = (updatedTemplate: Template | ((prevTemplate: Template) => Template)) => {
-    if (typeof updatedTemplate === 'function') {
-      setCurrentTemplate(prevState => {
+  const updateTemplate = (
+    updatedTemplate: Template | ((prevTemplate: Template) => Template)
+  ) => {
+    if (typeof updatedTemplate === "function") {
+      setCurrentTemplate((prevState) => {
         const newState = updatedTemplate(prevState);
         console.log("Template updated with function to:", newState);
         return newState;
@@ -56,7 +53,8 @@ export default function CreateTemplatePage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Create New Template</h1>
         <p>
-          Build a professional template for future proposals by following these steps
+          Build a professional template for future proposals by following these
+          steps
         </p>
       </div>
       <div>
@@ -79,7 +77,7 @@ export default function CreateTemplatePage() {
               onNext={() => setActiveTab("variables")}
             />
           </TabsContent>
-          
+
           <TabsContent value="variables">
             <TemplateVariables
               variables={currentTemplate.variables}
@@ -88,7 +86,7 @@ export default function CreateTemplatePage() {
               onPrevious={() => setActiveTab("details")}
             />
           </TabsContent>
-          
+
           <TabsContent value="categories">
             <TemplateCategories
               template={currentTemplate}
@@ -97,7 +95,7 @@ export default function CreateTemplatePage() {
               onPrevious={() => setActiveTab("variables")}
             />
           </TabsContent>
-          
+
           <TabsContent value="preview">
             <TemplatePreview
               template={currentTemplate}
@@ -106,17 +104,7 @@ export default function CreateTemplatePage() {
             />
           </TabsContent>
         </Tabs>
-
-        <div className="flex justify-end mt-6">
-          <button
-            className="bg-primary text-white py-2 px-4 rounded-md"
-            onClick={() => postTemplate(currentTemplate)}
-          >
-            Save Template
-          </button>
-        </div>
       </div>
-      
     </div>
   );
 }
