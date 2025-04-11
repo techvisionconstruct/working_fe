@@ -93,13 +93,33 @@ export const getContractById = (initialContractId?: string): getContractReturn =
     setError(null);
 
     try {
-      const response = await fetch(`/api/contracts/contract/${targetId}`);
+      // Get authorization token from cookies
+      const cookies = document.cookie.split(';');
+      const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+      const token = authCookie ? authCookie.split('=')[1].trim() : null;
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/contracts/contract/${targetId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch contract: ${response.status} ${response.statusText}`);
       }
 
-      const data: Contract = await response.json();
+      let data: Contract;
+      try {
+        const text = await response.text();
+        data = text ? JSON.parse(text) : null;
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        throw new Error('Invalid response from server');
+      }
       setContract(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
