@@ -58,17 +58,16 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
       setIsSaving(false);
     }
   };
-
+  console.log(proposal);
   const calculatedCosts = useMemo(() => {
     return proposal.modules.map((category) => ({
-      
       ...category,
-      elements: category.elements.map((element) => {
+      elements: proposal.template_elements.map((element) => {
         const materialCost = calculateCost(
-          element.material_cost,
-          proposal.variables
+          element.material_cost.toString(),
+          proposal.parameters
         );
-        const laborCost = calculateCost(element.labor_cost, proposal.variables);
+        const laborCost = calculateCost(element.labor_cost.toString(), proposal.parameters);
         const baseCost = materialCost + laborCost;
 
         // Use global markup if enabled, otherwise use element's markup (or default to 10%)
@@ -255,7 +254,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                         {category.elements.map((element) => (
                           <TableRow key={element.id}>
                             <TableCell className="font-medium">
-                              {element.name}
+                              {element.element.name}
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
@@ -312,7 +311,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Group variables by type */}
                   {Object.entries(
-                    proposal.variables.reduce((acc, variable) => {
+                    proposal.parameters.reduce((acc, variable) => {
                       acc[variable.type] = acc[variable.type] || [];
                       acc[variable.type].push(variable);
                       return acc;
