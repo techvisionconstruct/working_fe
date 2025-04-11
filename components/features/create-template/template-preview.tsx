@@ -4,6 +4,7 @@ import { Button, Card, Separator } from "@/components/shared";
 import { useState, useEffect } from "react";
 import { Check, FileText, ArrowLeft, Code } from "lucide-react";
 import { Template, TemplatePreviewProps } from "@/types/templates";
+import { postTemplate } from "@/hooks/api/templates/post-template";
 
 export default function TemplatePreview({
   template,
@@ -47,12 +48,24 @@ export default function TemplatePreview({
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call to save the template
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Use the same postTemplate function as in CreateTemplatePage
+      await postTemplate(template);
+      console.log("Saving template:", template);
 
-    onSave();
-    setIsSaving(false);
-    setIsSaved(true);
+      if (onSave) {
+        onSave();
+      }
+
+      setIsSaved(true);
+
+      // Add redirect after successful save
+      window.location.href = "http://localhost:3000/templates";
+    } catch (error) {
+      console.error("Error saving template:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

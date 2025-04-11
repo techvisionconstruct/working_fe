@@ -23,6 +23,7 @@ export default function CreateTemplatePage() {
   const [currentTemplate, setCurrentTemplate] =
     useState<Template>(emptyTemplate);
   const [activeTab, setActiveTab] = useState("details");
+  const [isSaved, setIsSaved] = useState(false);
 
   // Debug: log template state changes
   useEffect(() => {
@@ -46,6 +47,16 @@ export default function CreateTemplatePage() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+
+  const handleSaveTemplate = async () => {
+    try {
+      await postTemplate(currentTemplate);
+      console.log("Saving template:", currentTemplate);
+      setIsSaved(true);
+    } catch (error) {
+      console.error("Error saving template:", error);
+    }
   };
 
   return (
@@ -100,7 +111,7 @@ export default function CreateTemplatePage() {
             <TemplatePreview
               template={currentTemplate}
               onPrevious={() => setActiveTab("categories")}
-              onSave={() => console.log("Saving template:", currentTemplate)}
+              onSave={handleSaveTemplate}
             />
           </TabsContent>
         </Tabs>
