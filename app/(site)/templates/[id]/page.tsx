@@ -4,12 +4,12 @@ import React, { use } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Badge, Separator } from "@/components/shared";
-import { TemplatePageProps } from "@/types/templates";
 import { getTemplateById } from "@/hooks/api/templates/get-template-id";
 import {
   getTemplateElements,
   TemplateElement,
 } from "@/hooks/api/templates/get-template-elements";
+import Link from "next/link";
 
 export default function TemplatePage({
   params,
@@ -80,9 +80,11 @@ export default function TemplatePage({
               </div>
             </div>
             <div className="flex gap-3">
-              <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-md font-medium">
-                Create Proposal
-              </button>
+              <Link href={`/proposals/create`}>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-md font-medium">
+                  Create Proposal
+                </button>
+              </Link>
               <button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 py-2 rounded-md font-medium">
                 Edit Template
               </button>

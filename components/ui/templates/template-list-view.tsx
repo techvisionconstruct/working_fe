@@ -5,6 +5,7 @@ import { Badge } from "@/components/shared";
 import { getTemplates } from "@/hooks/api/templates/get-templates";
 import { TemplateProps } from "@/types/templates";
 import { ListLoader } from "@/components/loader/list-loader";
+import Link from "next/link";
 
 export default function TemplateListView({
   sortOption,
@@ -35,17 +36,17 @@ export default function TemplateListView({
       return 0;
     });
   }, [sortOption, searchQuery, templates]);
-  
+
   if (isLoading) {
-    return (
-      <ListLoader />
-    );
+    return <ListLoader />;
   }
 
   if (error) {
     return (
       <div className="flex justify-center items-center py-12 text-red-500">
-        <p className="text-lg font-medium">Failed to load templates: {error.message}</p>
+        <p className="text-lg font-medium">
+          Failed to load templates: {error.message}
+        </p>
       </div>
     );
   }
@@ -63,86 +64,87 @@ export default function TemplateListView({
               type: "spring",
               stiffness: 400,
               damping: 28,
-              duration: 0.3
+              duration: 0.3,
             }}
-            // Simple hover effect
-            whileHover={{ 
-              scale: 1.01, 
+            whileHover={{
+              scale: 1.01,
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.08)",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
             className={`border rounded-md p-4 ${
               index % 2 === 0 ? "bg-[#e8e8e8]" : "bg-white"
             }`}
           >
-            <div className="font-bold text-xl">{template.name}</div>
-            <div className="flex items-center justify-between mt-1 gap-x-8">
-              <div className="text-sm text-black/50 line-clamp-3">
-                {template.description}
+            <Link href={`/proposals/${template.id}`}>
+              <div className="font-bold text-xl">{template.name}</div>
+              <div className="flex items-center justify-between mt-1 gap-x-8">
+                <div className="text-sm text-black/50 line-clamp-3">
+                  {template.description}
+                </div>
+                <ExternalLink className="h-8 w-8 mr-8" />
               </div>
-              <ExternalLink className="h-8 w-8 mr-8" />
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex flex-wrap gap-2 max-w-full">
-                  {template.modules.slice(0, 4).map((category) => (
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex justify-between items-center mt-4">
+                  <div className="flex flex-wrap gap-2 max-w-full">
+                    {template.modules.slice(0, 4).map((category) => (
+                      <Badge
+                        key={category.id}
+                        variant="outline"
+                        className={`font-bold uppercase text-xs ${
+                          index % 2 === 0
+                            ? "border border-black/30 text-black"
+                            : "bg-none text-black"
+                        }`}
+                      >
+                        {category.name}
+                      </Badge>
+                    ))}
+                    {template.modules.length > 4 && (
+                      <Badge
+                        variant="outline"
+                        className={`font-bold uppercase text-xs ${
+                          index % 2 === 0
+                            ? "border border-black/30 text-black"
+                            : "bg-none text-black"
+                        }`}
+                      >
+                        +{template.modules.length - 4} more
+                      </Badge>
+                    )}
                     <Badge
-                      key={category.id}
                       variant="outline"
-                      className={`font-bold uppercase text-xs ${
+                      className={`flex items-center gap-1 ${
                         index % 2 === 0
                           ? "border border-black/30 text-black"
                           : "bg-none text-black"
                       }`}
                     >
-                      {category.name}
+                      <span className="uppercase font-bold">Variables</span>
+                      <span
+                        className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
+                      >
+                        {template.parameters?.length || 0}
+                      </span>
                     </Badge>
-                  ))}
-                  {template.modules.length > 4 && (
                     <Badge
                       variant="outline"
-                      className={`font-bold uppercase text-xs ${
+                      className={`flex items-center gap-1 ${
                         index % 2 === 0
                           ? "border border-black/30 text-black"
                           : "bg-none text-black"
                       }`}
                     >
-                      +{template.modules.length - 4} more
+                      <span className="uppercase font-bold">Categories</span>
+                      <span
+                        className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
+                      >
+                        {template.parameters?.length || 0}
+                      </span>
                     </Badge>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className={`flex items-center gap-1 ${
-                      index % 2 === 0
-                        ? "border border-black/30 text-black"
-                        : "bg-none text-black"
-                    }`}
-                  >
-                    <span className="uppercase font-bold">Variables</span>
-                    <span
-                      className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
-                    >
-                      {template.parameters?.length || 0}
-                    </span>
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={`flex items-center gap-1 ${
-                      index % 2 === 0
-                        ? "border border-black/30 text-black"
-                        : "bg-none text-black"
-                    }`}
-                  >
-                    <span className="uppercase font-bold">Categories</span>
-                    <span
-                     className={`ml-1 h-4 w-4 rounded-sm text-xs flex items-center justify-center bg-black/50 text-primary-foreground`}
-                    >
-                      {template.parameters?.length || 0}
-                    </span>
-                  </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           </motion.div>
         ))
       ) : (
