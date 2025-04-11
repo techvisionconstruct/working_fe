@@ -83,7 +83,7 @@ export function CostCalculation({
     // Map template_elements to their respective categories
     const elementsByCategory = localProposal.template_elements.reduce(
       (acc, templateElement) => {
-        const categoryId = templateElement.element.id; // Assuming `element.id` maps to the category
+        const categoryId = templateElement.module.id; // Assuming `element.id` maps to the category
         if (!acc[categoryId]) {
           acc[categoryId] = [];
         }
@@ -92,39 +92,44 @@ export function CostCalculation({
       },
       {} as Record<number, typeof localProposal.template_elements>
     );
-
+    
     return localProposal.modules.map((category) => {
       const elements = elementsByCategory[category.id] || []; // Get elements for this category
-
+      console.log(category.id,elementsByCategory, elements);
+      elements.map((templateElement, index) => {
+        console.log('templateElement', templateElement)
+      })
       return {
         ...category,
         elements: elements.map((templateElement) => {
+          console.log('templateElement', templateElement)
+          console.log('localProposal.variables', localProposal)
           const materialFormulaHasErrors = checkFormulaErrors(
             templateElement.material_cost.toString(),
-            localProposal.variables
+            localProposal.parameters
           );
 
           const laborFormulaHasErrors = checkFormulaErrors(
             templateElement.labor_cost.toString(),
-            localProposal.variables
+            localProposal.parameters
           );
 
           const materialCost = materialFormulaHasErrors
             ? 0
             : calculateCost(
                 templateElement.material_cost.toString(),
-                localProposal.variables
+                localProposal.parameters
               );
 
           const laborCost = laborFormulaHasErrors
             ? 0
             : calculateCost(
                 templateElement.labor_cost.toString(),
-                localProposal.variables
+                localProposal.parameters
               );
 
           const baseCost = materialCost + laborCost;
-
+          console.log('baseCost', baseCost)
           const markupPercentage = localProposal.useGlobalMarkup
             ? localProposal.globalMarkupPercentage || 15
             : templateElement.markup_percentage || 10;
@@ -539,7 +544,7 @@ export function CostCalculation({
                         category.elements.map((element) => (
                           <TableRow key={element.id}>
                             <TableCell className="font-medium">
-                              {element.name}
+                              {element.element.name}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
                               <div className="flex items-center gap-1">

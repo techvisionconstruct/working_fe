@@ -60,7 +60,8 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   };
 
   const calculatedCosts = useMemo(() => {
-    return proposal.categories.map((category) => ({
+    return proposal.modules.map((category) => ({
+      
       ...category,
       elements: category.elements.map((element) => {
         const materialCost = calculateCost(

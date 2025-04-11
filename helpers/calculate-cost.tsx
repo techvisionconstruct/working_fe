@@ -49,6 +49,7 @@ export const checkFormulaErrors = (
 ): boolean => {
   const variablePattern = /\b[A-Za-z_][A-Za-z0-9_ ]*[A-Za-z0-9_]\b/g;
   const matches = formula.match(variablePattern) || [];
+  console.log(variables)
   const validVariableNames = variables.map((v) => v.name);
   return matches.some((match) => !validVariableNames.includes(match));
 };
