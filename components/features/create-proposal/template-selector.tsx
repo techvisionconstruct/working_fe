@@ -12,7 +12,7 @@ interface TemplateSelectorProps {
 
 export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: TemplateSelectorProps) {
   const { templates, isLoading, error } = getTemplates()
-
+  console.log(templates)
   if (isLoading) {
     return <div className="flex justify-center items-center py-12">Loading templates...</div>
   }
@@ -101,8 +101,8 @@ export function TemplateSelector({ onSelectTemplate, selectedTemplateId }: Templ
                      const mappedTemplate = {
                        ...template,
                        title: template.name,
-                       variables: [], // Add if available from API
-                       categories: [], // Add if available from API
+                      //  variables: [], // Add if available from API
+                      //  categories: [], // Add if available from API
                      };
                      onSelectTemplate(mappedTemplate);
                    }}

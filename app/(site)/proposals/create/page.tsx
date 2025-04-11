@@ -19,16 +19,14 @@ export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
     useState<ProposalData>(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
-
   const handleTemplateSelect = (template: Template) => {
-    const initializedVariables = template.variables.map((variable) => ({
+    const initializedVariables = template.parameters.map((variable) => ({
       ...variable,
       value: "0",
     }));
 
     const newProposal: ProposalData = {
       ...template,
-      variables: initializedVariables,
     };
 
     setCurrentProposal(newProposal);
@@ -38,7 +36,6 @@ export default function CreateProposalPage() {
   const updateVariables = (updatedVariables: Variable[]) => {
     setCurrentProposal((prev) => ({
       ...prev,
-      variables: updatedVariables,
     }));
   };
 
@@ -49,7 +46,7 @@ export default function CreateProposalPage() {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
-
+  console.log(currentProposal)
   return (
     <div className="container mx-auto mt-6 mb-2">
       <div className="mb-6">
@@ -97,7 +94,7 @@ export default function CreateProposalPage() {
           
           <TabsContent value="variables">
             <VariablesForm
-              variables={currentProposal.variables}
+              variables={currentProposal.parameters}
               setVariables={updateVariables}
               onNext={() => setActiveTab("costs")}
             />

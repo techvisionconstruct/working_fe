@@ -59,7 +59,7 @@ export function CostCalculation({
     name: "",
     material_cost: "",
     labor_cost: "",
-    markup_percentage: 2, 
+    markup_percentage: 2,
   });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isElementDialogOpen, setIsElementDialogOpen] = useState(false);
@@ -77,51 +77,80 @@ export function CostCalculation({
       onUpdateProposal(localProposal);
     }
   }, [localProposal, onUpdateProposal]);
-
+  console.log("localProposal", localProposal);
+  
   const calculatedCosts = useMemo(() => {
-    return localProposal.categories.map((category) => ({
-      ...category,
-      elements: category.elements.map((element) => {
-        const materialFormulaHasErrors = checkFormulaErrors(
-          element.material_cost,
-          localProposal.variables
-        );
+    // Map template_elements to their respective categories
+    const elementsByCategory = localProposal.template_elements.reduce(
+      (acc, templateElement) => {
+        const categoryId = templateElement.element.id; // Assuming `element.id` maps to the category
+        if (!acc[categoryId]) {
+          acc[categoryId] = [];
+        }
+        acc[categoryId].push(templateElement);
+        return acc;
+      },
+      {} as Record<number, typeof localProposal.template_elements>
+    );
 
-        const laborFormulaHasErrors = checkFormulaErrors(
-          element.labor_cost,
-          localProposal.variables
-        );
-        
-        const materialCost = materialFormulaHasErrors
-          ? 0
-          : calculateCost(element.material_cost, localProposal.variables);
-          
-        const laborCost = laborFormulaHasErrors
-          ? 0
-          : calculateCost(element.labor_cost, localProposal.variables);
-          
-        const baseCost = materialCost + laborCost;
-        
-        const markupPercentage = localProposal.useGlobalMarkup
-          ? localProposal.globalMarkupPercentage || 15
-          : element.markup_percentage || 10;
-          
-        const markupAmount = baseCost * (markupPercentage / 100);
+    return localProposal.modules.map((category) => {
+      const elements = elementsByCategory[category.id] || []; // Get elements for this category
 
-        return {
-          ...element,
-          materialFormulaHasErrors,
-          laborFormulaHasErrors,
-          calculatedMaterialCost: materialCost,
-          calculatedLaborCost: laborCost,
-          markupPercentage,
-          markupAmount,
-          totalWithMarkup: baseCost + markupAmount
-        };
-      }),
-    }));
-  }, [localProposal.categories, localProposal.variables, localProposal.useGlobalMarkup, localProposal.globalMarkupPercentage]);
+      return {
+        ...category,
+        elements: elements.map((templateElement) => {
+          const materialFormulaHasErrors = checkFormulaErrors(
+            templateElement.material_cost.toString(),
+            localProposal.variables
+          );
 
+          const laborFormulaHasErrors = checkFormulaErrors(
+            templateElement.labor_cost.toString(),
+            localProposal.variables
+          );
+
+          const materialCost = materialFormulaHasErrors
+            ? 0
+            : calculateCost(
+                templateElement.material_cost.toString(),
+                localProposal.variables
+              );
+
+          const laborCost = laborFormulaHasErrors
+            ? 0
+            : calculateCost(
+                templateElement.labor_cost.toString(),
+                localProposal.variables
+              );
+
+          const baseCost = materialCost + laborCost;
+
+          const markupPercentage = localProposal.useGlobalMarkup
+            ? localProposal.globalMarkupPercentage || 15
+            : templateElement.markup_percentage || 10;
+
+          const markupAmount = baseCost * (markupPercentage / 100);
+
+          return {
+            ...templateElement,
+            materialFormulaHasErrors,
+            laborFormulaHasErrors,
+            calculatedMaterialCost: materialCost,
+            calculatedLaborCost: laborCost,
+            markupPercentage,
+            markupAmount,
+            totalWithMarkup: baseCost + markupAmount,
+          };
+        }),
+      };
+    });
+  }, [
+    localProposal.modules,
+    localProposal.template_elements,
+    localProposal.variables,
+    localProposal.useGlobalMarkup,
+    localProposal.globalMarkupPercentage,
+  ]);
   const totalMaterialCost = useMemo(() => {
     return calculatedCosts.reduce((total, category) => {
       return (
@@ -156,7 +185,6 @@ export function CostCalculation({
   }, [calculatedCosts]);
 
   const grandTotal = totalMaterialCost + totalLaborCost + totalMarkupAmount;
-
   const handleAddCategory = () => {
     if (!newCategory.name) return;
 
@@ -271,7 +299,7 @@ export function CostCalculation({
       name: "",
       material_cost: "",
       labor_cost: "",
-      markup_percentage: 10, 
+      markup_percentage: 10,
     });
     setEditingElement(null);
     setEditingCategoryId(null);
@@ -300,7 +328,7 @@ export function CostCalculation({
   const handleContinue = () => {
     onNext();
   };
-
+  console.log('calculatedCosts', calculatedCosts)
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -408,9 +436,9 @@ export function CostCalculation({
                 max="100"
                 value={newElement.markup_percentage}
                 onChange={(e) =>
-                  setNewElement({ 
-                    ...newElement, 
-                    markup_percentage: Number(e.target.value) 
+                  setNewElement({
+                    ...newElement,
+                    markup_percentage: Number(e.target.value),
                   })
                 }
                 placeholder="10"
@@ -485,7 +513,9 @@ export function CostCalculation({
                         <TableHead className="text-right">Labor Cost</TableHead>
                         <TableHead className="text-right">Base Total</TableHead>
                         <TableHead className="text-right">Markup %</TableHead>
-                        <TableHead className="text-right">Total with Markup</TableHead>
+                        <TableHead className="text-right">
+                          Total with Markup
+                        </TableHead>
                         <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -639,22 +669,24 @@ export function CostCalculation({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <Label htmlFor="use-global-markup">Use Global Markup</Label>
-                <Switch 
-                  id="use-global-markup" 
-                  checked={localProposal.useGlobalMarkup} 
+                <Switch
+                  id="use-global-markup"
+                  checked={localProposal.useGlobalMarkup}
                   onCheckedChange={(checked) => {
                     setLocalProposal({
                       ...localProposal,
-                      useGlobalMarkup: checked
+                      useGlobalMarkup: checked,
                     });
                   }}
                 />
               </div>
-              
+
               {localProposal.useGlobalMarkup && (
                 <div className="flex items-center space-x-2">
-                  <Label htmlFor="global-markup-percentage">Global Markup %:</Label>
-                  <Input 
+                  <Label htmlFor="global-markup-percentage">
+                    Global Markup %:
+                  </Label>
+                  <Input
                     id="global-markup-percentage"
                     type="number"
                     min="0"
@@ -664,7 +696,7 @@ export function CostCalculation({
                     onChange={(e) => {
                       setLocalProposal({
                         ...localProposal,
-                        globalMarkupPercentage: Number(e.target.value)
+                        globalMarkupPercentage: Number(e.target.value),
                       });
                     }}
                   />
@@ -672,8 +704,8 @@ export function CostCalculation({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {localProposal.useGlobalMarkup 
-                ? "Using the same markup percentage for all elements" 
+              {localProposal.useGlobalMarkup
+                ? "Using the same markup percentage for all elements"
                 : "Each element has its own markup percentage"}
             </p>
           </div>
