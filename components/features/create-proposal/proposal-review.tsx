@@ -35,7 +35,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   const router = useRouter();
   const { createProposal, isLoading, error } = useCreateProposal();
   const [isSaving, setIsSaving] = useState(false);
-  
+  console.log(proposal);
   const handleSaveProposal = async () => {
     setIsSaving(true);
     
@@ -58,7 +58,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
       setIsSaving(false);
     }
   };
-  console.log(proposal);
+
   const calculatedCosts = useMemo(() => {
     return proposal.modules.map((category) => ({
       ...category,
@@ -117,7 +117,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   }, 0);
 
   const grandTotalWithMarkup = totalMaterialCost + totalLaborCost + totalMarkupAmount;
-
+  console.log(calculatedCosts)
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">

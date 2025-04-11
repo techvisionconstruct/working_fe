@@ -199,7 +199,7 @@ export default function ProposalDetailPage({
                                 <TableHead>Element</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="text-right">
-                                  Quantity
+                                  Material Cost
                                 </TableHead>
                                 <TableHead className="text-right">
                                   Labor Cost
@@ -228,7 +228,7 @@ export default function ProposalDetailPage({
                                       {element.element.description}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      {element.quantity}
+                                      {element.material_cost}
                                     </TableCell>
                                     <TableCell className="text-right">
                                       {element.labor_cost}

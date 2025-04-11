@@ -39,7 +39,7 @@ export function VariablesForm({
     // Update the input value in our local state
     setInputValues((prev) => ({
       ...prev,
-      [id]: value,
+      [id]: value.toString(),
     }));
 
     // Immediately update parent state
@@ -76,14 +76,14 @@ export function VariablesForm({
 
       // Also update parent state
       const updatedVariables = variables.map((variable) =>
-        variable.id === id ? { ...variable, value: newValue } : variable
+        variable.id === id ? { ...variable, value: newValue.toString() } : variable
       );
       setVariables(updatedVariables);
     } else {
       // Make sure parent state is updated with current input value
       const currentValue = inputValues[id];
       const updatedVariables = variables.map((variable) =>
-        variable.id === id ? { ...variable, value: currentValue } : variable
+        variable.id === id ? { ...variable, value: currentValue.toString() } : variable
       );
       setVariables(updatedVariables);
     }
@@ -120,7 +120,7 @@ export function VariablesForm({
       id: newId,
       name: newVariable.name,
       type: newVariable.type,
-      value: newVariable.value || "0",
+      value: newVariable.value.toString() || "0",
     };
 
     console.log("Adding new variable:", variableToAdd);
