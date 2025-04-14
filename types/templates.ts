@@ -1,4 +1,5 @@
 import { SortOption } from "./sort";
+import { Element as ElementCategory } from "@/hooks/api/lookup/use-categories";
 
 export interface TemplateProps {
   sortOption: SortOption;
@@ -15,6 +16,8 @@ export interface Element {
   id: number;
   name: string;
   description: string;
+  formula: string;
+  labor_formula: string;
   image: string;
   created_at: string;
   updated_at: string;
@@ -23,9 +26,10 @@ export interface Element {
 export interface Module {
   id: number;
   name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
+  elements: ElementCategory[];
+  // description: string;
+  // created_at: string;
+  // updated_at: string;
 }
 export interface Parameters {
   id: number;
@@ -54,16 +58,6 @@ export interface Template {
   template_elements: TemplateElements[];
   created_at: string;
   updated_at: string;
-  image: string;
-}
-
-export interface emptyTemplateProps{
-  id: number;
-  name: string;
-  description: string;
-  modules: Module[];
-  parameters: Parameters[];
-  created_at: string;
   image: string;
 }
 

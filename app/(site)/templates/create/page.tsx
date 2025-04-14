@@ -90,7 +90,7 @@ export default function CreateTemplatePage() {
 
           <TabsContent value="parameters">
             <TemplateVariables
-              parameters={currentTemplate.parameters}
+              parameter={currentTemplate.parameters}
               onUpdateTemplate={updateTemplate}
               onNext={() => setActiveTab("categories")}
               onPrevious={() => setActiveTab("details")}

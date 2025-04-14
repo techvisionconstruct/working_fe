@@ -9,30 +9,28 @@ export default function TemplateDetails({
   onUpdateTemplate,
   onNext,
 }: TemplateDetailsProps) {
-  const [title, setTitle] = useState(template.title);
+  const [name, setName] = useState(template.name);
   const [description, setDescription] = useState(template.description);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
-  // Sync with template prop changes and handle image preview
   useEffect(() => {
-    setTitle(template.title);
+    setName(template.name);
     setDescription(template.description);
 
-    // Handle image preview for both File objects and string URLs
-    if (template.image) {
-      if (typeof template.image === "string") {
-        setPreviewUrl(template.image);
-      } else if (template.image instanceof File) {
-        setSelectedFile(template.image);
-        const objectUrl = URL.createObjectURL(template.image);
-        setPreviewUrl(objectUrl);
-        return () => URL.revokeObjectURL(objectUrl);
-      }
-    } else {
-      setPreviewUrl("");
-      setSelectedFile(null);
-    }
+    // if (template.image) {
+    //   if (typeof template.image === "string") {
+    //     setPreviewUrl(template.image);
+    //   } else if (template.image instanceof File) {
+    //     setSelectedFile(template.image);
+    //     const objectUrl = URL.createObjectURL(template.image);
+    //     setPreviewUrl(objectUrl);
+    //     return () => URL.revokeObjectURL(objectUrl);
+    //   }
+    // } else {
+    //   setPreviewUrl("");
+    //   setSelectedFile(null);
+    // }
   }, [template]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,38 +39,33 @@ export default function TemplateDetails({
 
     setSelectedFile(file);
 
-    // Create object URL for preview
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
 
-    // Update the parent component with the file
     onUpdateTemplate({
       ...template,
-      image: file,
+      // image: file,
     });
 
     return () => URL.revokeObjectURL(objectUrl);
   };
 
   const handleSave = () => {
-    // Save all current values to parent
     onUpdateTemplate({
       ...template,
-      title,
+      name,
       description,
-      image: selectedFile || template.image, // Keep existing image if no new file selected
+      // image: selectedFile || template.image, 
     });
     onNext();
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitle(newTitle);
-
-    // Update parent component
+    const newName = e.target.value;
+    setName(newName);
     onUpdateTemplate({
       ...template,
-      title: newTitle,
+      name: newName,
     });
   };
 
@@ -81,8 +74,6 @@ export default function TemplateDetails({
   ) => {
     const newDescription = e.target.value;
     setDescription(newDescription);
-
-    // Update parent component
     onUpdateTemplate({
       ...template,
       description: newDescription,
@@ -100,7 +91,7 @@ export default function TemplateDetails({
             </label>
             <Input
               id="title"
-              value={title}
+              value={name}
               onChange={handleTitleChange}
               placeholder="Enter template title"
               className="w-full"
