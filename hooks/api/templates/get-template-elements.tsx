@@ -8,16 +8,10 @@ export interface TemplateElement {
   element_id: number;
   name: string;
   module: string;
-  formula: string;
-  labor_formula: string;
-  material_cost: number;
-  labor_cost: number;
-  category_id?: number;
-  category_name?: string;
-  description?: string;
-  image?: string;
+  material_cost: string;
+  labor_cost: string;
+  image: string;
   selected: boolean;
-  
 }
 
 interface GetTemplateElementsResult {
@@ -31,6 +25,7 @@ export const getTemplateElements = (templateId: number | string): GetTemplateEle
   const [elements, setElements] = useState<TemplateElement[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  console.log(elements)
 
   const fetchElements = async () => {
     setIsLoading(true);

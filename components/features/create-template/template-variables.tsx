@@ -19,77 +19,72 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/shared";
-import { PlusCircle, XCircle, List, Check, ChevronsUpDown } from "lucide-react";
-import { Template, Variable, TemplateVariablesProps } from "@/types/templates";
+import { PlusCircle, XCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Parameters, TemplateParametersProps } from "@/types/templates";
 import { useParameters } from "@/hooks/api/lookup/use-parameters";
 
 export default function TemplateVariables({
-  variables = [],
+  parameter = [],
   onUpdateTemplate,
   onNext,
   onPrevious,
-}: TemplateVariablesProps) {
-  const [templateVariables, setTemplateVariables] =
-    useState<Variable[]>(variables);
-  const [variableName, setVariableName] = useState("");
-  const [variableType, setVariableType] = useState("Linear Feet");
+}: TemplateParametersProps) {
+  const [templateParameters, setTemplateParameters] =
+    useState<Parameters[]>(parameter);
+  const [parameterName, setParameterName] = useState("");
+  const [parameterType, setParameterType] = useState("Linear Feet");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { parameters, isLoading, error } = useParameters();
 
-  // Sync local state with template prop when it changes (only on initial mount and explicit prop changes)
   useEffect(() => {
-    setTemplateVariables(variables || []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on initial mount
+    setTemplateParameters(parameter || []);
+  }, []); 
 
-  // Filter parameters based on search query
   const filteredParameters =
     parameters?.filter((parameter) =>
       parameter.name.toLowerCase().includes(search.toLowerCase())
     ) || [];
 
-  const variableTypes = ["Linear Feet", "Square Feet", "Cubic Feet", "Count"];
+  const parameterTypes = ["Linear Feet", "Square Feet", "Cubic Feet", "Count"];
 
-  const addVariable = () => {
-    if (!variableName.trim()) return;
+  const addParameter = () => {
+    if (!parameterName.trim()) return;
 
-    const newVariable = {
-      name: variableName,
-      type: variableType,
+    const newParameter = {
+      id: templateParameters.length + 1,
+      name: parameterName,
+      type: parameterType,
     };
 
-    const updatedVariables = [...templateVariables, newVariable];
-    setTemplateVariables(updatedVariables);
+    const updatedParameters = [...templateParameters, newParameter];
+    setTemplateParameters(updatedParameters);
 
-    // Save to parent component
     onUpdateTemplate((prevTemplate) => ({
       ...prevTemplate,
-      variables: updatedVariables,
+      parameters: updatedParameters,
     }));
 
-    // Reset inputs
-    setVariableName("");
-    setVariableType("Count");
+    setParameterName("");
+    setParameterType("Count");
   };
 
-  const removeVariable = (id: number) => {
-    const updatedVariables = templateVariables.filter(
+  const removeParameter = (id: number) => {
+    const updatedParameters = templateParameters.filter(
       (variable) => variable.id !== id
     );
-    setTemplateVariables(updatedVariables);
+    setTemplateParameters(updatedParameters);
 
-    // Save to parent component
     onUpdateTemplate((prevTemplate) => ({
       ...prevTemplate,
-      variables: updatedVariables,
+      parameters: updatedParameters,
     }));
   };
 
   const handleSaveAndContinue = () => {
     onUpdateTemplate((prevTemplate) => ({
       ...prevTemplate,
-      variables: templateVariables,
+      parameters: templateParameters,
     }));
     onNext();
   };
@@ -110,8 +105,8 @@ export default function TemplateVariables({
             </label>
             <Input
               id="variableName"
-              value={variableName}
-              onChange={(e) => setVariableName(e.target.value)}
+              value={parameterName}
+              onChange={(e) => setParameterName(e.target.value)}
               placeholder="e.g. Wall Height"
               className="w-full"
             />
@@ -120,12 +115,12 @@ export default function TemplateVariables({
             <label htmlFor="variableType" className="block mb-2 font-medium">
               Variable Type
             </label>
-            <Select value={variableType} onValueChange={setVariableType}>
+            <Select value={parameterType} onValueChange={setParameterType}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a unit type" />
               </SelectTrigger>
               <SelectContent>
-                {variableTypes.map((type) => (
+                {parameterTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -136,7 +131,7 @@ export default function TemplateVariables({
           <div className="flex-1">
             <label className="block mb-2 font-medium">Actions</label>
             <div className="flex gap-2">
-              <Button onClick={addVariable} className="flex-1">
+              <Button onClick={addParameter} className="flex-1">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Variable
               </Button>
 
@@ -174,10 +169,10 @@ export default function TemplateVariables({
                       ) : (
                         filteredParameters.map((parameter) => {
                           // Check if this parameter is already added to template variables
-                          const isSelected = templateVariables.some(
+                          const isSelected = templateParameters.some(
                             (v) =>
                               v.name === parameter.name &&
-                              v.type === (parameter.category || parameter.type)
+                              v.type === (parameter.type)
                           );
 
                           return (
@@ -186,43 +181,43 @@ export default function TemplateVariables({
                               value={parameter.name}
                               onSelect={() => {
                                 if (!isSelected) {
-                                  // Add parameter if not already selected
-                                  const newVariable = {
-                                    id: templateVariables.length + 1,
+                            
+                                  const newParameter = {
+                                    id: templateParameters.length + 1,
                                     name: parameter.name,
-                                    type: parameter.category || parameter.type,
+                                    type: parameter.type,
                                   };
-                                  const updatedVariables = [
-                                    ...templateVariables,
-                                    newVariable,
+                                  const updatedParameters = [
+                                    ...templateParameters,
+                                    newParameter,
                                   ];
-                                  setTemplateVariables(updatedVariables);
+                                  setTemplateParameters(updatedParameters);
 
                                   // Save to parent component
                                   onUpdateTemplate((prevTemplate) => ({
                                     ...prevTemplate,
-                                    variables: updatedVariables,
+                                    parameters: updatedParameters,
                                   }));
                                 } else {
                                   // Remove parameter if already selected
                                   const variableToRemove =
-                                    templateVariables.find(
+                                    templateParameters.find(
                                       (v) =>
                                         v.name === parameter.name &&
                                         v.type ===
-                                          (parameter.category || parameter.type)
+                                          (parameter.type)
                                     );
                                   if (variableToRemove) {
-                                    const updatedVariables =
-                                      templateVariables.filter(
+                                    const updatedParameters =
+                                      templateParameters.filter(
                                         (v) => v.id !== variableToRemove.id
                                       );
-                                    setTemplateVariables(updatedVariables);
+                                    setTemplateParameters(updatedParameters);
 
                                     // Save to parent component
                                     onUpdateTemplate((prevTemplate) => ({
                                       ...prevTemplate,
-                                      variables: updatedVariables,
+                                      parameters: updatedParameters,
                                     }));
                                   }
                                 }
@@ -236,7 +231,7 @@ export default function TemplateVariables({
                                     {parameter.name}
                                   </span>
                                   <span className="ml-2 text-sm text-gray-500">
-                                    ({parameter.category})
+                                    ({parameter.type})
                                   </span>
                                 </div>
                                 {isSelected && (
@@ -255,25 +250,25 @@ export default function TemplateVariables({
           </div>
         </div>
 
-        {templateVariables.length > 0 && (
+        {templateParameters.length > 0 && (
           <div className="mt-6">
             <h3 className="font-semibold mb-3">Added Variables</h3>
             <div className="border rounded-md divide-y">
-              {templateVariables.map((variable) => (
+              {templateParameters.map((parameter) => (
                 <div
-                  key={variable.id}
+                  key={parameter.id}
                   className="flex justify-between items-center p-3"
                 >
                   <div>
-                    <span className="font-medium">{variable.name}</span>
+                    <span className="font-medium">{parameter.name}</span>
                     <span className="ml-2 text-sm text-gray-500">
-                      ({variable.type})
+                      ({parameter.type})
                     </span>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeVariable(variable.id)}
+                    onClick={() => removeParameter(parameter.id)}
                   >
                     <XCircle className="h-5 w-5 text-red-500" />
                   </Button>
