@@ -162,6 +162,7 @@ export { SheetDescription } from "./sheet/sheet-description"
 export { Tooltip } from "./tooltip/tooltip"
 export { TooltipTrigger } from "./tooltip/tooltip-trigger"
 export { TooltipContent } from "./tooltip/tooltip-content"
+export { TooltipProvider } from "@radix-ui/react-tooltip"
 /**
  * Switch
  */
