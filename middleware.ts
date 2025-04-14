@@ -5,6 +5,11 @@ export default function middleware(request: NextRequest) {
   const authToken = request.cookies.get('auth-token')?.value
   const { pathname } = request.nextUrl
 
+  // Allow access to the landing page (root path) without authentication
+  if (pathname === '/') {
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
     return NextResponse.next()
   }
