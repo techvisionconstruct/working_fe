@@ -16,12 +16,10 @@ export default function TemplatePreview({
   const [showJson, setShowJson] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
 
-  // Format the template data as JSON for display
   const formattedJson = JSON.stringify(template, null, 2);
 
-  // Group elements by category
-  const elementsByCategory = template.categories.reduce((acc, category) => {
-    acc[category.name] = category.elements;
+  const elementsByCategory = template.modules.reduce((acc, module) => {
+    acc[module.name] = module.elements;
     return acc;
   }, {} as Record<string, any[]>);
 
@@ -33,17 +31,17 @@ export default function TemplatePreview({
     }
 
     // Generate preview URL from the image
-    if (template.image) {
-      if (typeof template.image === "string") {
-        setImagePreviewUrl(template.image);
-      } else if (template.image instanceof File) {
-        const objectUrl = URL.createObjectURL(template.image);
-        setImagePreviewUrl(objectUrl);
-        return () => URL.revokeObjectURL(objectUrl);
-      }
-    } else {
-      setImagePreviewUrl("/placeholder-image.jpg");
-    }
+    // if (template.image) {
+    //   if (typeof template.image === "string") {
+    //     setImagePreviewUrl(template.image);
+    //   } else if (template.image instanceof File) {
+    //     const objectUrl = URL.createObjectURL(template.image);
+    //     setImagePreviewUrl(objectUrl);
+    //     return () => URL.revokeObjectURL(objectUrl);
+    //   }
+    // } else {
+    //   setImagePreviewUrl("/placeholder-image.jpg");
+    // }
   }, [template.image]);
 
   const handleSave = async () => {
@@ -74,7 +72,7 @@ export default function TemplatePreview({
       <div className="relative w-full h-[250px] overflow-hidden rounded-xl mb-6">
         <img
           src={imagePreviewUrl || "/placeholder-image.jpg"}
-          alt={template.title}
+          alt={template.name}
           className="w-full h-full object-cover"
         />
       </div>
@@ -83,7 +81,7 @@ export default function TemplatePreview({
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">
-              {template.title || "Untitled Template"}
+              {template.name || "Untitled Template"}
             </h1>
             <div className="text-sm text-gray-500">
               Created on {new Date(template.created_at).toLocaleDateString()}
@@ -191,12 +189,12 @@ export default function TemplatePreview({
                               </td>
                               <td className="py-3 px-4">
                                 <code className="font-mono bg-gray-100 p-1 rounded text-sm">
-                                  {element.material_cost}
+                                  {element.formula}
                                 </code>
                               </td>
                               <td className="py-3 px-4">
                                 <code className="font-mono bg-gray-100 p-1 rounded text-sm">
-                                  {element.labor_cost}
+                                  {element.labor_formula}
                                 </code>
                               </td>
                             </tr>
@@ -222,15 +220,15 @@ export default function TemplatePreview({
             Template dimensions and parameters
           </p>
 
-          {template.variables.length > 0 ? (
+          {template.parameters.length > 0 ? (
             <div className="flex flex-wrap gap-3">
-              {template.variables.map((variable, idx) => (
+              {template.parameters.map((parameter, idx) => (
                 <div
                   key={idx}
                   className="flex justify-between w-[250px] items-center p-3 bg-gray-50 rounded-xl"
                 >
-                  <span className="font-medium">{variable.name}</span>
-                  <span className="text-gray-500">{variable.type}</span>
+                  <span className="font-medium">{parameter.name}</span>
+                  <span className="text-gray-500">{parameter.type}</span>
                 </div>
               ))}
             </div>
