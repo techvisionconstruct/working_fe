@@ -14,33 +14,57 @@ export interface TemplatePageProps {
 export interface Element {
   id: number;
   name: string;
-  material_cost: string;
-  labor_cost: string;
+  description: string;
+  image: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Category {
+export interface Module {
   id: number;
   name: string;
-  elements: Element[];
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+export interface Parameters {
+  id: number;
+  name?: string;
+  type?: string;
+  value?: string;
 }
 
-export interface Variable {
-  // id: number;
-  name: string;
-  type: string;
-  value?: string;
-  category?: string;
-  
+export interface TemplateElements {
+  id: number;
+  element: Element;
+  material_cost: string
+  labor_cost: string;
+  image: string;
+  created_at: string;
+  updated_at: string;
+  module: Module;
 }
 
 export interface Template {
   id: number;
-  title: string;
+  name: string;
   description: string;
-  categories: Category[];
-  variables: Variable[];
+  modules: Module[];
+  parameters: Parameters[];
+  template_elements: TemplateElements[];
   created_at: string;
-  image: File;
+  updated_at: string;
+  image: string;
+}
+
+export interface emptyTemplateProps{
+  id: number;
+  name: string;
+  description: string;
+  modules: Module[];
+  parameters: Parameters[];
+  created_at: string;
+  image: string;
 }
 
 export interface TemplateDetailsProps {
@@ -49,8 +73,8 @@ export interface TemplateDetailsProps {
   onNext: () => void;
 }
 
-export interface TemplateVariablesProps {
-  variables: Variable[];
+export interface TemplateParametersProps {
+  parameter: Parameters[];
   onUpdateTemplate: (updater: (prevTemplate: Template) => Template) => void;
   onNext: () => void;
   onPrevious: () => void;

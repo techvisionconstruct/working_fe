@@ -11,12 +11,14 @@ import { postTemplate } from "@/hooks/api/templates/post-template";
 
 const emptyTemplate: Template = {
   id: 0,
-  title: "",
+  name: "",
   description: "",
-  categories: [],
-  variables: [],
-  created_at: new Date().toISOString().split("T")[0],
-  image: null as unknown as File,
+  modules: [],
+  parameters: [],
+  created_at: "",
+  updated_at: "",
+  template_elements: [],
+  image: "",
 };
 
 export default function CreateTemplatePage() {
@@ -25,7 +27,6 @@ export default function CreateTemplatePage() {
   const [activeTab, setActiveTab] = useState("details");
   const [isSaved, setIsSaved] = useState(false);
 
-  // Debug: log template state changes
   useEffect(() => {
     console.log("Current template state:", currentTemplate);
   }, [currentTemplate]);
@@ -74,7 +75,7 @@ export default function CreateTemplatePage() {
         >
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="variables">Variables</TabsTrigger>
+            <TabsTrigger value="parameters">Parameters</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
@@ -83,13 +84,13 @@ export default function CreateTemplatePage() {
             <TemplateDetails
               template={currentTemplate}
               onUpdateTemplate={updateTemplate}
-              onNext={() => setActiveTab("variables")}
+              onNext={() => setActiveTab("parameters")}
             />
           </TabsContent>
 
-          <TabsContent value="variables">
+          <TabsContent value="parameters">
             <TemplateVariables
-              variables={currentTemplate.variables}
+              parameters={currentTemplate.parameters}
               onUpdateTemplate={updateTemplate}
               onNext={() => setActiveTab("categories")}
               onPrevious={() => setActiveTab("details")}
@@ -101,7 +102,7 @@ export default function CreateTemplatePage() {
               template={currentTemplate}
               onUpdateTemplate={updateTemplate}
               onNext={() => setActiveTab("preview")}
-              onPrevious={() => setActiveTab("variables")}
+              onPrevious={() => setActiveTab("parameters")}
             />
           </TabsContent>
 

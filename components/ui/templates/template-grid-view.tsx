@@ -58,7 +58,7 @@ export default function TemplateGridView({
           >
             <div className="w-full h-30 relative">
               <Image
-                 src={template.image || "/placeholder-image.jpg"}
+                src={template.image || "/placeholder-image.jpg"}
                 alt={template.name}
                 fill
                 className="object-cover"
