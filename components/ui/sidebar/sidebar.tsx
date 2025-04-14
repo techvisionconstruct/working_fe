@@ -27,7 +27,7 @@ import {
   LogOut,
   ChevronDown
 } from "lucide-react";
-import { useUser } from "../contexts/user-context";
+import { useUser } from "../../contexts/user-context";
 
 const navItems = [
   {
