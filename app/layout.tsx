@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
 import "@/assets/style/globals.css";
+
+import { Toaster } from "@/components/shared";
 import { UserProvider } from "@/components/contexts/user-context";
 
 const geistSans = Geist({
@@ -36,17 +38,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const bodyClasses = [
-    geistSans.variable, 
-    geistMono.variable, 
-    dmSans.variable, 
-    openSans.variable, 
-    "antialiased"
+    geistSans.variable,
+    geistMono.variable,
+    dmSans.variable,
+    openSans.variable,
+    "antialiased",
   ].join(" ");
-  
+
   return (
     <html lang="en">
       <body className={bodyClasses}>
         <UserProvider>
+          <Toaster />
           {children}
         </UserProvider>
       </body>

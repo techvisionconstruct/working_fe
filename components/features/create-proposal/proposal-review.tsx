@@ -18,6 +18,7 @@ import {
   TableRow,
   Separator,
 } from "@/components/shared";
+import { toast } from "sonner";
 import { ProposalData } from "@/types/create-proposal";
 import { calculateCost } from "@/helpers/calculate-cost";
 import {
@@ -39,23 +40,33 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   const router = useRouter();
   const { createProposal, isLoading, error } = useCreateProposal();
   const [isSaving, setIsSaving] = useState(false);
+
   const handleSaveProposal = async () => {
     setIsSaving(true);
     try {
       const result = await createProposal(proposal);
       
       if (result.success) {
-        alert("Success! Your proposal has been saved successfully.");
-        
-        // Redirect to proposals list or the new proposal page
+        console.log("Proposal saved successfully:", proposal);
+        toast.success("Success! Your proposal has been saved successfully.", {
+          duration: 3000,
+          position: "top-center"
+        });
+      
         setTimeout(() => {
           router.push('/proposals');
         }, 1500);
       } else {
-        alert(result.error || "Failed to save proposal. Please try again.");
+        toast.error(result.error || "Failed to save proposal. Please try again.", {
+          duration: 5000,
+          position: "top-center"
+        });
       }
     } catch (err) {
-      alert("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.", {
+        duration: 5000,
+        position: "top-center"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -72,7 +83,6 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
         const laborCost = calculateCost(element.labor_cost.toString(), proposal.parameters);
         const baseCost = materialCost + laborCost;
 
-        // Use global markup if enabled, otherwise use element's markup (or default to 10%)
         const markupPercentage = proposal.useGlobalMarkup
           ? proposal.globalMarkupPercentage || 15
           : element.markup || 10;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -9,7 +9,6 @@ import {
   TabsTrigger,
   TabsContent,
   Button,
-  Separator,
 } from "@/components/shared";
 import { SortByComponent } from "@/components/shared/ui/sort-by-component";
 import { SearchComponent } from "@/components/shared/ui/search-component";

@@ -13,13 +13,10 @@ export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
     useState(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
-
-  console.log("Current proposal state:", currentProposal);
-
   const handleTemplateSelect = (template: any) => {
     const initializedVariables = template.parameters.map((variable:any) => ({
       ...variable,
-      value: variable.value ? parseFloat(variable.value) : 0, // Convert to number
+      value: 0, 
       formula: variable.formula || "",
       parameter: variable.parameter || null,
     }));

@@ -85,8 +85,6 @@ export function VariablesForm({
     setParameters(updatedParameters);
   };
 
-
-
   const handleAddParameter = () => {
     if (!newParameter.name || !newParameter.type) {
       console.error("Parameter name and type are required");
@@ -102,8 +100,8 @@ export function VariablesForm({
       name: newParameter.name,
       type: newParameter.type,
       value: parseFloat(newParameter.value) || 0,
-      formula: "", // Adding the missing formula property
-      parameter: null, // Adding the missing parameter property
+      formula: "", 
+      parameter: null, 
     };
 
     const updatedParameters = [...parameters, parameterToAdd];
