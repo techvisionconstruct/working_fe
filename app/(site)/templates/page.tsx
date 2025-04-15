@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TemplateTour } from "@/components/features/joyride/template-tour";
 import {
   Tabs,
   TabsList,
@@ -16,18 +17,36 @@ import { SortOption } from "@/types/sort";
 import TemplateGridView from "@/components/ui/templates/template-grid-view";
 import TemplateListView from "@/components/ui/templates/template-list-view";
 import Link from "next/link";
+import { Info } from "lucide-react";
 
 export default function TemplatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewParam = searchParams.get("view");
-  const [activeTab, setActiveTab] = useState<string>(viewParam === "list" ? "list" : "grid");
+  const [activeTab, setActiveTab] = useState<string>(
+    viewParam === "list" ? "list" : "grid"
+  );
 
   const [sortOption, setSortOption] = useState<SortOption>({
     value: "date-descending",
     label: "Date (Newest First)",
   });
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [runTour, setRunTour] = useState(false);
+  const [tourId, setTourId] = useState(0); // To force TemplateTour to re-render properly
+
+  // Check if user has seen the tour before - run on initial mount only
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour");
+    if (!hasSeenTour) {
+      // Delay the start of the tour slightly to ensure all components are rendered
+      const timeout = setTimeout(() => {
+        setRunTour(true);
+      }, 500);
+
+      return () => clearTimeout(timeout);
+    }
+  }, []);
 
   const handleSortChange = (newSortOption: SortOption) => {
     setSortOption(newSortOption);
@@ -42,18 +61,45 @@ export default function TemplatePage() {
     router.push(`/templates?view=${value}`, { scroll: false });
   };
 
+  const startTour = () => {
+    // Reset tour and increment tourId to force re-render
+    setRunTour(false);
+
+    // Brief timeout to ensure state update before starting again
+    setTimeout(() => {
+      setTourId((prev) => prev + 1);
+      setRunTour(true);
+    }, 50);
+  };
+
   return (
     <div className="container mx-auto px-2 md:px-6 pb-10">
-      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
+      <TemplateTour
+        key={tourId}
+        isRunning={runTour}
+        setIsRunning={setRunTour}
+      />
+
+      <Tabs
+        defaultValue={activeTab}
+        value={activeTab}
+        onValueChange={handleTabChange}
+      >
         <div className="sticky top-0 z-10 w-full left-0 bg-background/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
           <div className="container mx-auto pt-8 pb-3">
             <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
               <div className="flex flex-col gap-1">
-                <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Templates</h1>
-                <p className="text-base text-zinc-500 dark:text-zinc-400">Manage and track your templates.</p>
+                <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Templates
+                </h1>
+                <p className="text-base text-zinc-500 dark:text-zinc-400">
+                  Manage and track your templates.
+                </p>
               </div>
-              <Link href={'/templates/create'} className="shrink-0">
-                <Button className="uppercase font-semibold tracking-wide rounded-xl px-7 py-5 h-11 text-sm bg-zinc-900 text-white 
+              <Link href={"/templates/create"} className="shrink-0">
+                <Button
+                  id="new-template"
+                  className="uppercase font-semibold tracking-wide rounded-xl px-7 py-5 h-11 text-sm bg-zinc-900 text-white 
                   shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.06),0_4px_16px_-2px_rgba(0,0,0,0.1),0_0_0_0_rgba(255,255,255,0)_inset] 
                   dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2),0_4px_16px_-2px_rgba(0,0,0,0.3),0_0_0_0_rgba(255,255,255,0.1)_inset]
                   transition-all duration-300 ease-out
@@ -63,7 +109,21 @@ export default function TemplatePage() {
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
                 >
                   <span className="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-plus"
+                    >
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                     New Template
                   </span>
                 </Button>
@@ -83,8 +143,8 @@ export default function TemplatePage() {
                 />
               </div>
               <TabsList className="rounded-lg bg-zinc-100 dark:bg-zinc-800/70 p-1 flex gap-0.5 h-10">
-                <TabsTrigger 
-                  value="grid" 
+                <TabsTrigger
+                  value="grid"
                   className="rounded-md px-4 py-2 text-sm font-medium
                     data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm 
                     data-[state=inactive]:text-zinc-500 data-[state=inactive]:hover:text-zinc-700
@@ -93,12 +153,28 @@ export default function TemplatePage() {
                     transition-all duration-150"
                 >
                   <span className="flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-grid"
+                    >
+                      <rect width="7" height="7" x="3" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="14" rx="1" />
+                      <rect width="7" height="7" x="3" y="14" rx="1" />
+                    </svg>
                     Grid
                   </span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="list" 
+                <TabsTrigger
+                  value="list"
                   className="rounded-md px-4 py-2 text-sm font-medium
                     data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm 
                     data-[state=inactive]:text-zinc-500 data-[state=inactive]:hover:text-zinc-700
@@ -107,7 +183,25 @@ export default function TemplatePage() {
                     transition-all duration-150"
                 >
                   <span className="flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-list"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-list"
+                    >
+                      <line x1="8" x2="21" y1="6" y2="6" />
+                      <line x1="8" x2="21" y1="12" y2="12" />
+                      <line x1="8" x2="21" y1="18" y2="18" />
+                      <line x1="3" x2="3.01" y1="6" y2="6" />
+                      <line x1="3" x2="3.01" y1="12" y2="12" />
+                      <line x1="3" x2="3.01" y1="18" y2="18" />
+                    </svg>
                     List
                   </span>
                 </TabsTrigger>
@@ -115,7 +209,7 @@ export default function TemplatePage() {
             </div>
           </div>
         </div>
-        <div className="container mx-auto mt-2">
+        <div className="container mx-auto mt-2" id="content">
           <TabsContent value="grid">
             <TemplateGridView
               sortOption={sortOption}
@@ -130,6 +224,19 @@ export default function TemplatePage() {
           </TabsContent>
         </div>
       </Tabs>
+
+      <Button
+        onClick={startTour}
+        variant="outline"
+        size="sm"
+        className="fixed bottom-6 right-6 h-10 px-4 text-sm font-medium rounded-md border border-zinc-200
+        dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-md"
+      >
+        <span className="flex items-center gap-1.5">
+          <Info className="w-4 h-4" />
+          Tour Guide
+        </span>
+      </Button>
     </div>
   );
 }
