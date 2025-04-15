@@ -17,6 +17,9 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
 } from "@/components/shared";
 import { PlusCircle, XCircle, Plus, Check, ChevronsUpDown } from "lucide-react";
 import { TemplateCategoriesProps } from "@/types/templates";
@@ -101,8 +104,6 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
     
     setModules(updatedModules);
     setElementName("");
-    // setMaterialCostFormula("");
-    // setLaborCostFormula("");
     onUpdateTemplate({
       ...template,
       modules: updatedModules
@@ -137,61 +138,99 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
   };
 
   return (
-    <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Template Categories</h2>
-      <p className="text-gray-600 mb-4">
-        Create categories and define elements with cost formulas for your template.
-      </p>
-
-      <div className="space-y-6">
-    
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="flex-1">
+    <div className="h-full">
+      <Card className="p-8 bg-white shadow-lg rounded-2xl border-0">
+        <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center tracking-tight flex items-center justify-center gap-2">
+          Template Categories
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="ml-1 text-xs rounded-full border px-1.5 cursor-pointer">📦</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>📦 Categories (modules) help you organize your template by grouping related elements together. Great for keeping things tidy!</span>
+            </TooltipContent>
+          </Tooltip>
+        </h2>
+        <div className="mb-6 text-center">
+          <p className="text-base text-gray-500 font-light">Organize your template by grouping elements into categories (modules).</p>
+        </div>
+        {/* Move add new and add existing category inside the colored card */}
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex gap-3 items-center">
+            <label className="block mb-2 text-sm font-medium text-gray-800 flex items-center gap-1">
+              Add Category
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 text-xs rounded-full border px-1.5 cursor-pointer">🆕</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>➕ Create a brand new category (module) for your template. Use this for custom groupings!</span>
+                </TooltipContent>
+              </Tooltip>
+            </label>
             <Input
               value={newModuleName}
               onChange={(e) => setNewModuleName(e.target.value)}
-              placeholder="Enter module name"
-              className="w-full"
+              onFocus={(e) => e.target.classList.add('ring-2', 'ring-black/10')}
+              onBlur={(e) => e.target.classList.remove('ring-2', 'ring-black/10')}
+              placeholder="Enter new category name"
+              className="flex-1 rounded-xl border-gray-200 bg-gray-50 p-3 text-base focus:ring-2 focus:ring-black/10 transition-all"
+              style={{ zIndex: 1 }}
             />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={addModule} className="flex-1">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Module
+            <Button 
+              onClick={addModule} 
+              className="rounded-xl px-5 py-2 text-base font-semibold bg-green-600 text-white hover:bg-green-700 shadow-md"
+            >
+              <PlusCircle className="mr-2 h-5 w-5" /> Add
             </Button>
-            
+          </div>
+          <div className="flex gap-3 items-center">
+            {/* Tooltip for Add Existing Category - left of combobox */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs rounded-full border px-1.5 cursor-pointer">📚</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>📚 Pick from categories you’ve already created before. Handy for reusing common groups!</span>
+              </TooltipContent>
+            </Tooltip>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="flex-1 justify-between">
-                  <span>Select Module</span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <Button 
+                  variant="outline" 
+                  role="combobox" 
+                  aria-expanded={open} 
+                  className="w-full justify-between rounded-xl text-base font-semibold border-gray-200 bg-white hover:bg-gray-50 shadow-sm flex items-center gap-1"
+                >
+                  <span>Add Existing Category</span>
+                  <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
+              <PopoverContent className="w-[320px] p-0 rounded-xl shadow-md" align="start">
                 <Command>
                   <CommandInput 
                     placeholder="Search categories..." 
                     value={search}
                     onValueChange={setSearch}
+                    className="rounded-xl text-base"
                   />
                   <CommandEmpty>
                     {isLoading ? "Loading..." : "No categories found."}
                   </CommandEmpty>
-                  <CommandGroup className="max-h-[300px] overflow-auto">
+                  <CommandGroup className="max-h-[180px] overflow-auto">
                     {error ? (
-                      <div className="p-2 text-center text-red-500 text-sm">
+                      <div className="p-2 text-center text-red-500 text-base">
                         Error loading categories
                       </div>
                     ) : filteredModules.length === 0 && !isLoading ? (
-                      <div className="p-2 text-center text-sm">
+                      <div className="p-2 text-center text-base">
                         No matching categories
                       </div>
                     ) : (
                       filteredModules.map((module) => {
-                        // Check if this module is already added
                         const isSelected = modulesList.some(
                           (mod) => mod.name === module.name
                         );
-                        
                         return (
                           <CommandItem
                             key={module.id}
@@ -208,40 +247,35 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
                                     labor_formula: elem.labor_formula || ''
                                   })) || []
                                 };
-                                
                                 const updatedModules = [...modulesList, newModule];
                                 setModules(updatedModules);
                                 setSelectedModule(newModule.id);
-                                
                                 onUpdateTemplate({
                                   ...template,
                                   modules: updatedModules
                                 });
                               } else {
-                      
                                 const updatedModules = modulesList.filter(
                                   (cat) => cat.name !== module.name
                                 );
                                 setModules(updatedModules);
-                                
-                                
                                 onUpdateTemplate({
                                   ...template,
                                   modules: updatedModules
                                 });
                               }
-                              // Keep dropdown open for multiple selections
                               setOpen(false);
                             }}
+                            className="text-base"
                           >
                             <div className="flex flex-1 items-center justify-between">
                               <div>
-                                <span className="font-medium">{module.name}</span>
+                                <span className="font-semibold">{module.name}</span>
                                 <span className="block text-xs text-gray-400 mt-1">
                                   {module.elements?.length || 0} elements
                                 </span>
                               </div>
-                              {isSelected && <Check className="h-4 w-4 text-black" />}
+                              {isSelected && <Check className="h-5 w-5 text-black" />}
                             </div>
                           </CommandItem>
                         );
@@ -253,114 +287,159 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
             </Popover>
           </div>
         </div>
-
         {/* Categories and Elements */}
-        {modulesList.length > 0 && (
-          <Accordion type="single" collapsible defaultValue={selectedModule ? `module-${selectedModule}` : ""}>
-            {modulesList.map((module) => (
-              <AccordionItem key={module.id} value={`module-${module.id}`}>
-                <div className="flex items-center justify-between pr-3">
-                  <AccordionTrigger className="flex-grow" onClick={() => setSelectedModule(module.id)}>
-                    {module.name}
-                  </AccordionTrigger>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeModule(module.id);
-                    }}
-                  >
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  </Button>
+        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+          {modulesList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <span className="text-3xl mb-2">📦</span>
+              <span className="font-semibold text-base">No categories added yet.</span>
+              <span className="text-xs mt-1">Start by adding a category above.</span>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-visible">
+              <Accordion 
+                type="single" 
+                collapsible 
+                defaultValue={selectedModule ? `module-${selectedModule}` : ""}
+              >
+                {/* Tooltip for the categories list */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm text-gray-500">Your Categories</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-1 text-xs rounded-full border px-1.5 cursor-pointer">🗂️</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span>🗂️ Here you’ll see all the categories (modules) you’ve added. Expand to manage their elements!</span>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <AccordionContent>
-                  <div className="p-4 border rounded-md mt-2 mb-4">
-                    <h4 className="font-medium mb-3">Add New Element</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label htmlFor={`element-name-${module.id}`} className="block text-sm mb-1">
-                          Element Name
-                        </label>
-                        <Input
-                          id={`element-name-${module.id}`}
-                          value={elementName}
-                          onChange={(e) => setElementName(e.target.value)}
-                          placeholder="e.g. Wall Framing"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`material-cost-${module.id}`} className="block text-sm mb-1">
-                          Material Cost Formula
-                        </label>
-                        <Input
-                          id={`material-cost-${module.id}`}
-                          value={materialCostFormula}
-                          onChange={(e) => setMaterialCostFormula(e.target.value)}
-                          placeholder="e.g. Wall Length * Wall Width * Material Cost"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`labor-cost-${module.id}`} className="block text-sm mb-1">
-                          Labor Cost Formula
-                        </label>
-                        <Input
-                          id={`labor-cost-${module.id}`}
-                          value={laborCostFormula}
-                          onChange={(e) => setLaborCostFormula(e.target.value)}
-                          placeholder="e.g. Wall Length * Wall Width * Hourly Rate"
-                        />
-                      </div>
-                      <Button size="sm" onClick={() => addElement(module.id)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Element
+                {modulesList.map((module) => (
+                  <AccordionItem 
+                    key={module.id} 
+                    value={`module-${module.id}`} 
+                    className="rounded-xl border-0 bg-gray-50 shadow-md mb-3"
+                  >
+                    <div className="flex items-center justify-between pr-2">
+                      <AccordionTrigger 
+                        className="flex-grow text-base font-semibold text-gray-800 px-4 py-3 rounded-xl hover:bg-gray-100 transition-all" 
+                        onClick={() => setSelectedModule(module.id)}
+                      >
+                        {module.name}
+                      </AccordionTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeModule(module.id);
+                        }}
+                        className="rounded-full hover:bg-red-50 h-7 w-7 p-0"
+                      >
+                        <XCircle className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
-
-                    {/* List of elements */}
-                    {module.elements.length > 0 && (
-                      <div className="mt-4">
-                        <h4 className="font-medium mb-2">Elements</h4>
-                        <div className="border rounded-md divide-y">
-                          {module.elements.map((element) => (
-                            <div
-                              key={element.id}
-                              className="p-3"
-                            >
-                              <div className="flex justify-between items-start">
-                                <h5 className="font-medium">{element.name}</h5>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeElement(module.id, element.id)}
-                                >
-                                  <XCircle className="h-5 w-5 text-red-500" />
-                                </Button>
-                              </div>
-                              <div className="mt-2 space-y-1 text-sm">
-                                <p><span className="font-medium">Material Formula:</span> {element.formula}</p>
-                                <p><span className="font-medium">Labor Formula:</span> {element.labor_formula}</p>
-                              </div>
-                            </div>
-                          ))}
+                    <AccordionContent className="px-2">
+                      <div className="p-4 border-0 rounded-xl bg-white mb-2 shadow-md">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                          <div>
+                            <label htmlFor={`element-name-${module.id}`} className="block text-xs mb-1 font-medium text-gray-800">
+                              Element Name
+                            </label>
+                            <Input
+                              id={`element-name-${module.id}`}
+                              value={elementName}
+                              onChange={(e) => setElementName(e.target.value)}
+                              placeholder="e.g. Wall Framing"
+                              className="rounded-xl border-gray-200 bg-gray-50 text-base h-8"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`material-cost-${module.id}`} className="block text-xs mb-1 font-medium text-gray-800">
+                              Material Cost Formula
+                            </label>
+                            <Input
+                              id={`material-cost-${module.id}`}
+                              value={materialCostFormula}
+                              onChange={(e) => setMaterialCostFormula(e.target.value)}
+                              placeholder="e.g. Wall Length * Width"
+                              className="rounded-xl border-gray-200 bg-gray-50 text-base h-8"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`labor-cost-${module.id}`} className="block text-xs mb-1 font-medium text-gray-800">
+                              Labor Cost Formula
+                            </label>
+                            <Input
+                              id={`labor-cost-${module.id}`}
+                              value={laborCostFormula}
+                              onChange={(e) => setLaborCostFormula(e.target.value)}
+                              placeholder="e.g. Hours * Rate"
+                              className="rounded-xl border-gray-200 bg-gray-50 text-base h-8"
+                            />
+                          </div>
                         </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => addElement(module.id)} 
+                          className="rounded-xl px-3 py-0 h-7 bg-green-600 text-white text-xs font-medium hover:bg-green-700 shadow-md"
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Add Element
+                        </Button>
+                        
+                        {/* List of elements */}
+                        {module.elements.length > 0 && (
+                          <div className="mt-4">
+                            <div className="border-0 rounded-xl divide-y divide-gray-100 bg-gray-50 max-h-[150px] overflow-auto">
+                              {module.elements.map((element) => (
+                                <div
+                                  key={element.id}
+                                  className="p-2 flex justify-between items-center text-base"
+                                >
+                                  <div>
+                                    <h5 className="font-semibold text-gray-800">{element.name}</h5>
+                                    <div className="mt-0.5 space-y-0.5 text-xs text-gray-600">
+                                      <p><span className="font-medium">Material:</span> {element.formula}</p>
+                                      <p><span className="font-medium">Labor:</span> {element.labor_formula}</p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeElement(module.id, element.id)}
+                                    className="rounded-full hover:bg-red-50 h-6 w-6 p-0"
+                                  >
+                                    <XCircle className="h-3 w-3 text-red-500" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        )}
-
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          )}
+        </div>
         <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={onPrevious}>
+          <Button 
+            variant="outline" 
+            onClick={onPrevious} 
+            className="px-5 py-2 rounded-xl text-base font-semibold"
+          >
             Previous
           </Button>
-          <Button onClick={handleSaveAndContinue}>
+          <Button 
+            onClick={handleSaveAndContinue} 
+            className="px-5 py-2 rounded-xl text-base font-semibold bg-black text-white hover:bg-gray-900 shadow-md"
+          >
             Next
           </Button>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
