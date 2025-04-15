@@ -115,10 +115,9 @@ export default function ProposalPage() {
                 </TabsTrigger>
               </TabsList>
             </div>
-            <Separator className="mt-6" />
           </div>
         </div>
-        <div className="container mx-auto mt-8">
+        <div className="container mx-auto mt-2">
           <TabsContent value="grid">
             <ProposalGridView
               sortOption={sortOption}

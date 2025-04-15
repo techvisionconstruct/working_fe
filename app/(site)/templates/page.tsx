@@ -113,10 +113,9 @@ export default function TemplatePage() {
                 </TabsTrigger>
               </TabsList>
             </div>
-            <Separator className="mt-6" />
           </div>
         </div>
-        <div className="container mx-auto mt-8">
+        <div className="container mx-auto mt-2">
           <TabsContent value="grid">
             <TemplateGridView
               sortOption={sortOption}
