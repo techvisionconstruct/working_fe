@@ -212,7 +212,7 @@ export default function TemplateVariables({
             </Select>
             <Button 
               onClick={addParameter} 
-              className="rounded-xl px-5 py-2 text-base font-semibold bg-green-600 text-white hover:bg-green-700 shadow-md"
+              className="rounded-xl px-5 py-2 text-base font-semibold bg-green-800 text-white hover:bg-green-900 shadow-md"
             >
               <PlusCircle className="mr-2 h-5 w-5" /> Add
             </Button>

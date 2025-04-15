@@ -179,7 +179,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
             />
             <Button 
               onClick={addModule} 
-              className="rounded-xl px-5 py-2 text-base font-semibold bg-green-600 text-white hover:bg-green-700 shadow-md"
+              className="rounded-xl px-5 py-2 text-base font-semibold bg-green-800 text-white hover:bg-green-900 shadow-md"
             >
               <PlusCircle className="mr-2 h-5 w-5" /> Add
             </Button>
@@ -382,7 +382,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
                         <Button 
                           size="sm" 
                           onClick={() => addElement(module.id)} 
-                          className="rounded-xl px-3 py-0 h-7 bg-green-600 text-white text-xs font-medium hover:bg-green-700 shadow-md"
+                          className="rounded-xl px-3 py-0 h-7 bg-green-800 text-white text-xs font-medium hover:bg-green-900 shadow-md"
                         >
                           <Plus className="mr-1 h-3 w-3" /> Add Element
                         </Button>
@@ -390,7 +390,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
                         {/* List of elements */}
                         {module.elements.length > 0 && (
                           <div className="mt-4">
-                            <div className="border-0 rounded-xl divide-y divide-gray-100 bg-gray-50 max-h-[150px] overflow-auto">
+                            <div className="border-0 rounded-xl divide-y divide-gray-100 bg-gray-50">
                               {module.elements.map((element) => (
                                 <div
                                   key={element.id}
