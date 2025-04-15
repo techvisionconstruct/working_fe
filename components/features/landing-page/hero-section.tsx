@@ -3,6 +3,7 @@ import { Card, CardContent, CardTitle, CardDescription, Button } from "@/compone
 import { ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface HeroSectionProps {
   theme: string;
@@ -23,9 +24,12 @@ function HeroSection({ theme }: HeroSectionProps) {
     <section className="relative h-screen flex items-center justify-center bg-background overflow-hidden">
       {/* Background Image + Gradient Overlay */}
       <div className="absolute inset-0 w-full h-full">
-        <div
-          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('/Home-picture.png')` }}
+        <Image
+          src="/Home-picture.png"
+          alt="Home background"
+          fill
+          priority
+          className="object-cover object-center w-full h-full"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/30" />
       </div>
