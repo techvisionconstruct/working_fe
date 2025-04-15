@@ -20,6 +20,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
   Separator,
+  InputOTPSeparator,
 } from "@/components/shared";
 import {
   ArrowRight,
@@ -34,40 +35,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-
-// Step 1: Personal Information Schema
-const personalInfoSchema = z
-  .object({
-    username: z
-      .string()
-      .min(3, { message: "Username must be at least 3 characters long" })
-      .max(50, { message: "Username cannot exceed 50 characters" }),
-    password: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters long" })
-      .regex(/[A-Z]/, { message: "Password must include an uppercase letter" })
-      .regex(/[a-z]/, { message: "Password must include a lowercase letter" })
-      .regex(/[0-9]/, { message: "Password must include a number" }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-// Step 2: Contact Information Schema
-const contactInfoSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phone: z
-    .string()
-    .min(10, { message: "Phone number must be at least 10 digits" })
-    .regex(/^\d+$/, { message: "Phone number must contain only digits" }),
-});
-
-// Step 3: Verification Schema
-const verificationSchema = z.object({
-  otp: z.string().length(6, { message: "OTP code must be 6 digits" }),
-});
+import {
+  personalInfoSchema,
+  contactInfoSchema,
+  verificationSchema,
+} from "@/zod-schemas/register/register-schema";
 
 type PersonalInfoValues = z.infer<typeof personalInfoSchema>;
 type ContactInfoValues = z.infer<typeof contactInfoSchema>;
@@ -129,17 +101,18 @@ export function RegisterForm({
       setFormData((prev) => ({ ...prev, ...values }));
       // Simulate API call to send OTP
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      // toast({
-      //   title: "Verification code sent",
-      //   description: `A 6-digit verification code has been sent to ${values.email}`,
-      // });
+      toast.success("Verification code sent", {
+        description: `A 6-digit verification code has been sent to ${values.email}`,
+        duration: 3000,
+        position: "top-center",
+      });
       setStep(3);
     } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to send verification code. Please try again.",
-      //   variant: "destructive",
-      // });
+      toast.error("Error", {
+        description: `Failed to send verification code. Please try again.`,
+        duration: 3000,
+        position: "top-center",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -157,24 +130,20 @@ export function RegisterForm({
 
       // Simulate API call for registration
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Show success message
-      // toast({
-      //   title: "Registration successful!",
-      //   description: "Your account has been created successfully.",
-      // });
-
+      toast.success("Registration successful!", {
+        description: `Your account has been created successfully.`,
+        duration: 3000,
+        position: "top-center",
+      });
       console.log("Registration data:", completeData);
-
       // In a real application, you would redirect to login or dashboard
       // window.location.href = "/login";
     } catch (error) {
-      // toast({
-      //   title: "Registration failed",
-      //   description:
-      //     "There was an error creating your account. Please try again.",
-      //   variant: "destructive",
-      // });
+      toast.error("Registration failed", {
+        description: "There was an error creating your account. Please try again.",
+        duration: 3000,
+        position: "top-center",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -216,7 +185,7 @@ export function RegisterForm({
               </p>
 
               {/* Progress indicator */}
-              <div className="flex items-center w-full max-w-xs mt-4">
+              <div className="flex items-center w-full max-w-md mt-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex-1 flex items-center">
                     <div
@@ -435,13 +404,14 @@ export function RegisterForm({
                     control={verificationForm.control}
                     name="otp"
                     render={({ field }) => (
-                      <FormItem className="mx-auto">
+                      <FormItem className="flex flex-col items-center justify-center w-full">
                         <FormControl>
                           <InputOTP maxLength={6} {...field}>
                             <InputOTPGroup>
                               <InputOTPSlot index={0} />
                               <InputOTPSlot index={1} />
                               <InputOTPSlot index={2} />
+                              <InputOTPSeparator />
                               <InputOTPSlot index={3} />
                               <InputOTPSlot index={4} />
                               <InputOTPSlot index={5} />
@@ -459,11 +429,11 @@ export function RegisterForm({
                       variant="link"
                       className="text-sm"
                       onClick={() => {
-                        // Code to resend OTP would go here
-                        // toast({
-                        //   title: "Verification code resent",
-                        //   description: `A new code has been sent to ${formData.email}`,
-                        // });
+                        toast.success("Verification code resent", {
+                          description: `A new code has been sent to ${formData.email}`,
+                          duration: 3000,
+                          position: "top-center",
+                        });
                       }}
                     >
                       Didn't receive the code? Resend
