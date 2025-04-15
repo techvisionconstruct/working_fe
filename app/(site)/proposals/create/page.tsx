@@ -13,6 +13,7 @@ export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
     useState(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
+  
   const handleTemplateSelect = (template: any) => {
     const initializedVariables = template.parameters.map((variable:any) => ({
       ...variable,

@@ -56,7 +56,7 @@ export default function ProposalDetails({
                     id="title"
                     name="title"
                     placeholder="Enter proposal title"
-                    value={proposal.name || ""}
+                    value={proposal.title || ""}
                     onChange={handleChange}
                     required
                   />

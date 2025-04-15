@@ -45,27 +45,30 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
     setIsSaving(true);
     try {
       const result = await createProposal(proposal);
-      
+
       if (result.success) {
         console.log("Proposal saved successfully:", proposal);
         toast.success("Success! Your proposal has been saved successfully.", {
           duration: 3000,
-          position: "top-center"
+          position: "top-center",
         });
-      
+
         setTimeout(() => {
-          router.push('/proposals');
+          router.push("/proposals");
         }, 1500);
       } else {
-        toast.error(result.error || "Failed to save proposal. Please try again.", {
-          duration: 5000,
-          position: "top-center"
-        });
+        toast.error(
+          result.error || "Failed to save proposal. Please try again.",
+          {
+            duration: 5000,
+            position: "top-center",
+          }
+        );
       }
     } catch (err) {
       toast.error("An unexpected error occurred. Please try again.", {
         duration: 5000,
-        position: "top-center"
+        position: "top-center",
       });
     } finally {
       setIsSaving(false);
@@ -80,7 +83,10 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
           element.material_cost.toString(),
           proposal.parameters
         );
-        const laborCost = calculateCost(element.labor_cost.toString(), proposal.parameters);
+        const laborCost = calculateCost(
+          element.labor_cost.toString(),
+          proposal.parameters
+        );
         const baseCost = materialCost + laborCost;
 
         const markupPercentage = proposal.useGlobalMarkup
@@ -101,34 +107,39 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
     }));
   }, [proposal]);
 
-  const totalMaterialCost = calculatedCosts.reduce((total: number, category: any) => {
-    return (
-      total +
-      category.elements.reduce((catTotal: number, element: any) => {
-        return catTotal + (element.calculatedMaterialCost || 0);
-      }, 0)
-    );
-  }, 0);
+  const totalMaterialCost = useMemo(() => {
+    return calculatedCosts.reduce((total, category) => {
+      return (
+        category.elements.reduce((catTotal, element) => {
+            return  catTotal + (element.calculatedMaterialCost|| 0);
+        }, 0)
+      );
+    }, 0);
+  }, [calculatedCosts]);
 
-  const totalLaborCost = calculatedCosts.reduce((total: number, category: any) => {
-    return (
-      total +
-      category.elements.reduce((catTotal: number, element: any) => {
-        return catTotal + (element.calculatedLaborCost || 0);
-      }, 0)
-    );
-  }, 0);
+  const totalLaborCost = useMemo(() => {
+    return calculatedCosts.reduce((total, category) => {
+      return (
+        category.elements.reduce((catTotal, element) => {
+            return  catTotal + (element.calculatedLaborCost|| 0);
+        }, 0)
+      );
+    }, 0);
+  }, [calculatedCosts]);
 
-  const totalMarkupAmount = calculatedCosts.reduce((total: number, category: any) => {
-    return (
-      total +
-      category.elements.reduce((catTotal: number, element: any) => {
-        return catTotal + (element.markupAmount || 0);
-      }, 0)
-    );
-  }, 0);
+  const totalMarkupAmount = calculatedCosts.reduce(
+    (total: number, category: any) => {
+      return (
+        category.elements.reduce((catTotal: number, element: any) => {
+          return catTotal + (element.markupAmount || 0);
+        }, 0)
+      );
+    },
+    0
+  );
 
-  const grandTotalWithMarkup = totalMaterialCost + totalLaborCost + totalMarkupAmount;
+  const grandTotalWithMarkup =
+    totalMaterialCost + totalLaborCost + totalMarkupAmount
 
   return (
     <div>
@@ -139,7 +150,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
             {error}
           </div>
         )}
-        
+
         <div className="flex space-x-2 justify-end mb-4">
           <Button variant="outline" size="sm" className="gap-1">
             <PrinterIcon className="h-4 w-4" />
@@ -153,8 +164,8 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
             <MailIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Email</span>
           </Button>
-          <Button 
-            className="gap-2" 
+          <Button
+            className="gap-2"
             onClick={handleSaveProposal}
             disabled={isSaving}
           >
@@ -167,14 +178,14 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
           </Button>
         </div>
       </div>
-      
+
       {/* Show error message if API call fails */}
       {error && (
         <div className="bg-destructive/20 border border-destructive rounded-md p-3 text-destructive">
           {error}
         </div>
       )}
-      
+
       <div className="flex flex-col justify-center max-w-7xl mx-auto">
         <div className="rounded-lg border bg-card shadow-sm">
           <div className="flex flex-col gap-8 p-8">
@@ -253,62 +264,74 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                         <TableRow>
                           <TableHead className="w-[20%]">Elements</TableHead>
                           <TableHead className="w-[20%]">
-                            Material Cost <span className="text-xs font-normal">(Formula)</span>
+                            Material Cost{" "}
+                            <span className="text-xs font-normal">
+                              (Formula)
+                            </span>
                           </TableHead>
                           <TableHead className="w-[20%]">
-                            Labor Cost <span className="text-xs font-normal">(Formula)</span>
+                            Labor Cost{" "}
+                            <span className="text-xs font-normal">
+                              (Formula)
+                            </span>
                           </TableHead>
-                          <TableHead className="text-right">Base Total</TableHead>
+                          <TableHead className="text-right">
+                            Base Total
+                          </TableHead>
                           <TableHead className="text-right">Markup %</TableHead>
-                          <TableHead className="text-right">Total with Markup</TableHead>
+                          <TableHead className="text-right">
+                            Total with Markup
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {category.elements.map((element) => (
-                          <TableRow key={element.id}>
-                            <TableCell className="font-medium">
-                              {element.element.name}
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-mono">
-                                  ${element.calculatedMaterialCost?.toFixed(2)}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Formula: {element.material_cost}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-mono">
-                                  ${element.calculatedLaborCost?.toFixed(2)}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Formula: {element.labor_cost}
-</div>
+                        {category.elements
+                          .filter(element => element.module?.id === category.id)
+                          .map((element) => (
+                            <TableRow key={element.id}>
+                              <TableCell className="font-medium">
+                                {element.element.name}
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="font-mono">
+                                    ${element.calculatedMaterialCost?.toFixed(2)}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Formula: {element.material_cost}
+                                  </div>
                                 </div>
                               </TableCell>
-                            <TableCell className="text-right font-medium font-mono">
-                              $
-                              {(
-                                (element.calculatedMaterialCost || 0) +
-                                (element.calculatedLaborCost || 0)
-                              ).toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {element.markupPercentage}%
-                              {proposal.useGlobalMarkup && (
-                                <div className="text-xs text-muted-foreground">
-                                  (Global)
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="font-mono">
+                                    ${element.calculatedLaborCost?.toFixed(2)}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Formula: {element.labor_cost}
+                                  </div>
                                 </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right font-medium font-mono">
-                              ${element.totalWithMarkup?.toFixed(2)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell className="text-right font-medium font-mono">
+                                $
+                                {(
+                                  (element.calculatedMaterialCost || 0) +
+                                  (element.calculatedLaborCost || 0)
+                                ).toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {element.markupPercentage}%
+                                {proposal.useGlobalMarkup && (
+                                  <div className="text-xs text-muted-foreground">
+                                    (Global)
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-medium font-mono">
+                                ${element.totalWithMarkup?.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -350,7 +373,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                 </div>
               </div>
             </div>
-            
+
             {/* Sidebar - right side (1 column on medium screens and above) */}
             <div className="space-y-6">
               <Card>
@@ -374,7 +397,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                   )}
                 </CardContent>
               </Card>
-              
+
               {/* Proposal Summary Card */}
               <Card className="bg-primary/5 border-primary/20">
                 <CardHeader>
@@ -391,13 +414,17 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Total Labor Cost</span>
+                      <span className="text-muted-foreground">
+                        Total Labor Cost
+                      </span>
                       <span className="font-mono font-medium">
                         ${totalLaborCost.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Total Markup</span>
+                      <span className="text-muted-foreground">
+                        Total Markup
+                      </span>
                       <span className="font-mono font-medium">
                         ${totalMarkupAmount.toFixed(2)}
                       </span>

@@ -321,9 +321,13 @@ export function CostCalculation({
       (module) => module.id !== categoryId
     );
 
-    // Also remove all template_elements associated with this category
+    // Remove all template_elements associated with this category
     const updatedTemplateElements = localProposal.template_elements.filter(
-      (element) => element.project_module.id !== categoryId
+      (element) => {
+        // Support both .module and .project_module for category reference
+        const moduleId = element.module?.id || element.project_module?.id;
+        return moduleId !== categoryId;
+      }
     );
 
     setLocalProposal({
@@ -370,10 +374,13 @@ export function CostCalculation({
               element: {
                 ...template.element,
                 name: newElement.name,
+                formula: newElement.formula, // update formula
+                labor_formula: newElement.labor_formula, // update labor formula
               },
-              formula: newElement.formula,
-              labor_formula: newElement.labor_formula,
+              formula: newElement.formula, // keep for compatibility
+              labor_formula: newElement.labor_formula, // keep for compatibility
               markup_percentage: newElement.markup_percentage,
+              markup: newElement.markup_percentage, // update markup if needed
             };
           }
           return template;
