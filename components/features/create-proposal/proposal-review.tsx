@@ -39,10 +39,8 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   const router = useRouter();
   const { createProposal, isLoading, error } = useCreateProposal();
   const [isSaving, setIsSaving] = useState(false);
-  console.log(proposal);
   const handleSaveProposal = async () => {
     setIsSaving(true);
-    console.log(proposal)
     try {
       const result = await createProposal(proposal);
       

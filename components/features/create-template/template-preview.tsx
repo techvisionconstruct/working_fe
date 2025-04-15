@@ -47,17 +47,11 @@ export default function TemplatePreview({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Use the same postTemplate function as in CreateTemplatePage
       await postTemplate(template);
-      console.log("Saving template:", template);
-
       if (onSave) {
         onSave();
       }
-
       setIsSaved(true);
-
-      // Add redirect after successful save
       window.location.href = "http://localhost:3000/templates";
     } catch (error) {
       console.error("Error saving template:", error);

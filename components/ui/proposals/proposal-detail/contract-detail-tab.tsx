@@ -172,7 +172,6 @@ Payment schedule:
           : [],
       },
     ];
-console.log(payload)
     return payload;
   };
 
@@ -183,7 +182,6 @@ console.log(payload)
     // If turning off edit mode, transform and log the data
     if (!checked) {
       const payload = transformContractData();
-      console.log("Payload data (would send to API):", payload);
       setPayloadData(payload);
     }
   };

@@ -47,7 +47,6 @@ export default function ProposalDetailPage({
     tabParam === "contract" ? "contract" : "proposal"
   );
   const { proposal, isLoading, error } = getProposalById(id);
-  console.log(proposal);
   const [totalAmount, setTotalAmount] = useState<number>(0);
 
   const handleTabChange = (value: string) => {

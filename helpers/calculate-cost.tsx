@@ -1,10 +1,6 @@
 import type { ProjectParameter } from "@/types/proposals";
 
 export function calculateCost(formula: string, parameters: any[]): number {
-  // Create a simplified formula parser
-  // This is a basic implementation and would need to be more robust in a real application
-
-  // Replace variable names with their values
   let calculationFormula = formula;
 
   // Sort variables by name length (longest first) to avoid partial replacements

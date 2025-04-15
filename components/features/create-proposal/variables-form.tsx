@@ -17,7 +17,6 @@ export function VariablesForm({
   setParameters,
   onNext,
 }: VariablesFormProps) {
-
   const [inputValues, setInputValues] = useState<Record<number, string>>({});
   const [newParameter, setNewParameter] = useState({
     name: "",
@@ -83,7 +82,6 @@ export function VariablesForm({
       value: parseFloat(inputValues[parameter.id]) || 0,
     }));
 
-    console.log("Saving all parameters:", updatedParameters);
     setParameters(updatedParameters);
   };
 

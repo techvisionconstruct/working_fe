@@ -25,7 +25,6 @@ export const getTemplateElements = (templateId: number | string): GetTemplateEle
   const [elements, setElements] = useState<TemplateElement[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  console.log(elements)
 
   const fetchElements = async () => {
     setIsLoading(true);

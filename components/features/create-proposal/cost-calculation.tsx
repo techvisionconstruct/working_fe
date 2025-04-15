@@ -188,15 +188,10 @@ export function CostCalculation({
         if (!acc[categoryId]) {
           acc[categoryId] = [];
         }
-
-        console.log(localProposal);
         const categoryElements = localProposal.template_elements.filter(
           (element) => element.module.id === categoryId
         );
-
         acc[categoryId] = categoryElements;
-        console.log(categoryElements);
-        console.log(acc);
         return acc;
       },
       {} as Record<number, typeof localProposal.template_elements>

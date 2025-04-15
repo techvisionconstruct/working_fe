@@ -12,7 +12,6 @@ export const getProposals = (): GetProposalsResult => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  console.log(proposals)
 
   const fetchProposals = async () => {
     setIsLoading(true);

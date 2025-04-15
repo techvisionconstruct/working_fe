@@ -39,8 +39,6 @@ export function FormulaBuilder({
   const [cursorPosition, setCursorPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  console.log(parameters)
-
   useEffect(() => {
     setInputValue(value);
   }, [value]);
@@ -162,8 +160,6 @@ export function FormulaBuilder({
     const parameterNames = parameters
       .map((v) => v.name)
       .sort((a, b) => b.length - a.length); 
-    
-      console.log("parameterNames", parameterNames);
 
     // Replace parameter names with highlighted spans
     parameterNames.forEach((name) => {

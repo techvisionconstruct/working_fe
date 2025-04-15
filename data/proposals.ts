@@ -8,14 +8,7 @@ export const emptyProposal = {
   // image: "",
   modules: [],
   parameters: [
-    {
-      id: 0,
-      name: "",
-      type: "",
-      value: 0,    
-      formula: "",  
-      parameter: null, 
-    },
+   
   ],
   useGlobalMarkup: false,
   globalMarkupPercentage: 15,

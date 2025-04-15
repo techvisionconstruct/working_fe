@@ -23,8 +23,7 @@ export async function postTemplate(template: Template): Promise<Template> {
     },
     body: formData,
   });
-
-  console.log(formData)
+  
   if (!response.ok) {
     throw new Error("Failed to create template");
   }

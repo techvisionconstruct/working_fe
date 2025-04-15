@@ -9,14 +9,14 @@ import { ProposalPreview } from "@/components/features/create-proposal/proposal-
 import ProposalDetails from "@/components/features/create-proposal/proposal-details";
 import { emptyProposal } from "@/data/proposals";
 
-
 export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
     useState(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
 
+  console.log("Current proposal state:", currentProposal);
+
   const handleTemplateSelect = (template: any) => {
-    console.log(template)
     const initializedVariables = template.parameters.map((variable:any) => ({
       ...variable,
       value: variable.value ? parseFloat(variable.value) : 0, // Convert to number
@@ -26,7 +26,7 @@ export default function CreateProposalPage() {
 
     const newProposal = {
       ...template,
-      parameters: initializedVariables, // Make sure to use the initialized variables
+      parameters: initializedVariables,
     };
 
     setCurrentProposal(newProposal);
@@ -34,14 +34,10 @@ export default function CreateProposalPage() {
   };
 
   const updateVariables = (updatedVariables:any) => {
-    // Save the updated variables to the proposal state
     setCurrentProposal((prev) => ({
       ...prev,
-      parameters: updatedVariables, // Add the updated variables here
+      parameters: updatedVariables,
     }));
-
-    // Debug log to verify the update
-    console.log("Updated variables in parent:", updatedVariables);
   };
 
   const updateProposal = (updatedProposal: any) => {
@@ -49,9 +45,6 @@ export default function CreateProposalPage() {
   };
 
   const handleTabChange = (value: string) => {
-    // Save current state before changing tabs
-    console.log("Changing tab to:", value);
-    console.log("Current proposal state:", currentProposal);
     setActiveTab(value);
   };
 

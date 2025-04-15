@@ -33,7 +33,6 @@ export const useParameters = () => {
       }
       
       const data = await response.json();
-      console.log('Fetched parameters:', data);
       setParameters(data);
     } catch (err) {
       console.error('Failed to fetch parameters:', err);
