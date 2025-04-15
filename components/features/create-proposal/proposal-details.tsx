@@ -7,7 +7,7 @@ import {
   Label,
   Textarea,
 } from "@/components/shared";
-import { ProposalData } from "@/types/proposals";
+import { ProposalData } from "@/types/create-proposal";
 import { ArrowRightIcon } from "lucide-react";
 
 interface ProposalDetailsProps {
@@ -56,7 +56,7 @@ export default function ProposalDetails({
                     id="title"
                     name="title"
                     placeholder="Enter proposal title"
-                    value={proposal.title || ""}
+                    value={proposal.name || ""}
                     onChange={handleChange}
                     required
                   />

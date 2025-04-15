@@ -2,11 +2,10 @@
 
 import Image from "next/image"
 import { Card, CardContent, Button, Badge } from "@/components/shared"
-import type { Template } from "@/types/proposals"
 import { getTemplates } from "@/hooks/api/templates/get-templates"
 
 interface TemplateSelectorProps {
-  onSelectTemplate: (template: Template) => void
+  onSelectTemplate: (template:any) => void
   selectedTemplateId: number
 }
 

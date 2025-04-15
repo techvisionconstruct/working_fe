@@ -17,15 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/shared";
-import { AddVariableProps } from "@/types/create-proposal";
+import { AddParameterProps } from "@/types/create-proposal";
 
 export default function AddVariable({
-  newVariable,
-  setNewVariable,
-  handleAddVariable,
+  newParameter,
+  setNewParameter,
+  handleAddParameter,
   isDialogOpen,
   setIsDialogOpen,
-}: AddVariableProps) {
+}: AddParameterProps) {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
@@ -35,30 +35,30 @@ export default function AddVariable({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Variable</DialogTitle>
+          <DialogTitle>Add New Parameter</DialogTitle>
           <DialogDescription>
-            Create a new variable to use in your cost calculations
+            Create a new parameter to use in your cost calculations
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="variable-name">Variable Name</Label>
+            <Label htmlFor="parameter-name">Parameter Name</Label>
             <Input
-              id="variable-name"
-              value={newVariable.name}
+              id="parameter-name"
+              value={newParameter.name}
               onChange={(e) =>
-                setNewVariable({ ...newVariable, name: e.target.value })
+                setNewParameter({ ...newParameter, name: e.target.value })
               }
               placeholder="e.g., Room Height"
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="variable-type">Variable Type</Label>
+            <Label htmlFor="parameter-type">Parameter Type</Label>
             <div className="flex gap-2">
               <Select
-                value={newVariable.type}
+                value={newParameter.type}
                 onValueChange={(value) =>
-                  setNewVariable({ ...newVariable, type: value })
+                  setNewParameter({ ...newParameter, type: value })
                 }
               >
                 <SelectTrigger className="flex-1">
@@ -71,26 +71,15 @@ export default function AddVariable({
                   <SelectItem value="Count">Count</SelectItem>
                 </SelectContent>
               </Select>
-              <Input
-                placeholder="Or enter custom type"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setNewVariable({
-                      ...newVariable,
-                      type: e.target.value,
-                    });
-                  }
-                }}
-              />
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="variable-value">Initial Value</Label>
+            <Label htmlFor="parameter-value">Initial Value</Label>
             <Input
-              id="variable-value"
-              value={newVariable.value}
+              id="parameter-value"
+              value={newParameter.value}
               onChange={(e) =>
-                setNewVariable({ ...newVariable, value: e.target.value })
+                setNewParameter({ ...newParameter, value: e.target.value })
               }
               placeholder="0"
             />
@@ -100,7 +89,7 @@ export default function AddVariable({
           <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAddVariable}>Add Variable</Button>
+          <Button onClick={handleAddParameter}>Add Parameter</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

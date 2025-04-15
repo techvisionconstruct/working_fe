@@ -2,61 +2,52 @@
 
 import { useState, useEffect } from "react";
 import { Button, Input, Label, Card, CardContent } from "@/components/shared";
-import type { Variable } from "@/types/proposals";
+import { ProposalParameters } from "@/types/create-proposal";
 import { ArrowRightIcon, XCircleIcon } from "lucide-react";
 import AddVariable from "./add-variable";
 
 interface VariablesFormProps {
-  variables: Variable[];
-  setVariables: (variables: Variable[]) => void;
+  parameters: ProposalParameters[];
+  setParameters: (ProposalParameterss: ProposalParameters[]) => void;
   onNext: () => void;
 }
 
 export function VariablesForm({
-  variables,
-  setVariables,
+  parameters,
+  setParameters,
   onNext,
 }: VariablesFormProps) {
-  // Track input values with controlled inputs
+
   const [inputValues, setInputValues] = useState<Record<number, string>>({});
-  const [newVariable, setNewVariable] = useState({
+  const [newParameter, setNewParameter] = useState({
     name: "",
     type: "",
-    value: "0",
+    value: "",
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Initialize input values from props
   useEffect(() => {
     const initialValues: Record<number, string> = {};
-    variables.forEach((v) => {
-      initialValues[v.id] = v.value || "0";
+    parameters.forEach((v) => {
+      initialValues[v.id] = (v.value ?? 0).toString();
     });
     setInputValues(initialValues);
-  }, [variables.length]); // Only run when variables are added/removed
+  }, [parameters.length]);
 
-  const handleVariableChange = (id: number, value: string) => {
-    // Update the input value in our local state
+  const handleParameterChange = (id: number, value: string) => {
     setInputValues((prev) => ({
       ...prev,
       [id]: value.toString(),
     }));
 
-    // Immediately update parent state
-    const updatedVariables = variables.map((variable) =>
-      variable.id === id ? { ...variable, value } : variable
+    const updatedParameters = parameters.map((parameter) =>
+      parameter.id === id ? { ...parameter, value: parseFloat(value) || 0 } : parameter
     );
 
-    // Debug to console to verify updates
-    console.log(`Variable ${id} changed to: ${value}`);
-    console.log("Updated variables:", updatedVariables);
-
-    // Update parent state
-    setVariables(updatedVariables);
+    setParameters(updatedParameters);
   };
 
   const handleFocus = (id: number) => {
-    // When input is focused and value is "0", clear it
     if (inputValues[id] === "0") {
       setInputValues((prev) => ({
         ...prev,
@@ -66,7 +57,6 @@ export function VariablesForm({
   };
 
   const handleBlur = (id: number) => {
-    // When input loses focus and is empty, set it back to "0"
     if (!inputValues[id]) {
       const newValue = "0";
       setInputValues((prev) => ({
@@ -74,93 +64,78 @@ export function VariablesForm({
         [id]: newValue,
       }));
 
-      // Also update parent state
-      const updatedVariables = variables.map((variable) =>
-        variable.id === id ? { ...variable, value: newValue.toString() } : variable
+      const updatedParameters = parameters.map((parameters) =>
+        parameters.id === id ? { ...parameters, value: parseFloat(newValue) || 0 } : parameters
       );
-      setVariables(updatedVariables);
+      setParameters(updatedParameters);
     } else {
-      // Make sure parent state is updated with current input value
       const currentValue = inputValues[id];
-      const updatedVariables = variables.map((variable) =>
-        variable.id === id ? { ...variable, value: currentValue.toString() } : variable
+      const updatedParameters = parameters.map((parameters) =>
+        parameters.id === id ? { ...parameters, value: parseFloat(currentValue) || 0 } : parameters
       );
-      setVariables(updatedVariables);
+      setParameters(updatedParameters);
     }
   };
 
   const handleSaveAll = () => {
-    // Force save all current input values to parent state
-    const updatedVariables = variables.map((variable) => ({
-      ...variable,
-      value: inputValues[variable.id] || "0",
+    const updatedParameters = parameters.map((parameter) => ({
+      ...parameter,
+      value: parseFloat(inputValues[parameter.id]) || 0,
     }));
 
-    console.log("Saving all variables:", updatedVariables);
-    setVariables(updatedVariables);
+    console.log("Saving all parameters:", updatedParameters);
+    setParameters(updatedParameters);
   };
 
-  // Inside the VariablesForm component
 
-  const handleAddVariable = () => {
-    // Validate required fields
-    if (!newVariable.name || !newVariable.type) {
-      console.error("Variable name and type are required");
+
+  const handleAddParameter = () => {
+    if (!newParameter.name || !newParameter.type) {
+      console.error("Parameter name and type are required");
       return;
     }
-
-    // Generate a new unique ID
     const newId =
-      variables.length > 0
-        ? Math.max(...variables.map((v) => v.id || 0)) + 1
+      parameters.length > 0
+        ? Math.max(...parameters.map((v) => v.id || 0)) + 1
         : 1;
 
-    // Create the new variable object
-    const variableToAdd = {
+    const parameterToAdd = {
       id: newId,
-      name: newVariable.name,
-      type: newVariable.type,
-      value: newVariable.value.toString() || "0",
+      name: newParameter.name,
+      type: newParameter.type,
+      value: parseFloat(newParameter.value) || 0,
+      formula: "", // Adding the missing formula property
+      parameter: null, // Adding the missing parameter property
     };
 
-    console.log("Adding new variable:", variableToAdd);
+    const updatedParameters = [...parameters, parameterToAdd];
+    setParameters(updatedParameters);
 
-    // Update parent state with the new variable array
-    const updatedVariables = [...variables, variableToAdd];
-    setVariables(updatedVariables);
-
-    // Update local input values
     setInputValues((prev) => ({
       ...prev,
-      [newId]: variableToAdd.value,
+      [newId]: parameterToAdd.value.toString(),
     }));
 
-    // Reset the new variable form
-    setNewVariable({ name: "", type: "", value: "0" });
-
-    // Close the dialog
+    setNewParameter({ name: "", type: "", value: "0" });
     setIsDialogOpen(false);
   };
 
-  const handleRemoveVariable = (id: number) => {
-    const updatedVariables = variables.filter((variable) => variable.id !== id);
 
-    // Update parent state
-    setVariables(updatedVariables);
+  const handleRemoveParameter = (id: number) => {
+    const updatedParameters = parameters.filter((parameter) => parameter.id !== id);
+    setParameters(updatedParameters);
 
-    // Remove from local input values
     const newInputValues = { ...inputValues };
     delete newInputValues[id];
     setInputValues(newInputValues);
   };
 
-  // Group variables by type using the props variables
-  const groupedVariables: Record<string, Variable[]> = {};
-  variables.forEach((variable) => {
-    if (!groupedVariables[variable.type]) {
-      groupedVariables[variable.type] = [];
+  const groupedParameters: Record<string, ProposalParameters[]> = {};
+  parameters.forEach((parameter) => {
+    if (!groupedParameters[parameter.type]) {
+      groupedParameters[parameter.type] = [];
     }
-    groupedVariables[variable.type].push(variable);
+    groupedParameters[parameter.type].push(parameter);
   });
 
   return (
@@ -177,34 +152,34 @@ export function VariablesForm({
             Save Values
           </Button>
           <AddVariable
-            newVariable={newVariable}
-            setNewVariable={setNewVariable}
-            handleAddVariable={handleAddVariable}
+            newParameter={newParameter}
+            setNewParameter={setNewParameter}
+            handleAddParameter={handleAddParameter}
             isDialogOpen={isDialogOpen}
             setIsDialogOpen={setIsDialogOpen}
           />
         </div>
       </div>
 
-      {Object.entries(groupedVariables).map(([type, vars]) => (
+      {Object.entries(groupedParameters).map(([type, vars]) => (
         <Card key={type} className="overflow-hidden">
           <CardContent>
-            <h3 className="text-lg font-bold mt-4"> {type} Variables</h3>
+            <h3 className="text-lg font-bold mt-4"> {type} Parameters</h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {vars.map((variable) => (
-                <div key={variable.id} className="space-y-2">
+              {vars.map((parameter) => (
+                <div key={parameter.id} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label
-                      htmlFor={`variable-${variable.id}`}
+                      htmlFor={`parameter-${parameter.id}`}
                       className="text-sm font-medium"
                     >
-                      {variable.name}
+                      {parameter.name}
                     </Label>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemoveVariable(variable.id)}
+                      onClick={() => handleRemoveParameter(parameter.id)}
                     >
                       <XCircleIcon className="h-4 w-4" />
                       <span className="sr-only">Remove</span>
@@ -212,18 +187,18 @@ export function VariablesForm({
                   </div>
                   <div className="flex items-center space-x-2">
                     <Input
-                      id={`variable-${variable.id}`}
+                      id={`variable-${parameter.id}`}
                       type="text"
                       value={
-                        inputValues[variable.id] !== undefined
-                          ? inputValues[variable.id]
-                          : variable.value || "0"
+                        inputValues[parameter.id] !== undefined
+                          ? inputValues[parameter.id]
+                          : parameter.value || "0"
                       }
                       onChange={(e) =>
-                        handleVariableChange(variable.id, e.target.value)
+                        handleParameterChange(parameter.id, e.target.value)
                       }
-                      onFocus={() => handleFocus(variable.id)}
-                      onBlur={() => handleBlur(variable.id)}
+                      onFocus={() => handleFocus(parameter.id)}
+                      onBlur={() => handleBlur(parameter.id)}
                       className="font-mono"
                     />
                     <span className="text-sm text-muted-foreground">
@@ -237,8 +212,7 @@ export function VariablesForm({
         </Card>
       ))}
 
-      {/* Show a message when there are no variables */}
-      {Object.keys(groupedVariables).length === 0 && (
+      {Object.keys(groupedParameters).length === 0 && (
         <Card className="overflow-hidden">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">
@@ -258,7 +232,6 @@ export function VariablesForm({
       <div className="flex justify-end">
         <Button
           onClick={() => {
-            // Save all values before proceeding
             handleSaveAll();
             onNext();
           }}

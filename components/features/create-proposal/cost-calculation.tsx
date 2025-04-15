@@ -27,7 +27,7 @@ import {
   Switch,
 } from "@/components/shared";
 import { TooltipProvider } from "@/providers/tooltip-provider";
-import type { ProposalData, Category, Element } from "@/types/proposals";
+import { ProposalData } from "@/types/create-proposal";
 import { calculateCost } from "@/helpers/calculate-cost";
 import {
   ArrowRightIcon,
@@ -40,8 +40,26 @@ import {
 import { FormulaBuilder } from "./formula-builder";
 import { CostCalculationProps } from "@/types/create-proposal";
 import { checkFormulaErrors } from "@/helpers/calculate-cost";
+import { ProjectElement } from "@/types/proposals";
 
 // Extracted ElementDialog component
+interface ElementDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  element: {
+    categoryId: number | null;
+    name: string;
+    formula: string;
+    labor_formula: string;
+    markup_percentage: number;
+  };
+  onChange: (element: any) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  parameters: any[];
+  isEditing: boolean;
+}
+
 function ElementDialog({
   isOpen,
   onOpenChange,
@@ -49,9 +67,9 @@ function ElementDialog({
   onChange,
   onSave,
   onCancel,
-  variables,
+  parameters,
   isEditing,
-}) {
+}: ElementDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -78,20 +96,20 @@ function ElementDialog({
           <div className="grid gap-2">
             <Label htmlFor="material-cost">Material Cost Formula</Label>
             <FormulaBuilder
-              variables={variables}
-              value={element.material_cost}
-              onChange={(value) =>
-                onChange({ ...element, material_cost: value })
-              }
+              parameters={parameters}
+              value={element.formula}
+              onChange={(value) => onChange({ ...element, formula: value })}
               placeholder="e.g., Wall Length * Wall Width * Paint Cost"
             />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="labor-cost">Labor Cost Formula</Label>
             <FormulaBuilder
-              variables={variables}
-              value={element.labor_cost}
-              onChange={(value) => onChange({ ...element, labor_cost: value })}
+              parameters={parameters}
+              value={element.labor_formula}
+              onChange={(value) =>
+                onChange({ ...element, labor_formula: value })
+              }
               placeholder="e.g., Wall Length * Wall Width * Hourly Rate"
             />
           </div>
@@ -136,19 +154,19 @@ export function CostCalculation({
   const [newElement, setNewElement] = useState<{
     categoryId: number | null;
     name: string;
-    material_cost: string;
-    labor_cost: string;
+    formula: string;
+    labor_formula: string;
     markup_percentage: number;
   }>({
     categoryId: null,
     name: "",
-    material_cost: "",
-    labor_cost: "",
+    formula: "",
+    labor_formula: "",
     markup_percentage: 10,
   });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isElementDialogOpen, setIsElementDialogOpen] = useState(false);
-  const [editingElementId, setEditingElementId] = useState<string | null>(null);
+  const [editingElementId, setEditingElementId] = useState<number | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
     null
   );
@@ -164,14 +182,21 @@ export function CostCalculation({
   }, [localProposal, onUpdateProposal]);
 
   const calculatedCosts = useMemo(() => {
-    // Map template_elements to their respective categories
-    const elementsByCategory = localProposal.template_elements.reduce(
-      (acc, templateElement) => {
-        const categoryId = templateElement.module.id;
+    const elementsByCategory = (localProposal.modules || []).reduce(
+      (acc, module) => {
+        const categoryId = module.id;
         if (!acc[categoryId]) {
           acc[categoryId] = [];
         }
-        acc[categoryId].push(templateElement);
+
+        console.log(localProposal);
+        const categoryElements = localProposal.template_elements.filter(
+          (element) => element.module.id === categoryId
+        );
+
+        acc[categoryId] = categoryElements;
+        console.log(categoryElements);
+        console.log(acc);
         return acc;
       },
       {} as Record<number, typeof localProposal.template_elements>
@@ -183,33 +208,33 @@ export function CostCalculation({
         ...category,
         elements: elements.map((templateElement) => {
           const materialFormulaHasErrors = checkFormulaErrors(
-            templateElement.material_cost.toString(),
+            templateElement.element.formula?.toString() || "",
             localProposal.parameters
           );
 
           const laborFormulaHasErrors = checkFormulaErrors(
-            templateElement.labor_cost.toString(),
+            templateElement.element.labor_formula?.toString() || "",
             localProposal.parameters
           );
 
           const materialCost = materialFormulaHasErrors
             ? 0
             : calculateCost(
-                templateElement.material_cost.toString(),
+                templateElement.element.formula?.toString() || "",
                 localProposal.parameters
               );
 
           const laborCost = laborFormulaHasErrors
             ? 0
             : calculateCost(
-                templateElement.labor_cost.toString(),
+                templateElement.element.labor_formula?.toString() || "",
                 localProposal.parameters
               );
 
           const baseCost = materialCost + laborCost;
           const markupPercentage = localProposal.useGlobalMarkup
             ? localProposal.globalMarkupPercentage || 15
-            : templateElement.markup_percentage || 10;
+            : templateElement.markup || 10;
 
           const markupAmount = baseCost * (markupPercentage / 100);
 
@@ -280,6 +305,9 @@ export function CostCalculation({
     const moduleToAdd = {
       id: newId,
       name: newCategory.name,
+      description: "",
+      created_at: "",
+      updated_at: "",
     };
 
     const updatedProposal = {
@@ -300,7 +328,7 @@ export function CostCalculation({
 
     // Also remove all template_elements associated with this category
     const updatedTemplateElements = localProposal.template_elements.filter(
-      (element) => element.module.id !== categoryId
+      (element) => element.project_module.id !== categoryId
     );
 
     setLocalProposal({
@@ -314,8 +342,8 @@ export function CostCalculation({
     setNewElement({
       categoryId,
       name: "",
-      material_cost: "",
-      labor_cost: "",
+      formula: "",
+      labor_formula: "",
       markup_percentage: 10,
     });
     setEditingElementId(null);
@@ -329,8 +357,8 @@ export function CostCalculation({
     setNewElement({
       categoryId,
       name: element.element.name,
-      material_cost: element.material_cost,
-      labor_cost: element.labor_cost,
+      formula: element.material_cost.toString(),
+      labor_formula: element.labor_cost.toString(),
       markup_percentage: element.markup_percentage,
     });
     setIsElementDialogOpen(true);
@@ -338,9 +366,7 @@ export function CostCalculation({
 
   const handleAddElement = () => {
     if (!newElement.categoryId || !newElement.name) return;
-
     if (editingElementId) {
-      // Update existing element
       const updatedTemplateElements = localProposal.template_elements.map(
         (template) => {
           if (template.id === editingElementId) {
@@ -350,8 +376,8 @@ export function CostCalculation({
                 ...template.element,
                 name: newElement.name,
               },
-              material_cost: newElement.material_cost,
-              labor_cost: newElement.labor_cost,
+              formula: newElement.formula,
+              labor_formula: newElement.labor_formula,
               markup_percentage: newElement.markup_percentage,
             };
           }
@@ -364,19 +390,41 @@ export function CostCalculation({
         template_elements: updatedTemplateElements,
       });
     } else {
-      // Add new element
-      const newElementId = Math.random().toString(36).substring(2, 9);
+      const newElementId = Math.random();
+      const moduleForElement = localProposal.modules.find(
+        (module) => module.id === newElement.categoryId
+      );
+
+      if (!moduleForElement) return;
 
       const newTemplateElement = {
         id: newElementId,
-        module: { id: newElement.categoryId },
+        name: newElement.name,
+        project_module: {
+          id: newElement.categoryId,
+          module: moduleForElement,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        module: moduleForElement, // Add missing module property
         element: {
           id: newElementId,
           name: newElement.name,
+          description: "",
+          created_at: new Date(),
+          updated_at: new Date(),
+          image: "",
+          formula: newElement.formula,
+          labor_formula: newElement.labor_formula,
         },
-        material_cost: newElement.material_cost,
-        labor_cost: newElement.labor_cost,
-        markup_percentage: newElement.markup_percentage,
+        material_cost: 0,
+        labor_cost: 0,
+        markup: newElement.markup_percentage,
+        quantity: 1,
+        total: 0,
+        material_formula: newElement.formula,
+        labor_formula: newElement.labor_formula,
+        template_elements: [], // Add missing template_elements property
       };
 
       setLocalProposal({
@@ -388,12 +436,11 @@ export function CostCalculation({
       });
     }
 
-    // Reset state
     setNewElement({
       categoryId: null,
       name: "",
-      material_cost: "",
-      labor_cost: "",
+      formula: "",
+      labor_formula: "",
       markup_percentage: 10,
     });
     setEditingElementId(null);
@@ -401,7 +448,7 @@ export function CostCalculation({
     setIsElementDialogOpen(false);
   };
 
-  const handleRemoveElement = (categoryId: number, elementId: string) => {
+  const handleRemoveElement = (categoryId: number, elementId: number) => {
     const updatedTemplateElements = localProposal.template_elements.filter(
       (element) => element.id !== elementId
     );
@@ -475,7 +522,7 @@ export function CostCalculation({
         onChange={setNewElement}
         onSave={handleAddElement}
         onCancel={() => setIsElementDialogOpen(false)}
-        variables={localProposal.parameters || []}
+        parameters={localProposal.parameters}
         isEditing={!!editingElementId}
       />
 
@@ -584,7 +631,8 @@ export function CostCalculation({
                                       : "text-muted-foreground"
                                   }
                                 >
-                                  {element.material_cost}
+                                  {element.element.formula ||
+                                    element.material_cost}
                                 </span>
                               </div>
                             </TableCell>
@@ -614,7 +662,8 @@ export function CostCalculation({
                                       : "text-muted-foreground"
                                   }
                                 >
-                                  {element.labor_cost}
+                                  {element.element.labor_formula ||
+                                    element.labor_cost}
                                 </span>
                               </div>
                             </TableCell>

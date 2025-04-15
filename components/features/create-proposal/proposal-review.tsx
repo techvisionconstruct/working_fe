@@ -18,7 +18,7 @@ import {
   TableRow,
   Separator,
 } from "@/components/shared";
-import type { ProposalData, Variable, Category, ProposalElement } from "@/types/proposals";
+import { ProposalData } from "@/types/create-proposal";
 import { calculateCost } from "@/helpers/calculate-cost";
 import {
   PrinterIcon,
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { useCreateProposal } from "@/hooks/api/proposals/create-proposal";
+import { Module, ProjectElement, ProjectParameter } from "@/types/proposals";
 
 interface ProposalPreviewProps {
   proposal: ProposalData;
@@ -41,7 +42,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   console.log(proposal);
   const handleSaveProposal = async () => {
     setIsSaving(true);
-    
+    console.log(proposal)
     try {
       const result = await createProposal(proposal);
       
@@ -63,9 +64,9 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   };
 
   const calculatedCosts = useMemo(() => {
-    return proposal.modules.map((category: Category) => ({
-      ...category,
-      elements: proposal.template_elements.map((element: ProposalElement) => {
+    return proposal.modules.map((module: Module) => ({
+      ...module,
+      elements: proposal.template_elements.map((element: ProjectElement) => {
         const materialCost = calculateCost(
           element.material_cost.toString(),
           proposal.parameters
@@ -76,7 +77,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
         // Use global markup if enabled, otherwise use element's markup (or default to 10%)
         const markupPercentage = proposal.useGlobalMarkup
           ? proposal.globalMarkupPercentage || 15
-          : element.markup_percentage || 10;
+          : element.markup || 10;
 
         const markupAmount = baseCost * (markupPercentage / 100);
 
@@ -131,17 +132,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
           </div>
         )}
         
-        {/* Full-width image at the top */}
-        <div className="relative w-full h-[300px] mt-6 mb-6 overflow-hidden rounded-xl">
-          <Image
-            src={proposal.imageUrl || "/placeholder-image.jpg"}
-            alt={proposal.title}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 justify-end mb-4">
           <Button variant="outline" size="sm" className="gap-1">
             <PrinterIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Print</span>
@@ -226,7 +217,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
             </div>
             <div className="relative mx-auto h-64 w-full max-w-3xl overflow-hidden rounded-lg">
               <Image
-                src={proposal.imageUrl || "/placeholder.svg"}
+                src={"/placeholder-image.jpg"}
                 alt={proposal.title}
                 fill
                 className="object-cover"
@@ -268,7 +259,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                         {category.elements.map((element) => (
                           <TableRow key={element.id}>
                             <TableCell className="font-medium">
-                              {element.name}
+                              {element.element.name}
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
@@ -329,7 +320,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                       acc[variable.type] = acc[variable.type] || [];
                       acc[variable.type].push(variable);
                       return acc;
-                    }, {} as Record<string, Variable[]>)
+                    }, {} as Record<string, ProjectParameter[]>)
                   ).map(([type, vars]) => (
                     <div key={type} className="space-y-2">
                       <h4 className="font-semibold text-md">{type}</h4>

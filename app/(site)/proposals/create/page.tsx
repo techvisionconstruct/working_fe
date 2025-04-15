@@ -8,20 +8,23 @@ import { CostCalculation } from "@/components/features/create-proposal/cost-calc
 import { ProposalPreview } from "@/components/features/create-proposal/proposal-review";
 import ProposalDetails from "@/components/features/create-proposal/proposal-details";
 import { emptyProposal } from "@/data/proposals";
-import { Template, ProposalData, Variable } from "@/types/proposals";
+
 
 export default function CreateProposalPage() {
   const [currentProposal, setCurrentProposal] =
-    useState<ProposalData>(emptyProposal);
+    useState(emptyProposal);
   const [activeTab, setActiveTab] = useState("template");
 
-  const handleTemplateSelect = (template: Template) => {
-    const initializedVariables = template.parameters.map((variable) => ({
+  const handleTemplateSelect = (template: any) => {
+    console.log(template)
+    const initializedVariables = template.parameters.map((variable:any) => ({
       ...variable,
-      value: "0",
+      value: variable.value ? parseFloat(variable.value) : 0, // Convert to number
+      formula: variable.formula || "",
+      parameter: variable.parameter || null,
     }));
 
-    const newProposal: ProposalData = {
+    const newProposal = {
       ...template,
       parameters: initializedVariables, // Make sure to use the initialized variables
     };
@@ -30,7 +33,7 @@ export default function CreateProposalPage() {
     setActiveTab("details");
   };
 
-  const updateVariables = (updatedVariables: Variable[]) => {
+  const updateVariables = (updatedVariables:any) => {
     // Save the updated variables to the proposal state
     setCurrentProposal((prev) => ({
       ...prev,
@@ -41,7 +44,7 @@ export default function CreateProposalPage() {
     console.log("Updated variables in parent:", updatedVariables);
   };
 
-  const updateProposal = (updatedProposal: ProposalData) => {
+  const updateProposal = (updatedProposal: any) => {
     setCurrentProposal(updatedProposal);
   };
 
@@ -91,8 +94,8 @@ export default function CreateProposalPage() {
 
           <TabsContent value="variables">
             <VariablesForm
-              variables={currentProposal.parameters || []}
-              setVariables={updateVariables}
+              parameters={currentProposal.parameters || []}
+              setParameters={updateVariables}
               onNext={() => setActiveTab("costs")}
             />
           </TabsContent>
