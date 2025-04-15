@@ -229,7 +229,7 @@ export function CostCalculation({
           const baseCost = materialCost + laborCost;
           const markupPercentage = localProposal.useGlobalMarkup
             ? localProposal.globalMarkupPercentage || 15
-            : templateElement.markup || 10;
+            : (templateElement.markup ?? 10);
 
           const markupAmount = baseCost * (markupPercentage / 100);
 
@@ -239,6 +239,7 @@ export function CostCalculation({
             laborFormulaHasErrors,
             calculatedMaterialCost: materialCost,
             calculatedLaborCost: laborCost,
+            markup: templateElement.markup ?? 10,
             markupPercentage,
             markupAmount,
             totalWithMarkup: baseCost + markupAmount,

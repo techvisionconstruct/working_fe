@@ -180,7 +180,7 @@ export default function TemplateVariables({
         {/* Add Variable Section - styled like categories */}
         <div className="flex flex-col gap-3 mb-6">
           <div className="flex gap-3 items-center">
-            <label className="block mb-2 text-sm font-medium text-gray-800 flex items-center gap-1">
+            <label className="block mb-2 text-sm font-medium text-gray-800 items-center gap-1">
               Add Variable
               <Tooltip>
                 <TooltipTrigger asChild>

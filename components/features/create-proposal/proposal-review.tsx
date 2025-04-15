@@ -41,10 +41,21 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   const { createProposal, isLoading, error } = useCreateProposal();
   const [isSaving, setIsSaving] = useState(false);
 
+  // Ensure markup is always present in each template_element
+  const proposalWithMarkup = {
+    ...proposal,
+    template_elements: proposal.template_elements.map(element => ({
+      ...element,
+      markup: element.markup ?? 10,
+    })),
+  };
+
+  console.log("Proposal with markup:", proposalWithMarkup);
+
   const handleSaveProposal = async () => {
     setIsSaving(true);
     try {
-      const result = await createProposal(proposal);
+      const result = await createProposal(proposalWithMarkup);
 
       if (result.success) {
         console.log("Proposal saved successfully:", proposal);

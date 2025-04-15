@@ -157,7 +157,7 @@ export default function TemplateCategories({ template, onUpdateTemplate, onNext,
         {/* Move add new and add existing category inside the colored card */}
         <div className="flex flex-col gap-3 mb-6">
           <div className="flex gap-3 items-center">
-            <label className="block mb-2 text-sm font-medium text-gray-800 flex items-center gap-1">
+            <label className="block mb-2 text-sm font-medium text-gray-800 items-center gap-1">
               Add Category
               <Tooltip>
                 <TooltipTrigger asChild>
