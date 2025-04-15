@@ -120,13 +120,13 @@ export default function TemplatePreview({
                 ([categoryName, elements]) => (
                   <div
                     key={categoryName}
-                    className="border-0 rounded-xl shadow bg-gray-50"
+                    className="border-0 rounded-xl shadow bg-gray-50 mb-6"
                   >
                     <div className="p-6">
                       <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
                         {categoryName}
                       </h3>
-                      <div className="overflow-x-auto">
+                      <div>
                         <table className="w-full">
                           <thead>
                             <tr className="border-b">
