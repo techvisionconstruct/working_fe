@@ -40,6 +40,8 @@ import {
   contactInfoSchema,
   verificationSchema,
 } from "@/zod-schemas/register/register-schema";
+import { useRegister } from "@/hooks/api/auth/register";
+import { useVerifyOtp } from "@/hooks/api/auth/verify-otp";
 
 type PersonalInfoValues = z.infer<typeof personalInfoSchema>;
 type ContactInfoValues = z.infer<typeof contactInfoSchema>;
@@ -60,6 +62,8 @@ export function RegisterForm({
     otp: "",
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { register: registerUser, isLoading: isRegistering, error: registerError } = useRegister();
+  const { verifyOtp, isLoading: isVerifyingOtp, error: verifyOtpError } = useVerifyOtp();
 
   // Form for Step 1: Personal Information
   const personalInfoForm = useForm<PersonalInfoValues>({
@@ -99,8 +103,16 @@ export function RegisterForm({
     setIsLoading(true);
     try {
       setFormData((prev) => ({ ...prev, ...values }));
-      // Simulate API call to send OTP
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Call registration API here if you want to register after contact info
+      const result = await registerUser({
+        username: formData.username,
+        email: values.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'Registration failed');
+      }
       toast.success("Verification code sent", {
         description: `A 6-digit verification code has been sent to ${values.email}`,
         duration: 3000,
@@ -118,26 +130,26 @@ export function RegisterForm({
     }
   };
 
-  // Handle form submission for verification
   const onVerificationSubmit = async (values: VerificationValues) => {
     setIsLoading(true);
     try {
-      // Combine all form data
       const completeData = {
         ...formData,
         ...values,
       };
 
-      // Simulate API call for registration
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const otpNumber = typeof values.otp === 'string' ? parseInt(values.otp, 10) : values.otp;
+      const result = await verifyOtp({ otp: otpNumber });
+      if (!result.success) {
+        throw new Error(result.error || 'OTP verification failed');
+      }
       toast.success("Registration successful!", {
         description: `Your account has been created successfully.`,
         duration: 3000,
         position: "top-center",
       });
-      console.log("Registration data:", completeData);
-      // In a real application, you would redirect to login or dashboard
-      // window.location.href = "/login";
+    
+      window.location.href = "/login";
     } catch (error) {
       toast.error("Registration failed", {
         description: "There was an error creating your account. Please try again.",
