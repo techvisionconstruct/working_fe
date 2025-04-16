@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/shared";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 import { useRouter } from "next/navigation";
 
@@ -14,7 +14,6 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [key, setKey] = useState(0); // Used to force re-render of Joyride
-  const joyrideRef = useRef<any>(null);
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -155,7 +154,6 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
 
   return (
     <Joyride
-      ref={joyrideRef}
       steps={steps}
       run={isRunning}
       continuous
@@ -189,7 +187,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
         },
       }}
       floaterProps={{
-        disableAnimation: false,
+        // disableAnimation: false, // Removed: not a valid prop in v3
       }}
       disableCloseOnEsc={false}
       disableOverlayClose={false}
