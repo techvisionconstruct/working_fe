@@ -45,12 +45,12 @@ export interface ProjectElement {
     updated_at: Date;
   };
   module: any;
-  template_elements: any
+  template_elements: any;
   quantity: number;
-  labor_cost: number;
-  markup: number;
+  labor_cost: string; // formula string
+  markup: string; // percent as string
   total: number;
-  material_cost: number;
+  material_cost: string; // formula string
 }
 
 export interface ProjectParameter {

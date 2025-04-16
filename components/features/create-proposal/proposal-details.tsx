@@ -74,7 +74,7 @@ export default function ProposalDetails({
               <Input
                 id="title"
                 name="name"
-                value={proposal.title || ""}
+                value={proposal.name || ""}
                 onChange={handleChange}
                 placeholder="Enter proposal title"
                 className="w-full text-base p-3 rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-black/10"

@@ -15,6 +15,11 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [key, setKey] = useState(0); // Used to force re-render of Joyride
   const joyrideRef = useRef<any>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const endTour = () => {
     localStorage.setItem("hasSeenTemplatesTour", "true");
@@ -138,12 +143,14 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, index } = data;
 
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       localStorage.setItem("hasSeenTemplatesTour", "true");
       setIsRunning(false);
       setStepIndex(0);
     }
   };
+
+  if (!hasMounted) return null;
 
   return (
     <Joyride

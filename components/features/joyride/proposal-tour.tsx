@@ -16,6 +16,11 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [key, setKey] = useState(0); // Used to force re-render of Joyride
   const joyrideRef = useRef<any>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const endTour = () => {
     localStorage.setItem("hasSeenProposalsTour", "true");
@@ -139,14 +144,15 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
   ];
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, type, index } = data;
-
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    const { status: joyrideStatus, type, index } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(joyrideStatus)) {
       localStorage.setItem("hasSeenProposalsTour", "true");
       setIsRunning(false);
       setStepIndex(0);
     }
   };
+
+  if (!hasMounted) return null;
 
   return (
     <Joyride

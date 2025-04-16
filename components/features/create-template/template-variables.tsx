@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/shared";
-import { PlusCircle, XCircle, Check, ChevronsUpDown } from "lucide-react";
+import { PlusCircle, XCircle, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { Parameters, TemplateParametersProps } from "@/types/templates";
 import { useParameters } from "@/hooks/api/lookup/use-parameters";
 
@@ -159,6 +159,16 @@ export default function TemplateVariables({
       </span>
     );
   };
+
+  // Sort and group parameters by type
+  const groupedParameters: Record<string, Parameters[]> = {};
+  [...templateParameters].sort((a, b) => (a.type ?? "").localeCompare(b.type ?? "")).forEach((parameter) => {
+    const type = parameter.type ?? "Unknown";
+    if (!groupedParameters[type]) {
+      groupedParameters[type] = [];
+    }
+    groupedParameters[type].push(parameter);
+  });
 
   return (
     <div className="h-full">
@@ -331,7 +341,7 @@ export default function TemplateVariables({
           </div>
         </div>
         {/* Added Variables Section */}
-        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="flex flex-col">
           {templateParameters.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <span className="text-3xl mb-2">🔢</span>
@@ -352,59 +362,93 @@ export default function TemplateVariables({
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="border-0 rounded-xl divide-y divide-gray-100 bg-gray-50 max-h-[220px] overflow-auto">
-                {templateParameters.map((parameter) => (
-                  <div
-                    key={parameter.id}
-                    className="flex items-center justify-between p-2 group transition-all duration-150 hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Checkbox
-                        checked={selectedIds.includes(parameter.id)}
-                        onCheckedChange={() => toggleSelect(parameter.id)}
-                        className="h-5 w-5"
-                      />
-                      {editId === parameter.id ? (
-                        <div className="flex gap-2 items-center w-full">
-                          <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="w-32 text-base h-9 py-1 rounded-xl"
-                          />
-                          <Select value={editType} onValueChange={setEditType}>
-                            <SelectTrigger className="w-32 text-base h-9 rounded-xl">
-                              <SelectValue placeholder="Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {parameterTypes.map((type) => (
-                                <SelectItem key={type} value={type} className="text-base">
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" onClick={() => saveEdit(parameter.id)} className="h-8 px-3 text-xs rounded-xl">Save</Button>
-                          <Button size="sm" variant="ghost" onClick={cancelEdit} className="h-8 px-3 text-xs rounded-xl">Cancel</Button>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex items-center gap-2 cursor-pointer min-w-0"
-                          onClick={() => startEdit(parameter.id, parameter.name || "", parameter.type || "")}
-                          title="Click to edit"
-                        >
-                          <span className="font-semibold text-base truncate max-w-[180px]">{parameter.name}</span>
-                          {typeBadge(parameter.type || "")}
-                        </div>
-                      )}
+              <div className="w-full">
+                {Object.entries(groupedParameters).map(([type, params], idx) => (
+                  <div key={type} className={idx !== 0 ? "mt-8" : ""}>
+                    <div className="px-1 pb-2">
+                      <h3 className="text-base font-bold text-gray-700 uppercase tracking-wide mb-2">{type}</h3>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeParameter(parameter.id)}
-                      className="opacity-70 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 rounded-xl"
-                    >
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    </Button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {params.map((parameter) => (
+                        <div
+                          key={parameter.id}
+                          className="flex items-center gap-3 bg-white rounded-lg px-4 py-3 shadow-sm border"
+                        >
+                          {editId === parameter.id ? (
+                            <>
+                              <Input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-32 text-base h-9 py-1 rounded-xl"
+                              />
+                              <Select value={editType} onValueChange={setEditType}>
+                                <SelectTrigger className="w-32 text-base h-9 rounded-xl">
+                                  <SelectValue placeholder="Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {parameterTypes.map((type) => (
+                                    <SelectItem key={type} value={type} className="text-base">
+                                      {type}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <div className="flex gap-1 ml-auto">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => saveEdit(parameter.id)} className="h-8 px-3 text-xs rounded-xl">
+                                      Save
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Save changes</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="ghost" onClick={cancelEdit} className="h-8 px-3 text-xs rounded-xl">
+                                      Cancel
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Cancel editing</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-semibold text-base truncate max-w-[180px]">{parameter.name}</span>
+                              {typeBadge(parameter.type || "")}
+                              <div className="flex gap-1 ml-auto">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => startEdit(parameter.id, parameter.name || "", parameter.type || "")}
+                                      className="h-8 w-8 p-0 rounded-xl"
+                                    >
+                                      <Pencil className="h-4 w-4 text-blue-500" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit variable</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => removeParameter(parameter.id)}
+                                      className="h-8 w-8 p-0 rounded-xl"
+                                    >
+                                      <XCircle className="h-5 w-5 text-red-500" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remove variable</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
