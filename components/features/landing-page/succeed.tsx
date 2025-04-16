@@ -4,9 +4,16 @@ import Image from "next/image";
 import { Card, CardContent, CardTitle, CardDescription, Button } from "@/components/shared";
 import { BadgeCheck, TrendingUp, HardHat } from "lucide-react";
 
+declare global {
+  interface Window {
+    loadCalendlyScript?: () => void;
+  }
+}
+
 interface SucceedProps {
   theme: string;
   showLogin: boolean;
+  calendlyReady: boolean;
 }
 
 const succeedCards = [
@@ -27,10 +34,10 @@ const succeedCards = [
   },
 ];
 
-const Succeed = ({ theme, showLogin }: SucceedProps) => {
+const Succeed = ({ theme, showLogin, calendlyReady }: SucceedProps) => {
   const openCalendlyPopup = () => {
-    if (typeof window !== "undefined" && (window as any).Calendly) {
-      (window as any).Calendly.initPopupWidget({
+    if (typeof window !== "undefined" && window.Calendly) {
+      window.Calendly.initPopupWidget({
         url: "https://calendly.com/avorino/simple-projex-demo",
       });
     }
@@ -73,6 +80,7 @@ const Succeed = ({ theme, showLogin }: SucceedProps) => {
                   sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover"
                   priority={index === 0}
+                  loading={index === 0 ? undefined : "lazy"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent z-10" />
                 <div className="absolute top-4 left-4 z-20 bg-background/80 rounded-full p-2 shadow-lg">
@@ -98,8 +106,9 @@ const Succeed = ({ theme, showLogin }: SucceedProps) => {
           size="lg"
           className="bg-[#e6a310] text-black hover:bg-[#203a53] hover:text-white font-bold uppercase tracking-wider shadow-lg rounded-full"
           onClick={openCalendlyPopup}
+          disabled={!calendlyReady}
         >
-          Schedule a Demo
+          {calendlyReady ? "Schedule a Demo" : <span className="flex items-center gap-2"><span className="animate-spin rounded-full border-2 border-t-2 border-gray-200 h-5 w-5"></span>Loading…</span>}
         </Button>
       </motion.div>
     </section>
