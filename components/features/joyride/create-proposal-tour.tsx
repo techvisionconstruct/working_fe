@@ -70,7 +70,7 @@ export function CreateProposalTour({
     {
       target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">
             Welcome to Proposal Creation! 🎨
           </h1>
@@ -88,11 +88,15 @@ export function CreateProposalTour({
       placement: "center",
       disableBeacon: true,
       hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
-      target: ".template-tab-content",
+      target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">Select a Template 📋</h1>
           <p className="mb-3">
             🔍 Start by choosing a template for your proposal.
@@ -103,12 +107,18 @@ export function CreateProposalTour({
           <p>🖼️ Select one that best matches your project requirements.</p>
         </div>
       ),
+      placement: "center",
       disableBeacon: true,
+      hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
-      target: ".details-tab-content",
+      target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">Proposal Details 📝</h1>
           <p className="mb-3">
             🔍 Fill in the basic information about your proposal.
@@ -122,12 +132,18 @@ export function CreateProposalTour({
           </p>
         </div>
       ),
+      placement: "center",
       disableBeacon: true,
+      hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
-      target: ".parameters-tab-content",
+      target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">Variables & Parameters 🔄</h1>
           <p className="mb-3">
             🧩 Set values for the variables defined in your template.
@@ -140,12 +156,18 @@ export function CreateProposalTour({
           </p>
         </div>
       ),
+      placement: "center",
       disableBeacon: true,
+      hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
-      target: ".categories-tab-content",
+      target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">Cost Calculation 💰</h1>
           <p className="mb-3">
             🧮 Review and adjust the costs for your proposal.
@@ -159,12 +181,18 @@ export function CreateProposalTour({
           </p>
         </div>
       ),
+      placement: "center",
       disableBeacon: true,
+      hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
-      target: ".preview-tab-content",
+      target: "body",
       content: (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-screen-sm w-full px-2">
           <h1 className="text-xl font-bold mb-2">Proposal Preview 👁️</h1>
           <p className="mb-3">
             👀 Review how your proposal will look when presented to your client.
@@ -177,12 +205,18 @@ export function CreateProposalTour({
           </p>
         </div>
       ),
+      placement: "center",
       disableBeacon: true,
+      hideCloseButton: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
     {
       target: "body",
       content: (
-        <div>
+        <div className="max-w-screen-sm w-full px-2">
           <p className="font-bold text-xl mb-2">You're All Set! 🎉🎆</p>
           <p className="mb-3">
             ✅ You now know how to create professional proposals for your
@@ -197,7 +231,6 @@ export function CreateProposalTour({
             the help menu.
           </p>
           <p className="mt-3 mb-4 font-bold">Happy proposing! 📝✨💍</p>
-
           <div className="flex gap-3 justify-center">
             <Button
               variant="outline"
@@ -209,7 +242,6 @@ export function CreateProposalTour({
             >
               🗃️ Go to Proposals
             </Button>
-
             <Button onClick={handleStartCreating} className="px-4">
               Start Creating 🚀😎
             </Button>
@@ -220,6 +252,10 @@ export function CreateProposalTour({
       disableBeacon: true,
       hideCloseButton: true,
       hideFooter: true,
+      floaterProps: {
+        placement: "center",
+        style: { maxWidth: '100vw', minWidth: 0, width: '100%', padding: 0 },
+      },
     },
   ];
 
@@ -253,7 +289,6 @@ export function CreateProposalTour({
   return (
     isClient && (
       <Joyride
-        ref={joyrideRef}
         steps={steps}
         run={isRunning}
         continuous
@@ -288,7 +323,7 @@ export function CreateProposalTour({
           },
         }}
         floaterProps={{
-          disableAnimation: false,
+          // disableAnimation: false, // Removed: not a valid prop in v3
         }}
         disableCloseOnEsc={false}
         disableOverlayClose={false}
