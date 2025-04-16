@@ -67,7 +67,17 @@ export default function TemplateDetails({
   return (
     <div className="h-full">
       <Card className="p-8 bg-white shadow-lg rounded-2xl border-0">
-        <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center tracking-tight">Template Details</h2>
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center tracking-tight flex items-center justify-center gap-2">
+          Template Details
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="ml-1 text-xs rounded-full border px-1.5 cursor-pointer">🛈</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>📝 Give your template a clear, descriptive name. This helps you and your team find it later!</span>
+            </TooltipContent>
+          </Tooltip>
+        </h2>
         <div className="mb-6 text-center">
           <p className="text-base text-gray-500 font-light">Set a name, description, and image for your template.</p>
         </div>

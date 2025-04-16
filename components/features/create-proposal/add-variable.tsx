@@ -17,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/shared";
-import { AddParameterProps } from "@/types/create-proposal";
+
+interface AddVariableProps {
+  newParameter: { name: string; type: string; value: string };
+  setNewParameter: (param: { name: string; type: string; value: string }) => void;
+  handleAddParameter: () => void;
+  isDialogOpen: boolean;
+  setIsDialogOpen: (open: boolean) => void;
+}
 
 export default function AddVariable({
   newParameter,
@@ -25,43 +32,48 @@ export default function AddVariable({
   handleAddParameter,
   isDialogOpen,
   setIsDialogOpen,
-}: AddParameterProps) {
+}: AddVariableProps) {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <PlusCircleIcon className="h-4 w-4" /> Add Variable
+        <Button variant="outline" className="gap-2 rounded-lg px-4 py-2 text-base font-semibold data-[state=open]:bg-white data-[state=open]:shadow-sm data-[state=open]:text-black text-gray-500 transition-all">
+          <PlusCircleIcon className="h-4 w-4" /> Add New Variable
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New Parameter</DialogTitle>
-          <DialogDescription>
-            Create a new parameter to use in your cost calculations
+      <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle className="text-xl font-bold">Add New Variable</DialogTitle>
+          <DialogDescription className="text-gray-500 text-base">
+            Create a new variable to use in your cost calculations.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="parameter-name">Parameter Name</Label>
-            <Input
-              id="parameter-name"
-              value={newParameter.name}
-              onChange={(e) =>
-                setNewParameter({ ...newParameter, name: e.target.value })
-              }
-              placeholder="e.g., Room Height"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="parameter-type">Parameter Type</Label>
-            <div className="flex gap-2">
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleAddParameter();
+          }}
+          className="p-6 space-y-6"
+        >
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="variable-name">Variable Name</Label>
+              <Input
+                id="variable-name"
+                value={newParameter.name}
+                onChange={e => setNewParameter({ ...newParameter, name: e.target.value })}
+                placeholder="e.g., Room Height"
+                className="rounded-lg text-base"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="variable-type">Variable Type</Label>
               <Select
                 value={newParameter.type}
-                onValueChange={(value) =>
-                  setNewParameter({ ...newParameter, type: value })
-                }
+                onValueChange={value => setNewParameter({ ...newParameter, type: value })}
+                required
               >
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="rounded-lg text-base w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -72,25 +84,28 @@ export default function AddVariable({
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="variable-value">Initial Value</Label>
+              <Input
+                id="variable-value"
+                value={newParameter.value}
+                onChange={e => setNewParameter({ ...newParameter, value: e.target.value })}
+                placeholder="0"
+                className="rounded-lg text-base"
+                type="number"
+                min="0"
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="parameter-value">Initial Value</Label>
-            <Input
-              id="parameter-value"
-              value={newParameter.value}
-              onChange={(e) =>
-                setNewParameter({ ...newParameter, value: e.target.value })
-              }
-              placeholder="0"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAddParameter}>Add Parameter</Button>
-        </DialogFooter>
+          <DialogFooter className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)} className="rounded-lg px-4 py-2 text-base font-semibold">
+              Cancel
+            </Button>
+            <Button type="submit" className="rounded-lg px-4 py-2 text-base font-semibold bg-black text-white hover:bg-gray-900 shadow-md">
+              Add Variable
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

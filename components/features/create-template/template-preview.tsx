@@ -81,7 +81,7 @@ export default function TemplatePreview({
               <Button
                 onClick={handleSave}
                 disabled={isSaving || isSaved}
-                className="flex items-center gap-2 rounded-xl px-5 py-2 text-base font-semibold bg-green-600 text-white hover:bg-green-700 transition-all shadow-md"
+                className="flex items-center gap-2 rounded-xl px-5 py-2 text-base font-semibold bg-green-800 text-white hover:bg-green-900 transition-all shadow-md"
               >
                 {isSaved ? (
                   <>

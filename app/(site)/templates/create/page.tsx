@@ -55,7 +55,7 @@ export default function CreateTemplatePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] to-[#e5e7eb] flex flex-col py-4 px-4">
-      <div className="w-full max-w-5xl mx-auto flex flex-col">
+      <div className="w-full max-w-8xl mx-auto flex flex-col">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 mt-4">Create New Template</h1>
           <p className="text-base text-gray-500 font-light max-w-2xl mx-auto mt-2">

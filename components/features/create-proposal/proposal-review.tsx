@@ -60,7 +60,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
       if (result.success) {
         console.log("Proposal saved successfully:", proposal);
         toast.success("Success! Your proposal has been saved successfully.", {
-          duration: 3000,
+  duration: 3000,
           position: "top-center",
         });
 
@@ -87,6 +87,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   };
 
   const calculatedCosts = useMemo(() => {
+    if (!calculateCost) return [];
     return proposal.modules.map((module: Module) => ({
       ...module,
       elements: proposal.template_elements.map((element: ProjectElement) => {
@@ -153,142 +154,70 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
     totalMaterialCost + totalLaborCost + totalMarkupAmount
 
   return (
-    <div>
-      <div className="container mx-auto px-4">
-        {/* Show error message if API call fails */}
-        {error && (
-          <div className="bg-destructive/20 border border-destructive rounded-md p-3 text-destructive mt-4">
-            {error}
-          </div>
-        )}
-
-        <div className="flex space-x-2 justify-end mb-4">
-          <Button variant="outline" size="sm" className="gap-1">
-            <PrinterIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Print</span>
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1">
-            <DownloadIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Download</span>
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1">
-            <MailIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Email</span>
-          </Button>
-          <Button
-            className="gap-2"
-            onClick={handleSaveProposal}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <Loader2Icon className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircleIcon className="h-4 w-4" />
-            )}
-            {isSaving ? "Saving..." : "Save Proposal"}
-          </Button>
-        </div>
+    <div className="space-y-8">
+      <div className="mb-2 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-1">Proposal Preview</h2>
+        <p className="text-base text-gray-500 font-light">Review your proposal before saving and sending to your client.</p>
       </div>
-
-      {/* Show error message if API call fails */}
-      {error && (
-        <div className="bg-destructive/20 border border-destructive rounded-md p-3 text-destructive">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-col justify-center max-w-7xl mx-auto">
-        <div className="rounded-lg border bg-card shadow-sm">
-          <div className="flex flex-col gap-8 p-8">
-            <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Image
-                    src="/icons/logo.svg"
-                    alt="Company Logo"
-                    width={32}
-                    height={32}
-                    className="h-8 w-8"
-                  />
-                  <h2 className="text-2xl font-bold">Simple Projex</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  123 Construction Ave, Building City, ST 12345
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  contact@simpleprojex.com | (555) 123-4567
-                </p>
-              </div>
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <p className="text-sm font-medium">
-                  Proposal # {new Date().getFullYear()}-
-                  {String(proposal.id).padStart(4, "0")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Date: {proposal.created_at}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Valid until:{" "}
-                  {
-                    new Date(new Date().setDate(new Date().getDate() + 30))
-                      .toISOString()
-                      .split("T")[0]
-                  }
-                </p>
+      <Card className="rounded-2xl shadow-lg border-0 p-8">
+        <CardContent className="p-0 space-y-8">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
+                {proposal.title || proposal.name || "Untitled Proposal"}
+              </h1>
+              <div className="text-xs text-gray-400 font-light">
+                Created on {proposal.created_at ? new Date(proposal.created_at).toLocaleDateString() : "-"}
               </div>
             </div>
-            <Separator />
-            <div className="text-center">
-              <h1 className="text-3xl font-bold">{proposal.title}</h1>
-              <p className="mt-2 text-muted-foreground">
-                Prepared for: {proposal.clientName} | {proposal.clientEmail} |{" "}
-                {proposal.clientPhone}
-              </p>
+            <div className="flex gap-3 flex-wrap justify-end">
+              <Button
+                variant="outline"
+                onClick={() => router.back()}
+                className="flex items-center gap-2 rounded-xl px-5 py-2 text-base font-semibold"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleSaveProposal}
+                disabled={isSaving}
+                className="flex items-center gap-2 rounded-xl px-5 py-2 text-base font-semibold bg-green-800 text-white hover:bg-green-900 transition-all shadow-md"
+              >
+                {isSaving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <CheckCircleIcon className="h-4 w-4" />}
+                {isSaving ? "Saving..." : "Save Proposal"}
+              </Button>
             </div>
-            <div className="relative mx-auto h-64 w-full max-w-3xl overflow-hidden rounded-lg">
-              <Image
-                src={"/placeholder-image.jpg"}
-                alt={proposal.title}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <div className="w-full max-w-4xl mx-auto">
-                <p className="text-muted-foreground text-center text-xl ">
-                  {proposal.description}
-                </p>
-              </div>
-            </div>
+          </div>
 
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold">Cost Breakdown</h3>
-              {calculatedCosts.map((category) => (
-                <div key={category.id} className="space-y-3">
-                  <h4 className="flex items-center gap-2 text-lg font-bold">
-                    <CheckCircleIcon className="h-4 w-4 text-primary" />
-                    {category.name}
-                  </h4>
-                  <div className="rounded-lg border">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-900">Description</h2>
+            <div className="prose prose-slate max-w-none text-base">
+              {proposal.description ? (
+                proposal.description.split("\n").map((paragraph, index) => (
+                  <p key={index} className="text-base/relaxed">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="text-gray-400">No description provided.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900">Cost Breakdown</h2>
+            {calculatedCosts.map((category) => (
+              <Card key={category.id} className="overflow-hidden rounded-xl border bg-gray-50 mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-bold mb-4 text-center text-gray-800">{category.name}</h3>
+                  <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-muted/50">
+                      <TableHeader className="bg-muted/30">
                         <TableRow>
                           <TableHead className="w-[20%]">Elements</TableHead>
-                          <TableHead className="w-[20%]">
-                            Material Cost{" "}
-                            <span className="text-xs font-normal">
-                              (Formula)
-                            </span>
-                          </TableHead>
-                          <TableHead className="w-[20%]">
-                            Labor Cost{" "}
-                            <span className="text-xs font-normal">
-                              (Formula)
-                            </span>
-                          </TableHead>
-                          <TableHead className="text-right">
-                            Base Total
-                          </TableHead>
+                          <TableHead className="w-[20%]">Material Cost <span className="text-xs font-normal">(Formula)</span></TableHead>
+                          <TableHead className="w-[20%]">Labor Cost <span className="text-xs font-normal">(Formula)</span></TableHead>
+                          <TableHead className="text-right">Base Total</TableHead>
                           <TableHead className="text-right">Markup %</TableHead>
                           <TableHead className="text-right">
                             Total with Markup
@@ -346,114 +275,66 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                       </TableBody>
                     </Table>
                   </div>
-                </div>
-              ))}
-            </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">
-                Variables Used in Calculations
-              </h3>
-              <div className="rounded-lg border p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Group variables by type */}
-                  {Object.entries(
-                    proposal.parameters.reduce((acc, variable) => {
-                      acc[variable.type] = acc[variable.type] || [];
-                      acc[variable.type].push(variable);
-                      return acc;
-                    }, {} as Record<string, ProjectParameter[]>)
-                  ).map(([type, vars]) => (
-                    <div key={type} className="space-y-2">
-                      <h4 className="font-semibold text-md">{type}</h4>
-                      <div className="space-y-1">
-                        {vars.map((variable) => (
-                          <div
-                            key={variable.id}
-                            className="flex justify-between bg-muted/30 p-2 rounded-md"
-                          >
-                            <span>{variable.name}:</span>
-                            <span className="font-mono">
-                              {variable.value || "0"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-900">Variables Used in Calculations</h2>
+            <div className="rounded-lg border p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(
+                  proposal.parameters.reduce((acc, variable) => {
+                    acc[variable.type] = acc[variable.type] || [];
+                    acc[variable.type].push(variable);
+                    return acc;
+                  }, {} as Record<string, ProjectParameter[]>)
+                ).map(([type, vars]) => (
+                  <div key={type} className="space-y-2">
+                    <h4 className="font-semibold text-md">{type}</h4>
+                    <div className="space-y-1">
+                      {vars.map((variable) => (
+                        <div
+                          key={variable.id}
+                          className="flex justify-between bg-muted/30 p-2 rounded-md"
+                        >
+                          <span>{variable.name}:</span>
+                          <span className="font-mono">
+                            {variable.value || "0"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Sidebar - right side (1 column on medium screens and above) */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Client Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Client Name</p>
-                    <p className="font-medium">{proposal.clientName}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{proposal.clientEmail}</p>
-                  </div>
-                  {proposal.clientPhone && (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Phone</p>
-                      <p className="font-medium">{proposal.clientPhone}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Proposal Summary Card */}
-              <Card className="bg-primary/5 border-primary/20">
-                <CardHeader>
-                  <CardTitle>Proposal Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Total Material Cost
-                      </span>
-                      <span className="font-mono font-medium">
-                        ${totalMaterialCost.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Total Labor Cost
-                      </span>
-                      <span className="font-mono font-medium">
-                        ${totalLaborCost.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Total Markup
-                      </span>
-                      <span className="font-mono font-medium">
-                        ${totalMarkupAmount.toFixed(2)}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-lg font-medium">Grand Total</span>
-                      <span className="text-xl font-mono font-bold">
-                        ${grandTotalWithMarkup.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-900">Proposal Summary</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col items-center bg-gray-50 rounded-xl p-4">
+                <span className="text-muted-foreground">Total Material Cost</span>
+                <span className="font-mono font-bold text-lg">${totalMaterialCost.toFixed(2)}</span>
+              </div>
+              <div className="flex flex-col items-center bg-gray-50 rounded-xl p-4">
+                <span className="text-muted-foreground">Total Labor Cost</span>
+                <span className="font-mono font-bold text-lg">${totalLaborCost.toFixed(2)}</span>
+              </div>
+              <div className="flex flex-col items-center bg-gray-50 rounded-xl p-4">
+                <span className="text-muted-foreground">Total Markup</span>
+                <span className="font-mono font-bold text-lg">${totalMarkupAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex flex-col items-center bg-primary/10 rounded-xl p-4">
+                <span className="text-lg font-semibold">Grand Total</span>
+                <span className="font-mono font-bold text-2xl">${grandTotalWithMarkup.toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
