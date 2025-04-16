@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
 import "@/assets/style/globals.css";
 
+import { Suspense } from "react";
 import { Toaster } from "@/components/shared";
 import { UserProvider } from "@/components/contexts/user-context";
 
@@ -50,7 +51,9 @@ export default function RootLayout({
       <body className={bodyClasses}>
         <UserProvider>
           <Toaster />
-          {children}
+          <Suspense fallback={<div>Loading...</div>}>
+            {children}
+          </Suspense>
         </UserProvider>
       </body>
     </html>
