@@ -10,6 +10,7 @@ import Footer from "@/components/features/landing-page/footer";
 import TimeSaving from "@/components/features/landing-page/time-saving";
 import Header from "@/components/features/landing-page/header";
 import { useRouter } from "next/navigation";
+import Head from "next/head";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -17,38 +18,20 @@ export default function LandingPage() {
   const [theme, setTheme] = useState("light");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  };
-
+  // Only access localStorage and document in useEffect
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedTheme = localStorage.getItem("theme");
+      let defaultTheme = "light";
       if (storedTheme) {
         setTheme(storedTheme);
-        document.documentElement.classList.toggle(
-          "dark",
-          storedTheme === "dark"
-        );
-      } else {
-        const defaultTheme = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        setTheme(defaultTheme);
-        localStorage.setItem("theme", defaultTheme);
-        document.documentElement.classList.toggle(
-          "dark",
-          defaultTheme === "dark"
-        );
+        defaultTheme = storedTheme;
+      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        defaultTheme = "dark";
+        setTheme("dark");
+        localStorage.setItem("theme", "dark");
       }
+      document.documentElement.classList.toggle("dark", defaultTheme === "dark");
     }
   }, []);
 
@@ -62,97 +45,113 @@ export default function LandingPage() {
     }
   }, []);
 
+  const toggleTheme = () => {
+    if (typeof window !== "undefined") {
+      const newTheme = theme === "light" ? "dark" : "light";
+      setTheme(newTheme);
+      localStorage.setItem("theme", newTheme);
+      if (newTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  };
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
-    <div
-      className={`flex flex-col overflow-hidden bg-${
-        theme === "dark" ? "[#191919]" : "white"
-      }`}
-    >
-      <Header
-        toggleTheme={toggleTheme}
-        theme={theme}
-        isMobileMenuOpen={isMobileMenuOpen}
-        toggleMobileMenu={toggleMobileMenu}
-      />
-      {/* Hero Section */}
-      <section className="relative min-h-screen">
-        <HeroSection theme={theme} />
-      </section>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <section
-        style={{
-          minHeight: "100vh",
-          paddingTop: `${scrolling ? "60px" : "100vh"}`,
-          paddingBottom: "0",
-        }}
-        className="transition-all duration-1000 ease-in-out mt-12"
+    <>
+      <Head>
+        <link
+          href="https://assets.calendly.com/assets/external/widget.css"
+          rel="stylesheet"
+        />
+        <script
+          src="https://assets.calendly.com/assets/external/widget.js"
+          type="text/javascript"
+          async
+        />
+      </Head>
+      <div
+        className={`flex flex-col overflow-hidden bg-${
+          theme === "dark" ? "[#191919]" : "white"
+        }`}
       >
-        <SimpleSteps theme={theme} showLogin={false} />
-      </section>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <motion.div
-        style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
-        className="transition-all duration-1000 ease-in-out"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <Succeed theme={theme} showLogin={false} />
-      </motion.div>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <motion.div
-        style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
-        className="transition-all duration-1000 ease-in-out"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <CountUp theme={theme} />
-      </motion.div>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <motion.div
-        style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
-        className="transition-all duration-1000 ease-in-out"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <Proposal theme={theme} />
-      </motion.div>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <motion.div
-        style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
-        className="transition-all duration-1000 ease-in-out"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <TimeSaving theme={theme} />
-      </motion.div>
-      <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
-      <motion.div
-        style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
-        className="transition-all duration-1000 ease-in-out"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <Footer theme={theme} />
-      </motion.div>
-      {/* Calendly Widget */}
-      <link
-        href="https://assets.calendly.com/assets/external/widget.css"
-        rel="stylesheet"
-      ></link>
-      <script
-        src="https://assets.calendly.com/assets/external/widget.js"
-        type="text/javascript"
-        async
-      ></script>
-    </div>
+        <Header
+          toggleTheme={toggleTheme}
+          theme={theme}
+          isMobileMenuOpen={isMobileMenuOpen}
+          toggleMobileMenu={toggleMobileMenu}
+        />
+        {/* Hero Section */}
+        <section className="relative min-h-screen">
+          <HeroSection theme={theme} />
+        </section>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <section
+          style={{
+            minHeight: "100vh",
+            paddingTop: `${scrolling ? "60px" : "100vh"}`,
+            paddingBottom: "0",
+          }}
+          className="transition-all duration-1000 ease-in-out mt-12"
+        >
+          <SimpleSteps theme={theme} showLogin={false} />
+        </section>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <motion.div
+          style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
+          className="transition-all duration-1000 ease-in-out"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+        >
+          <Succeed theme={theme} showLogin={false} />
+        </motion.div>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <motion.div
+          style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
+          className="transition-all duration-1000 ease-in-out"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+        >
+          <CountUp theme={theme} />
+        </motion.div>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <motion.div
+          style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
+          className="transition-all duration-1000 ease-in-out"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+        >
+          <Proposal theme={theme} />
+        </motion.div>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <motion.div
+          style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
+          className="transition-all duration-1000 ease-in-out"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+        >
+          <TimeSaving theme={theme} />
+        </motion.div>
+        <hr className={`border-t-3 border-${theme === "dark" ? "white" : "black"}`} />
+        <motion.div
+          style={{ paddingTop: `${scrolling ? "0" : "100vh"}`, paddingBottom: "0" }}
+          className="transition-all duration-1000 ease-in-out"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: scrolling ? 1 : 0, y: scrolling ? 0 : 40 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+        >
+          <Footer theme={theme} />
+        </motion.div>
+      </div>
+    </>
   );
 }
