@@ -55,7 +55,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
 
         setTimeout(() => {
           router.push("/proposals");
-        }, 1500);
+        }, 1000);
       } else {
         toast.error(
           result.error || "Failed to save proposal. Please try again.",
