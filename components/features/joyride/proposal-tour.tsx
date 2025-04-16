@@ -145,7 +145,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status: joyrideStatus, type, index } = data;
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(joyrideStatus)) {
+    if (joyrideStatus === STATUS.FINISHED || joyrideStatus === STATUS.SKIPPED) {
       localStorage.setItem("hasSeenProposalsTour", "true");
       setIsRunning(false);
       setStepIndex(0);
