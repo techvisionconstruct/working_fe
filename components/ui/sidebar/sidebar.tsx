@@ -18,29 +18,26 @@ import {
   DropdownMenuItem
 } from "@/components/shared";
 import { 
-  Home, 
   FileText, 
   Layers, 
   File, 
-  FlaskConical, 
-  Variable, 
-  Calculator,
   ChevronLeft,
   ChevronRight,
   Settings,
-  LogOut
+  LogOut,
+  ChevronDown
 } from "lucide-react";
-import { useUser } from "../contexts/user-context";
+import { useUser } from "../../contexts/user-context";
 
 const navItems = [
   {
     section: "main",
     items: [
-      { 
-        icon: Home, 
-        label: "Dashboard", 
-        href: "/dashboard" 
-      },
+      // { 
+      //   icon: Home, 
+      //   label: "Dashboard", 
+      //   href: "/dashboard" 
+      // },
     ]
   },
   {
@@ -66,21 +63,21 @@ const navItems = [
   {
     section: "utility",
     items: [
-      { 
-        icon: Variable, 
-        label: "Variables", 
-        href: "/variables" 
-      },
-      { 
-        icon: Calculator, 
-        label: "Categories", 
-        href: "/categories" 
-      },
-      { 
-        icon: FlaskConical, 
-        label: "Elements", 
-        href: "/elements" 
-      },
+      // { 
+      //   icon: Variable, 
+      //   label: "Variables", 
+      //   href: "/variables" 
+      // },
+      // { 
+      //   icon: Calculator, 
+      //   label: "Categories", 
+      //   href: "/categories" 
+      // },
+      // { 
+      //   icon: FlaskConical, 
+      //   label: "Elements", 
+      //   href: "/elements" 
+      // },
     ]
   }
 ];
@@ -121,7 +118,7 @@ export function Sidenav() {
     const currentPath = pathname || "/dashboard";
     
     const allItems = navItems.flatMap(section => section.items);
-    const active = allItems.find(item => currentPath.startsWith(item.href))?.label || "Dashboard";
+    const active = allItems.find(item => currentPath.startsWith(item.href))?.label || "";
     
     setActiveItem(active);
   }, [pathname]);
@@ -131,16 +128,16 @@ export function Sidenav() {
       width: SIDEBAR_EXPANDED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: "easeInOut" }, 
-        borderRadius: { duration: 0.3 }
+        width: { duration: 0.18, ease: "easeInOut" }, 
+        borderRadius: { duration: 0.12 }
       }
     },
     collapsed: { 
       width: SIDEBAR_COLLAPSED_WIDTH,
       borderRadius: "16px",
       transition: { 
-        width: { duration: 0.4, ease: "easeInOut" }, 
-        borderRadius: { duration: 0.3 }
+        width: { duration: 0.18, ease: "easeInOut" }, 
+        borderRadius: { duration: 0.12 }
       }
     }
   };
@@ -253,14 +250,14 @@ export function Sidenav() {
                   opacity: 1, 
                   x: 0,
                   transition: { 
-                    opacity: { duration: 0.3, delay: 0.1 },
-                    x: { duration: 0.3, delay: 0.1 }
+                    opacity: { duration: 0.13, delay: 0.04 },
+                    x: { duration: 0.13, delay: 0.04 }
                   }
                 }}
                 exit={{ 
                   opacity: 0, 
                   x: -10,
-                  transition: { duration: 0.2, ease: "easeInOut" } 
+                  transition: { duration: 0.09, ease: "easeInOut" } 
                 }}
               >
                 <div 
@@ -301,8 +298,8 @@ export function Sidenav() {
                 opacity: 1, 
                 y: 0,
                 transition: { 
-                  delay: index * 0.1,
-                  duration: 0.3
+                  delay: index * 0.06,
+                  duration: 0.13
                 }
               }}
             >
@@ -322,35 +319,66 @@ export function Sidenav() {
                   iconTransform={getIconTransform()}
                 />
               ))}
-              {/* Add divider after sections (except the last one) */}
-              {index < navItems.length - 1 && (
-                <motion.div 
-                  className="my-3 border-b border-sidebar-border mx-2"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
-                />
-              )}
             </motion.div>
           ))}
-        </nav>          {/* User profile section with dropdown menu */}
-        <div className="h-16 border-t border-sidebar-border relative">
+        </nav>
+
+        {/* User profile section with dropdown menu - Now fully clickable box */}
+        <div className="h-16 border-t border-sidebar-border pt-3 px-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div 
-                className="absolute z-20 transition-all duration-400 ease-in-out cursor-pointer"
-                style={{
-                  left: getIconPosition(),
-                  top: "50%",
-                  transform: getIconTransform()
-                }}
-              >
-                <Avatar className="ring-2 ring-sidebar-ring/20 h-9 w-9 bg-sidebar-accent hover:ring-sidebar-ring/40 transition-all">
-                  <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username[0]}</AvatarFallback>
-                </Avatar>
-              </div>
+              <button className={cn(
+                "w-full flex items-center relative rounded-md px-2 py-1.5",
+                "transition-colors duration-200 hover:bg-sidebar-accent text-left",
+                "cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              )}>
+                <div className="flex items-center w-full">
+                  <div 
+                    className={cn(
+                      "transition-all duration-400 ease-in-out",
+                      isCollapsed ? "mx-auto" : ""
+                    )}
+                  >
+                    <Avatar className="h-9 w-9 ring-2 ring-sidebar-ring/20 hover:ring-sidebar-ring/40 transition-all">
+                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username?.[0]}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  
+                  <AnimatePresence mode="wait">
+                    {!isCollapsed && (
+                      <motion.div 
+                        className="flex flex-col ml-2"
+                        style={{ fontFamily: "'Open Sans', sans-serif" }}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ 
+                          opacity: 1, 
+                          x: 0,
+                          transition: { 
+                            opacity: { duration: 0.13, delay: 0.04 },
+                            x: { duration: 0.13, delay: 0.04 }
+                          }
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          x: -10,
+                          transition: { duration: 0.09, ease: "easeInOut" } 
+                        }}
+                      >
+                        <div className="font-medium text-sm text-sidebar-foreground">{user?.username}</div>
+                        <div className="text-xs text-muted-foreground">{user?.email}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Dropdown indicator */}
+                  {!isCollapsed && (
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  )}
+                </div>
+              </button>
             </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+            
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent focus:bg-accent">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.username}</p>
@@ -359,7 +387,8 @@ export function Sidenav() {
                   </p>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuSeparator /><DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
@@ -369,41 +398,6 @@ export function Sidenav() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-            
-          {/* Profile text alignment - keeping user's preferred styling */}
-          <AnimatePresence mode="wait">
-            {!isCollapsed && (
-              <motion.div 
-                className="absolute flex flex-col justify-center"
-                style={{ 
-                  left: "calc(" + ICON_LEFT_POSITION + " + 48px)",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  fontFamily: "'Open Sans', sans-serif",
-                  willChange: "transform, opacity",
-                }}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  transition: { 
-                    opacity: { duration: 0.3, delay: 0.1 },
-                    x: { duration: 0.3, delay: 0.1 }
-                  }
-                }}
-                exit={{ 
-                  opacity: 0, 
-                  x: -10,
-                  transition: { duration: 0.2, ease: "easeInOut" } 
-                }}
-              >
-                <div className="font-medium text-sm text-sidebar-foreground -mt-5">{user?.username}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                 {user?.email}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </motion.div>
 
@@ -533,14 +527,14 @@ function NavItem({
         whileHover={!isCollapsed ? 
           { 
             backgroundColor: "var(--sidebar-accent)",
-            transition: { duration: 0.2, ease: "easeInOut" }
+            transition: { duration: 0.09, ease: "easeInOut" }
           } : {}}
         animate={{
           backgroundColor: !isCollapsed && isActive ? "var(--sidebar-accent)" : "transparent",
         }}
         transition={{
-          duration: 0.2,
-          backgroundColor: { duration: 0.15 }
+          duration: 0.09,
+          backgroundColor: { duration: 0.09 }
         }}
       >
         {/* Icon container with dynamic positioning based on sidebar state */}
@@ -577,8 +571,8 @@ function NavItem({
             }}
             transition={{ 
               type: "spring", 
-              stiffness: 400, 
-              damping: 10,
+              stiffness: 600, 
+              damping: 22,
               opacity: { duration: 0 }
             }}
           >
@@ -601,8 +595,8 @@ function NavItem({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
                 type: "spring", 
-                stiffness: 400, 
-                damping: 15 
+                stiffness: 600, 
+                damping: 22 
               }}
             />
           )}
@@ -623,15 +617,15 @@ function NavItem({
                 opacity: 1, 
                 x: 0,
                 transition: { 
-                  opacity: { duration: 0.3, delay: 0.1 },
-                  x: { duration: 0.3, delay: 0.1 },
+                  opacity: { duration: 0.13, delay: 0.04 },
+                  x: { duration: 0.13, delay: 0.04 },
                   ease: "easeInOut"
                 }
               }}
               exit={{ 
                 opacity: 0, 
                 x: -10,
-                transition: { duration: 0.2, ease: "easeInOut" } 
+                transition: { duration: 0.09, ease: "easeInOut" } 
               }}
             >
               <span className={cn(
