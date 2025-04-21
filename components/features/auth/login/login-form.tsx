@@ -40,7 +40,7 @@ export function LoginForm({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
+        throw new Error(data.detail || "Sign In failed");
       }      Cookie.set("auth-token", data.access, {
         expires: 7,
         secure: true,
@@ -53,7 +53,7 @@ export function LoginForm({
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
-      console.error("Login error:", err);
+      console.error("Sign In error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +68,7 @@ export function LoginForm({
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-balance text-muted-foreground">
-                  Login to your Simple Projex account.
+                  Sign In to your Simple Projex account.
                 </p>
               </div>
               {error && (
@@ -108,7 +108,7 @@ export function LoginForm({
                 />
               </div>{" "}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
               <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                 <span className="relative z-10 bg-background px-2 text-muted-foreground">
@@ -123,13 +123,13 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  <span className="sr-only">Login with Google</span>
+                  <span className="sr-only">Sign In with Google</span>
                 </Button>
               </div>
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <Link href="/register" className="underline underline-offset-4">
-                  Sign up
+                <Link href="/signup" className="underline underline-offset-4">
+                  Sign Up
                 </Link>
               </div>
             </div>

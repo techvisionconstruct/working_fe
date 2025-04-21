@@ -76,9 +76,9 @@ function HeroSection({ theme, calendlyReady }: HeroSectionProps) {
                   size="lg" 
                   variant="outline" 
                   className="border-white text-white bg-transparent hover:bg-white hover:text-black font-bold uppercase tracking-wider shadow-lg rounded-full" 
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push("/signin")}
                 >
-                  Login
+                  Sign In
                 </Button>
               </div>
             </CardContent>

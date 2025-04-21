@@ -6,7 +6,7 @@ export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Redirect logged-in users from login to templates page
-  if ((pathname.startsWith('/login') || pathname.startsWith('/register')) && authToken) {
+  if ((pathname.startsWith('/signin') || pathname.startsWith('/signup')) && authToken) {
     const url = new URL('/templates', request.url)
     return NextResponse.redirect(url)
   }
@@ -16,7 +16,7 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
+  if (pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
     return NextResponse.next()
   }
   
@@ -34,7 +34,7 @@ export default function middleware(request: NextRequest) {
   const isLikelyJWT = authToken && authToken.split('.').length === 3;
 
   if (!authToken || !isLikelyJWT) {
-    const url = new URL('/login', request.url);
+    const url = new URL('/signin', request.url);
     return NextResponse.redirect(url);
   }
 

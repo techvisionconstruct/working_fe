@@ -63,7 +63,7 @@ export function MobileSidebar() {
 
   const handleLogout = () => {
     Cookie.remove("auth-token", { path: "/" });
-    router.push("/login");
+    router.push("/signin");
   };
 
   // Only render on mobile (after all hooks)

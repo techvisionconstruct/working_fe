@@ -149,7 +149,7 @@ export function RegisterForm({
         position: "top-center",
       });
     
-      window.location.href = "/login";
+      window.location.href = "/signin";
     } catch (error) {
       toast.error("Registration failed", {
         description: "There was an error creating your account. Please try again.",
@@ -479,8 +479,8 @@ export function RegisterForm({
               <Separator className="my-4" />
               <p className="text-sm">
                 Already have an account?{" "}
-                <Link href="/login" className="text-primary hover:underline">
-                  Login
+                <Link href="/signin" className="text-primary hover:underline">
+                  Sign In
                 </Link>
               </p>
             </div>

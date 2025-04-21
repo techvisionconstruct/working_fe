@@ -102,16 +102,16 @@ export default function Header({
             </div>
           </button>
           
-          {/* Login Button */}
+          {/* Sign In Button */}
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/signin")}
             className={`border-2 text-sm px-4 py-2 rounded-full flex items-center justify-center transition-all duration-300 ${
               scrolling 
                 ? "bg-primary text-primary-foreground border-primary hover:bg-accent hover:border-accent hover:text-foreground" 
                 : "bg-white/10 backdrop-blur-sm text-white border-white/30 hover:bg-white hover:text-black"
             } font-semibold`}
           >
-            Login
+            Sign In
           </button>
         </div>
         
@@ -161,10 +161,10 @@ export default function Header({
                 </div>
               </button>
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/signin")}
                 className="border-2 text-sm px-4 py-2 rounded-full flex items-center justify-center transition-all duration-300 bg-primary text-primary-foreground border-primary hover:bg-accent hover:border-accent hover:text-foreground font-semibold"
               >
-                Login
+                Sign In
               </button>
             </div>
           </div>
