@@ -57,6 +57,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!response.ok) {
+          // If unauthorized, clear cookie and redirect to /login
+          if (response.status === 401 || response.status === 403) {
+            document.cookie = 'auth-token=; Max-Age=0; path=/; SameSite=Lax; Secure';
+            window.location.href = '/login';
+            return;
+          }
           const errorData = await response.json();
           throw new Error(errorData.detail || "Failed to fetch user data");
         }
