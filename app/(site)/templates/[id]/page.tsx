@@ -1,193 +1,93 @@
 "use client";
 
-import React, { use } from "react";
+import React from "react";
+import { getTemplateById } from "@/api/client/templates";
+import { Module } from "@/types/templates";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 import Image from "next/image";
-import { notFound } from "next/navigation";
-import { Separator } from "@/components/shared";
-import { getTemplateById } from "@/hooks/api/templates/get-template-id";
-import {
-  getTemplateElements,
-  TemplateElement,
-} from "@/hooks/api/templates/get-template-elements";
-import Link from "next/link";
 
-export default function TemplatePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const {
-    template,
-    isLoading: isLoadingTemplate,
-    error: templateError,
-  } = getTemplateById(id);
-  const {
-    elements,
-    isLoading: isLoadingElements,
-    error: elementsError,
-  } = getTemplateElements(id);
+export default function TemplatedById() {
+  const { id } = useParams();
 
-  const error = templateError || elementsError;
-  const isLoading = isLoadingTemplate || isLoadingElements;
-
-  if (error) {
-    console.error("Error loading template:", error);
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">Loading template...</div>
-    );
-  }
-
-  if (!template) {
-    notFound();
-  }
-
-  const elementsByModule = elements.reduce((acc, element) => {
-    const module = element.module;
-    if (!acc[module]) {
-      acc[module] = [];
-    }
-    acc[module].push(element);
-    return acc;
-  }, {} as Record<string, TemplateElement[]>);
+  const template = useQuery({
+    queryKey: ["template", id],
+    queryFn: () => getTemplateById(Number(id)),
+  });
 
   return (
-    <div>
-      <div className="container mx-auto px-4">
-        <div className="relative w-full h-[300px] mt-6 mb-6 overflow-hidden rounded-xl">
-          <Image
-            src={template.image || "/placeholder-image.jpg"}
-            alt={template.name}
-            fill
-            className="object-cover"
-            priority
-          />
+    <div className="p-0 mx-auto">
+      <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
+        <Image
+          src={template.data?.image || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+          alt={template.data?.name || "Template Image"}
+          fill
+          className="w-full h-full object-cover object-center rounded-2xl shadow"
+          priority
+        />
+      </div>
+      <h2 className="text-4xl font-bold mb-2 tracking-tight leading-tight">
+        {template.data?.name}
+      </h2>
+      <p className="text-lg text-muted-foreground mb-2">
+        {template.data?.description}
+      </p>
+      {template.data?.parameters.length > 0 && (
+        <div className="mt-8 w-full">
+          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+            Parameters
+          </h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(template.data.parameters as import("@/types/templates").Parameter[]).map((param) => (
+              <span key={param.id} className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border">
+                {param.name}: {param.value} <span className="text-[10px] text-gray-400">({param.type})</span>
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="space-y-8 pb-20">
-          <div className="flex justify-between items-start mb-4">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tight">
-                {template.name}
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-sm">
-                <span>
-                  Created on{" "}
-                  {new Date(template.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Link href={`/proposals/create`}>
-                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-md font-medium">
-                  Create Proposal
-                </button>
-              </Link>
-              <button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 py-2 rounded-md font-medium">
-                Edit Template
-              </button>
-              <button className="border hover:bg-muted px-5 py-2 rounded-md font-medium">
-                Download
-              </button>
-            </div>
-          </div>
-          <Separator className="my-4" />
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Description</h2>
-            <div className="prose prose-slate max-w-none">
-              {template.description.split("\n").map((paragraph) => (
-                <p key={paragraph.slice(0, 20)} className="text-base/relaxed">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Template Elements</h2>
-            {Object.entries(elementsByModule).map(
-              ([moduleName, moduleElements]) => (
-                <div
-                  key={moduleName}
-                  className="card border rounded-lg shadow-sm"
-                >
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold mb-4 text-center">
-                      {moduleName}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-muted/60">
-                            <th className="text-left py-3 px-4 text-sm font-medium">
-                              Element
-                            </th>
-                            <th className="text-left py-3 px-4 text-sm font-medium">
-                              Material Formula
-                            </th>
-                            <th className="text-left py-3 px-4 text-sm font-medium">
-                              Labor Formula
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {moduleElements.map((element, idx) => (
-                            <tr
-                              key={element.id}
-                              className={`border-b border-muted/40 ${
-                                idx % 2 === 0 ? "bg-white" : "bg-muted/20"
-                              }`}
-                            >
-                              <td className="py-3 px-4">
-                                <span className="font-medium">
-                                  {element.name}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <code className="font-mono bg-muted/50 p-1 rounded text-sm">
-                                  {element.material_cost}
-                                </code>
-                              </td>
-                              <td className="py-3 px-4">
-                                <code className="font-mono bg-muted/50 p-1 rounded text-sm">
-                                  {element.labor_cost}
-                                </code>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+      )}
+      {template.data?.modules.length > 0 && (
+        <div className="mt-8 w-full">
+          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+            Modules
+          </h3>
+          <div className="flex flex-col gap-4">
+            {template.data.modules.map((module: Module) => (
+              <div key={module.id} className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors">
+                <h4 className="font-medium text-base mb-1">{module.name}</h4>
+                <p className="text-sm text-muted-foreground mb-2">{module.description}</p>
+                {/* Template Elements for this module */}
+                {(template.data.template_elements as import("@/types/templates").TemplateElement[]).filter((el) => el.module.id === module.id).length > 0 && (
+                  <div className="ml-2 mt-2">
+                    <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Elements</div>
+                    <div className="flex flex-col gap-2">
+                      {(template.data.template_elements as import("@/types/templates").TemplateElement[]).filter((el) => el.module.id === module.id).map((el) => (
+                        <div key={el.id} className="flex items-center gap-3 p-4 rounded border bg-background">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{el.element.name}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">{el.element.description}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                              Material: {el.material_cost}
+                            </span>
+                            <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                              Labor: {el.labor_cost}
+                            </span>
+                            <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                              Markup: {el.markup ?? 0}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Variables</h2>
-            <p className="text-muted-foreground text-sm">
-              Template dimensions and parameters
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {template.parameters.map((parameter, idx) => (
-                <div
-                  key={parameter.id}
-                  className="flex justify-between w-[250px] items-center p-3 bg-muted/50 rounded-xl"
-                >
-                  <span className="font-medium">{parameter.name}</span>
-                  <span className="text-muted-foreground">
-                    {parameter.type}
-                  </span>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
