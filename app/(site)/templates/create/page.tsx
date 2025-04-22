@@ -1,201 +1,156 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared";
-import TemplateDetails from "@/components/features/create-template/template-details";
-import TemplateVariables from "@/components/features/create-template/template-variables";
-import TemplateCategories from "@/components/features/create-template/template-categories";
-import TemplatePreview from "@/components/features/create-template/template-preview";
-import { Template } from "@/types/templates";
-import { postTemplate } from "@/hooks/api/templates/post-template";
-import { CreateTemplateTour } from "@/components/features/joyride/create-template-tour";
-import { Button } from "@/components/shared";
-import { Info } from "lucide-react";
+import React from "react";
+import { Tabs, TabsContent, Card, CardContent } from "@/components/shared";
+import { TemplateDetailsTab } from "@/components/features/create-template-page/template-details-tab";
+import { ParametersTab } from "@/components/features/create-template-page/parameters-tab";
+import { ModulesTab } from "@/components/features/create-template-page/modules-tab";
+import { PreviewTab } from "@/components/features/create-template-page/preview-tab";
+import {
+  ModuleForm,
+  ParameterForm,
+  TemplateDetailsForm,
+} from "@/components/features/create-template-page/zod-schema";
+import { Check, CircleDot } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { postTemplate } from "@/api/server/templates";
+import { useRouter } from "next/navigation";
 
-const emptyTemplate: Template = {
-  id: 0,
-  name: "",
-  description: "",
-  modules: [],
-  parameters: [],
-  created_at: "",
-  updated_at: "",
-  template_elements: [],
-  image: "",
-};
-
-export default function CreateTemplatePage() {
-  const [currentTemplate, setCurrentTemplate] =
-    useState<Template>(emptyTemplate);
-  const [activeTab, setActiveTab] = useState("details");
-  const [isSaved, setIsSaved] = useState(false);
-  const [isTourRunning, setIsTourRunning] = useState(false);
-
-  // Check if user has seen the tour before
-  useEffect(() => {
-    const hasSeenTour = localStorage.getItem("hasSeenCreateTemplateTour");
-    if (!hasSeenTour) {
-      // Start the tour automatically for first-time users
-      setIsTourRunning(true);
+export default function CreateTemplate() {
+  const router = useRouter();
+  const [tab, setTab] = React.useState("details");
+  const [templateDetails, setTemplateDetails] =
+    React.useState<TemplateDetailsForm>({
+      name: "",
+      description: "",
+      image: undefined,
+    });
+  const [parameters, setParameters] = React.useState<ParameterForm>([]);
+  const [modules, setModules] = React.useState<ModuleForm>([]);
+  const tabSteps = ["details", "modules", "parameters", "preview"];
+  const currentStepIndex = tabSteps.indexOf(tab);
+  
+  const { mutate: submitTemplate, isPending } = useMutation({
+    mutationFn: postTemplate,
+    onSuccess: (data) => {
+      router.push(`/templates/${data.id}`);
+    },
+    onError: (error) => {
+      console.error("Error creating template:", error);
+      alert(`Failed to create template: ${error.message}`);
     }
-  }, []);
-
-  const updateTemplate = (
-    updatedTemplate: Template | ((prevTemplate: Template) => Template)
-  ) => {
-    if (typeof updatedTemplate === "function") {
-      setCurrentTemplate((prevState) => {
-        const newState = updatedTemplate(prevState);
-        return newState;
-      });
-    } else {
-      setCurrentTemplate(updatedTemplate);
-    }
-  };
+  });
 
   const handleTabChange = (value: string) => {
-    // Only allow tab changes if tour is not running
-    if (!isTourRunning) {
-      setActiveTab(value);
-    } else {
-      // Even if the tour is running, update the tab state to match the tour's current step
-      setActiveTab(value);
-    }
-  };
-
-  const handleSaveTemplate = async () => {
-    try {
-      await postTemplate(currentTemplate);
-      setIsSaved(true);
-    } catch (error) {
-      console.error("Error saving template:", error);
-    }
-  };
-
-  const startTour = () => {
-    // Reset to first tab when starting the tour
-    setActiveTab("details");
-    setIsTourRunning(true);
+    setTab(value);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] to-[#e5e7eb] flex flex-col py-4 px-4">
-      {/* Pass the tour state and control functions to the tour component */}
-      <CreateTemplateTour
-        isRunning={isTourRunning}
-        setIsRunning={setIsTourRunning}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-
-      <div className="w-full max-w-8xl mx-auto flex flex-col">
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 mt-4">
-            Create New Template
-          </h1>
-          <p className="text-base text-gray-500 font-light max-w-2xl mx-auto mt-2">
-            Build a professional, reusable template for future proposals.
+    <div className="w-full px-4">
+      <div className="flex flex-col space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Create Template</h1>
+          <p className="text-muted-foreground mt-1">
+            Create a new template to standardize your project requirements
           </p>
         </div>
-        <div className="rounded-2xl shadow-md bg-white/90 backdrop-blur-md p-6 flex-1 flex flex-col">
-          <Tabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            className="w-full h-full flex flex-col"
-          >
-            <TabsList className="flex w-full mb-6 rounded-xl bg-gray-100 p-1 h-12">
-              <TabsTrigger
-                value="details"
-                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
-              >
-                Details
-              </TabsTrigger>
-              <TabsTrigger
-                value="parameters"
-                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
-              >
-                Variables
-              </TabsTrigger>
-              <TabsTrigger
-                value="categories"
-                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
-              >
-                Categories
-              </TabsTrigger>
-              <TabsTrigger
-                value="preview"
-                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
-              >
-                Preview
-              </TabsTrigger>
-            </TabsList>
 
-            <div className="flex-1 overflow-hidden">
-              <TabsContent
-                value="details"
-                className="details-tab-content h-full"
-              >
-                <TemplateDetails
-                  template={currentTemplate}
-                  onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("parameters")}
+        <Card className="border shadow-sm">
+          <CardContent className="p-6">
+            <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
+              <div className="flex justify-between items-center w-full mb-8 relative max-w-5xl mx-auto">
+                <div className="absolute top-5 left-0 w-full h-0.5 bg-muted -z-10"></div>
+                {tabSteps.map((step, index) => (
+                  <div
+                    key={step}
+                    className="flex flex-col items-center relative"
+                    onClick={() => {
+                      if (index <= currentStepIndex + 1) {
+                        setTab(step);
+                      }
+                    }}
+                  >
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 cursor-pointer 
+                        ${
+                          index <= currentStepIndex
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : index === currentStepIndex + 1
+                            ? "border-primary text-primary hover:bg-primary/10"
+                            : "border-muted-foreground text-muted-foreground"
+                        }
+                        transition-all duration-200 hover:scale-105
+                      `}
+                    >
+                      {index < currentStepIndex ? (
+                        <Check className="w-6 h-6" />
+                      ) : index === currentStepIndex ? (
+                        <CircleDot className="w-6 h-6" />
+                      ) : (
+                        <span className="text-lg">{index + 1}</span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm mt-2 font-medium ${
+                        index <= currentStepIndex
+                          ? "text-primary"
+                          : index === currentStepIndex + 1
+                          ? "text-primary"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {step.charAt(0).toUpperCase() + step.slice(1)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <TabsContent value="details">
+                <TemplateDetailsTab
+                  value={templateDetails}
+                  onChange={setTemplateDetails}
+                  onNext={() => setTab("modules")}
                 />
               </TabsContent>
 
-              <TabsContent
-                value="parameters"
-                className="parameters-tab-content h-full"
-              >
-                <TemplateVariables
-                  parameter={currentTemplate.parameters}
-                  onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("categories")}
-                  onPrevious={() => !isTourRunning && setActiveTab("details")}
+              <TabsContent value="modules">
+                <ModulesTab
+                  value={modules}
+                  onChange={setModules}
+                  onPrev={() => setTab("details")}
+                  onNext={() => setTab("parameters")}
                 />
               </TabsContent>
 
-              <TabsContent
-                value="categories"
-                className="categories-tab-content h-full"
-              >
-                <TemplateCategories
-                  template={currentTemplate}
-                  onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("preview")}
-                  onPrevious={() =>
-                    !isTourRunning && setActiveTab("parameters")
-                  }
+              <TabsContent value="parameters">
+                <ParametersTab
+                  value={parameters}
+                  onChange={setParameters}
+                  onPrev={() => setTab("modules")}
+                  onNext={() => setTab("preview")}
                 />
               </TabsContent>
 
-              <TabsContent
-                value="preview"
-                className="preview-tab-content h-full"
-              >
-                <TemplatePreview
-                  template={currentTemplate}
-                  onPrevious={() =>
-                    !isTourRunning && setActiveTab("categories")
-                  }
-                  onSave={handleSaveTemplate}
+              <TabsContent value="preview">
+                <PreviewTab
+                  templateDetails={templateDetails}
+                  parameters={parameters}
+                  modules={modules}
+                  onSubmit={() => {
+                    submitTemplate({
+                      name: templateDetails.name,
+                      description: templateDetails.description,
+                      image: templateDetails.image,
+                      modules: modules,
+                      parameters: parameters,
+                      // template_elements: [],
+                    });
+                  }}
                 />
               </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-
-        {/* Tour guide button */}
-        <Button
-          onClick={startTour}
-          variant="outline"
-          size="sm"
-          className="absolute top-6 right-6 h-10 px-4 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-md z-50"
-        >
-          <span className="flex items-center gap-1.5">
-            <Info className="w-4 h-4" />
-            Tour Guide
-          </span>
-        </Button>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
