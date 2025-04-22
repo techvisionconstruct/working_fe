@@ -158,7 +158,7 @@ export function MobileSidebar() {
                   <div className="transition-all duration-300">
                     <Avatar className="h-9 w-9 ring-2 ring-background">
                       <AvatarFallback className="font-medium text-sidebar-foreground uppercase">
-                        {user?.username?.[0] || "U"}
+                        {user?.username?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </div>

@@ -340,7 +340,7 @@ export function Sidenav() {
                     )}
                   >
                     <Avatar className="h-9 w-9 ring-2 ring-sidebar-ring/20 hover:ring-sidebar-ring/40 transition-all">
-                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username?.[0]}</AvatarFallback>
+                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username?.charAt(0)}</AvatarFallback>
                     </Avatar>
                   </div>
                   
