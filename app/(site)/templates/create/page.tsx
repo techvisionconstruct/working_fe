@@ -8,7 +8,7 @@ import TemplateCategories from "@/components/features/create-template/template-c
 import TemplatePreview from "@/components/features/create-template/template-preview";
 import { Template } from "@/types/templates";
 import { postTemplate } from "@/hooks/api/templates/post-template";
-import { CreateTemplateTour } from "@/components/features/joyride/create-template-tour";
+import { CreateTemplateTour } from "@/components/features/tour-guide/create-template-tour";
 import { Button } from "@/components/shared";
 import { Info } from "lucide-react";
 
@@ -54,13 +54,9 @@ export default function CreateTemplatePage() {
   };
 
   const handleTabChange = (value: string) => {
-    // Only allow tab changes if tour is not running
-    if (!isTourRunning) {
-      setActiveTab(value);
-    } else {
-      // Even if the tour is running, update the tab state to match the tour's current step
-      setActiveTab(value);
-    }
+    // Allow tab changes regardless of tour status
+    // This ensures the tour can control the tabs
+    setActiveTab(value);
   };
 
   const handleSaveTemplate = async () => {
@@ -97,7 +93,7 @@ export default function CreateTemplatePage() {
             Build a professional, reusable template for future proposals.
           </p>
         </div>
-        <div className="rounded-2xl shadow-md bg-white/90 backdrop-blur-md p-6 flex-1 flex flex-col">
+        <div id="template-form" className="rounded-2xl shadow-md bg-white/90 backdrop-blur-md p-6 flex-1 flex flex-col">
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
@@ -138,7 +134,7 @@ export default function CreateTemplatePage() {
                 <TemplateDetails
                   template={currentTemplate}
                   onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("parameters")}
+                  onNext={() => setActiveTab("parameters")}
                 />
               </TabsContent>
 
@@ -149,8 +145,8 @@ export default function CreateTemplatePage() {
                 <TemplateVariables
                   parameter={currentTemplate.parameters}
                   onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("categories")}
-                  onPrevious={() => !isTourRunning && setActiveTab("details")}
+                  onNext={() => setActiveTab("categories")}
+                  onPrevious={() => setActiveTab("details")}
                 />
               </TabsContent>
 
@@ -161,10 +157,8 @@ export default function CreateTemplatePage() {
                 <TemplateCategories
                   template={currentTemplate}
                   onUpdateTemplate={updateTemplate}
-                  onNext={() => !isTourRunning && setActiveTab("preview")}
-                  onPrevious={() =>
-                    !isTourRunning && setActiveTab("parameters")
-                  }
+                  onNext={() => setActiveTab("preview")}
+                  onPrevious={() => setActiveTab("parameters")}
                 />
               </TabsContent>
 
@@ -174,9 +168,7 @@ export default function CreateTemplatePage() {
               >
                 <TemplatePreview
                   template={currentTemplate}
-                  onPrevious={() =>
-                    !isTourRunning && setActiveTab("categories")
-                  }
+                  onPrevious={() => setActiveTab("categories")}
                   onSave={handleSaveTemplate}
                 />
               </TabsContent>

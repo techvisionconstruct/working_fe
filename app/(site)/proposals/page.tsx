@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ProposalTour } from "@/components/features/joyride/proposal-tour";
+import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
 
 import {
   Tabs,
@@ -18,6 +18,14 @@ import ProposalGridView from "@/components/ui/proposals/proposal-grid-view";
 import ProposalListView from "@/components/ui/proposals/proposal-list-view";
 import Link from "next/link";
 import { Info } from "lucide-react";
+
+// Extend Window interface to add our custom callback functions
+declare global {
+  interface Window {
+    proposalTourEndCallback?: () => void;
+    proposalTourCreateCallback?: () => void;
+  }
+}
 
 export default function ProposalPage() {
   const router = useRouter();
@@ -220,13 +228,21 @@ export default function ProposalPage() {
           </div>
 
           <div className="container mx-auto mt-2" id="content">
-            <TabsContent value="grid">
+            <TabsContent
+              value="grid"
+              data-tabcontent="grid"
+              className="p-4 rounded-lg bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700"
+            >
               <ProposalGridView
                 sortOption={sortOption}
                 searchQuery={searchQuery}
               />
             </TabsContent>
-            <TabsContent value="list">
+            <TabsContent
+              value="list"
+              data-tabcontent="list"
+              className="p-4 rounded-lg bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700"
+            >
               <ProposalListView
                 sortOption={sortOption}
                 searchQuery={searchQuery}
