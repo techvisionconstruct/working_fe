@@ -98,6 +98,7 @@ export function Sidenav() {
     windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0 
   });
   const { user, isLoading, error } = useUser();
+  const [avatarFallback, setAvatarFallback] = useState('');
   
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +114,12 @@ export function Sidenav() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Set avatar fallback only on client-side to prevent hydration mismatch
+  useEffect(() => {
+    if (user?.username) {
+      setAvatarFallback(user.username[0].toUpperCase());
+    }
+  }, [user?.username]);
 
   useEffect(() => {
     const currentPath = pathname || "/dashboard";
@@ -229,8 +236,8 @@ export function Sidenav() {
             <Image 
               src="/icons/logo.svg" 
               alt="Projex Logo" 
-              width={56} 
-              height={56} 
+              width={58} 
+              height={58} 
               className="object-contain"
             />
           </div>
@@ -263,7 +270,7 @@ export function Sidenav() {
                 <div 
                   style={{ 
                     fontFamily: "'DM Sans', sans-serif", 
-                    fontSize: "8pt",
+                    fontSize: "10pt",
                     letterSpacing: "0",
                     lineHeight: 0.9
                   }} 
@@ -274,7 +281,7 @@ export function Sidenav() {
                 <div 
                   style={{ 
                     fontFamily: "'DM Sans', sans-serif", 
-                    fontSize: "22pt", 
+                    fontSize: "20pt", 
                     letterSpacing: "0.09rem",
                     lineHeight: "0.85"
                   }} 
@@ -340,7 +347,7 @@ export function Sidenav() {
                     )}
                   >
                     <Avatar className="h-9 w-9 ring-2 ring-sidebar-ring/20 hover:ring-sidebar-ring/40 transition-all">
-                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username?.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{avatarFallback}</AvatarFallback>
                     </Avatar>
                   </div>
                   

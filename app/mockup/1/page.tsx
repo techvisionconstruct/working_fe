@@ -1378,7 +1378,7 @@ function AppShowcaseSection() {
             {/* Sidebar - Based on real sidebar.tsx */}
             <div className="relative h-full" ref={navRef}>
               <motion.div 
-                className="h-full py-6 border-r flex flex-col relative overflow-hidden"
+                className="h-full py-6 border-r flex flex-col relative"
                 style={{ 
                   background: theme === 'dark' ? `${colors.cardDark}90` : `${colors.card}90`,
                   borderColor: `${colors.border}30`,
@@ -1401,8 +1401,8 @@ function AppShowcaseSection() {
                     <Image 
                       src="/icons/logo.svg" 
                       alt="Projex Logo" 
-                      width={56} 
-                      height={56} 
+                      width={58} 
+                      height={58} 
                       className="object-contain"
                     />
                   </div>
@@ -1434,7 +1434,7 @@ function AppShowcaseSection() {
                       >
                         <div 
                           style={{ 
-                            fontSize: "8pt",
+                            fontSize: "10pt",
                             letterSpacing: "0",
                             lineHeight: 0.9,
                             color: theme === 'dark' ? `${colors.readableCardDark}99` : `${colors.readableForeground}99`
@@ -1445,7 +1445,7 @@ function AppShowcaseSection() {
                         </div>
                         <div 
                           style={{ 
-                            fontSize: "22pt", 
+                            fontSize: "20pt", 
                             letterSpacing: "0.09rem",
                             lineHeight: "0.85",
                             color: theme === 'dark' ? colors.readableCardDark : colors.readableForeground,

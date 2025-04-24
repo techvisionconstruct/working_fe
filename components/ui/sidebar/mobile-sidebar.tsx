@@ -29,6 +29,14 @@ export function MobileSidebar() {
   const { user } = useUser();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [avatarFallback, setAvatarFallback] = useState('');
+
+  // Set avatar fallback only on client-side to prevent hydration mismatch
+  useEffect(() => {
+    if (user?.username) {
+      setAvatarFallback(user.username[0].toUpperCase());
+    }
+  }, [user?.username]);
 
   // Listen for custom event to open sidebar from mobile header
   useEffect(() => {
@@ -158,7 +166,7 @@ export function MobileSidebar() {
                   <div className="transition-all duration-300">
                     <Avatar className="h-9 w-9 ring-2 ring-background">
                       <AvatarFallback className="font-medium text-sidebar-foreground uppercase">
-                        {user?.username?.charAt(0) || "U"}
+                        {avatarFallback}
                       </AvatarFallback>
                     </Avatar>
                   </div>
