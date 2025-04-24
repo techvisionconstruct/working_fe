@@ -15,7 +15,7 @@ import {
   TabsContent,
   Button,
 } from "@/components/shared";
-import { Save, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, Loader2, Info } from "lucide-react";
 import { evaluateFormula } from "@/lib/formula-evaluator";
 
 import { ProposalDetailsTab } from "@/components/features/create-proposal-page/proposal-details-tab";
@@ -31,8 +31,6 @@ import {
   ElementWithValues,
   validateProposalForm,
 } from "@/components/features/create-proposal-page/zod-schema";
-
-
 
 export default function CreateProposal() {
   const router = useRouter();
@@ -108,7 +106,7 @@ export default function CreateProposal() {
           typeof element.labor_cost === "string"
             ? parseFloat(element.labor_cost) || 0
             : element.labor_cost || 0,
-        markup: element.markup || 10, 
+        markup: element.markup || 10,
       })),
     };
 
@@ -155,9 +153,9 @@ export default function CreateProposal() {
 
   const handleAddCustomModule = (newModule: Module) => {
     // Check if the module already exists in custom modules
-    const exists = customModules.some(m => m.id === newModule.id);
+    const exists = customModules.some((m) => m.id === newModule.id);
     if (!exists) {
-      setCustomModules(prev => [...prev, newModule]);
+      setCustomModules((prev) => [...prev, newModule]);
     }
     // Automatically select the newly created module
     handleModuleToggle(newModule);
@@ -344,7 +342,6 @@ export default function CreateProposal() {
     }
   };
 
-
   console.log("Selected Parameters:", selectedParameters);
   const handleParameterToggle = (parameter: Parameter) => {
     setSelectedParameters((prev) => {
@@ -380,28 +377,32 @@ export default function CreateProposal() {
             Create a detailed proposal for your client.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || isPending}
-            className="gap-2"
-          >
-            {isSubmitting || isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Save Proposal
-          </Button>
-        </div>
+
+        {/* Optional: Add a button to manually trigger the tour */}
+        {/* <Button
+          onClick={startTour}
+          variant="outline"
+          size="sm"
+          className="absolute top-6 right-6 h-10 px-4 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-md z-50"
+        >
+          <span className="flex items-center gap-1.5">
+            <Info className="w-4 h-4" />
+            Tour Guide
+          </span>
+        </Button> */}
+
+        {/* <Button
+          value={activeTab}
+          // onValueChange={handleTabChange}
+          className="w-full h-full flex flex-col"
+        >
+          {isSubmitting || isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Save Proposal
+        </Button> */}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

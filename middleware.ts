@@ -11,12 +11,13 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Allow access to the landing page (root path) without authentication
-  if (pathname === '/') {
-    return NextResponse.next()
-  }
-
-  if (pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
+  // Allow access to public pages without authentication
+  if (
+    pathname === '/' || 
+    pathname.startsWith('/onboard') || 
+    pathname.startsWith('/signin') || 
+    pathname.startsWith('/signup')
+  ) {
     return NextResponse.next()
   }
   

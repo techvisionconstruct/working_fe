@@ -16,6 +16,14 @@ import {
 import { LayoutGrid, List, Search, Plus } from "lucide-react";
 import Link from "next/link";
 
+// Extend Window interface to add our custom callback functions
+declare global {
+  interface Window {
+    proposalTourEndCallback?: () => void;
+    proposalTourCreateCallback?: () => void;
+  }
+}
+
 export default function ProposalsPage() {
   const proposals = useQuery({
     queryKey: ["proposals"],
@@ -47,7 +55,8 @@ export default function ProposalsPage() {
         </Link>
       </div>
       <div className="text-sm text-muted-foreground">
-        Your personal library of proposals. Manage and review your project proposals easily.
+        Your personal library of proposals. Manage and review your project
+        proposals easily.
       </div>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between my-4">
         <div className="relative flex-1 max-w-md w-full">
