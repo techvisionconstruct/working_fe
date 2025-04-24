@@ -18,7 +18,6 @@ export function PreviewTab({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-console.log(modules)
 
   const form = useForm<any>({
     resolver: zodResolver(previewSchema),

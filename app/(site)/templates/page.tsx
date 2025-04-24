@@ -3,6 +3,7 @@
 import { getTemplates } from "@/api/client/templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
+import { TemplateLoader } from "@/components/features/template-page/loader";
 import { Template } from "@/types/templates";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
@@ -21,7 +22,7 @@ export default function TemplatesPage() {
     queryKey: ["template"],
     queryFn: getTemplates,
   });
-  
+
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
 
@@ -35,11 +36,7 @@ export default function TemplatesPage() {
   );
 
   if (templates.isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="loader"></div>
-      </div>
-    );
+    return <TemplateLoader />;
   }
 
   if (templates.isError) {
@@ -49,6 +46,7 @@ export default function TemplatesPage() {
       </div>
     );
   }
+
   return (
     <div>
       <div className="flex items-center justify-between">

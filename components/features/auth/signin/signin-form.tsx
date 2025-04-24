@@ -51,13 +51,17 @@ export function LoginForm({
       if (!response.ok) {
         throw new Error(data.detail || "Sign In failed");
       }
+      // Set the auth token with SameSite=None for cross-site requests
       Cookie.set("auth-token", data.access, {
-        expires: 7,
-        secure: true,
-        sameSite: "strict",
+        expires: 1,
         path: "/",
+        sameSite: "none",
+        secure: true
       });
-
+      
+      // Invalidate React Query cache to force a refetch with the new token
+      window.dispatchEvent(new Event('auth-changed'));
+      
       router.push("/templates");
     } catch (err) {
       setError(

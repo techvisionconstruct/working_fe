@@ -53,7 +53,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId="567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com">
           <UserProvider>
             <Toaster />
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense>
               {children}
             </Suspense>
           </UserProvider>

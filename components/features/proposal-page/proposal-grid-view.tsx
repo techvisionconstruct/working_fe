@@ -12,8 +12,8 @@ export function ProposalGridView({ proposals }: ProposalGridViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {proposals.map((proposal) => (
-        <Link href={`/proposals/${proposal.id}`} key={proposal.id}>
-          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow">
+        <Link href={`/proposals/${proposal.id}`} key={proposal.id} className="h-full">
+          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full">
             <div className="flex gap-4">
               <Image
                 src={proposal.image || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
@@ -29,7 +29,7 @@ export function ProposalGridView({ proposals }: ProposalGridViewProps) {
                 </p>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 mt-auto pt-4">
               <div className="flex flex-wrap gap-2">
                 {proposal.project_modules?.slice(0, 3).map((pm) => (
                   <Badge key={pm.id} variant="secondary" className="text-xs">

@@ -47,10 +47,10 @@ export interface ProjectElement {
   module: any;
   template_elements: any;
   quantity: number;
-  labor_cost: string; // formula string
-  markup: string; // percent as string
+  labor_cost: string; 
+  markup: string;
   total: number;
-  material_cost: string; // formula string
+  material_cost: string; 
 }
 
 export interface ProjectParameter {
@@ -91,8 +91,3 @@ export interface Proposal {
   project_modules: ProjectModule[];
   contract: Contract;
 }
-
-// export interface Template extends Omit<ProposalData, "variables"> {
-//   variables: Omit<Variable, "value">[]
-//   image: string
-// }

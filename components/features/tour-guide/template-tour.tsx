@@ -7,7 +7,6 @@ import "driver.js/dist/driver.css";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/shared";
 import { X } from "lucide-react";
 
-// Declare custom properties on Window interface
 declare global {
   interface Window {
     templateTourEndCallback?: () => void;
