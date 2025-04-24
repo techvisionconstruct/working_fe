@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { TemplateTour } from "@/components/features/joyride/template-tour";
+import { TemplateTour } from "@/components/features/tour-guide/template-tour";
 import {
   Tabs,
   TabsList,
@@ -211,13 +211,21 @@ export default function TemplatePage() {
             </div>
           </div>
           <div className="container mx-auto mt-2" id="content">
-            <TabsContent value="grid">
+            <TabsContent
+              value="grid"
+              data-tabcontent="grid"
+              className="p-4 rounded-lg bg-white dark:bg-zinc-900 shadow-sm"
+            >
               <TemplateGridView
                 sortOption={sortOption}
                 searchQuery={searchQuery}
               />
             </TabsContent>
-            <TabsContent value="list">
+            <TabsContent
+              value="list"
+              data-tabcontent="list"
+              className="p-4 rounded-lg bg-white dark:bg-zinc-900 shadow-sm"
+            >
               <TemplateListView
                 sortOption={sortOption}
                 searchQuery={searchQuery}

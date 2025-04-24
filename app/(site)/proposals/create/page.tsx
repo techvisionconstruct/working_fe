@@ -9,7 +9,7 @@ import { CostCalculation } from "@/components/features/create-proposal/cost-calc
 import { ProposalPreview } from "@/components/features/create-proposal/proposal-review";
 import ProposalDetails from "@/components/features/create-proposal/proposal-details";
 import { emptyProposal } from "@/data/proposals";
-import { CreateProposalTour } from "@/components/features/joyride/create-proposal-tour";
+import { CreateProposalTour } from "@/components/features/tour-guide/create-proposal-tour";
 import { Info } from "lucide-react";
 
 export default function CreateProposalPage() {
@@ -19,7 +19,7 @@ export default function CreateProposalPage() {
 
   // Check if user has seen the tour before
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem("hasSeenCreateTemplateTour");
+    const hasSeenTour = localStorage.getItem("hasSeenCreateProposalTour");
     if (!hasSeenTour) {
       setIsTourRunning(true);
     }
@@ -39,7 +39,11 @@ export default function CreateProposalPage() {
     };
 
     setCurrentProposal(newProposal);
-    setActiveTab("details");
+    
+    // Only change tab if the tour isn't controlling it
+    if (!isTourRunning) {
+      setActiveTab("details");
+    }
   };
 
   const updateVariables = (updatedVariables: any) => {
@@ -54,6 +58,7 @@ export default function CreateProposalPage() {
   };
 
   const handleTabChange = (value: string) => {
+    // Always allow tab changes to work with the tour guide
     setActiveTab(value);
   };
 
@@ -96,7 +101,7 @@ export default function CreateProposalPage() {
           </span>
         </Button>
 
-        <div className="rounded-2xl shadow-md bg-white/90 backdrop-blur-md p-6 flex-1 flex flex-col">
+        <div id="proposal-form" className="rounded-2xl shadow-md bg-white/90 backdrop-blur-md p-6 flex-1 flex flex-col">
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
@@ -105,31 +110,31 @@ export default function CreateProposalPage() {
             <TabsList className="flex w-full mb-6 rounded-xl bg-gray-100 p-1 h-12">
               <TabsTrigger
                 value="template"
-                className="flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
+                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
               >
                 Template
               </TabsTrigger>
               <TabsTrigger
                 value="details"
-                className="flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
+                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
               >
                 Details
               </TabsTrigger>
               <TabsTrigger
                 value="variables"
-                className="flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
+                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
               >
                 Variables
               </TabsTrigger>
               <TabsTrigger
                 value="costs"
-                className="flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
+                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
               >
                 Cost Calculation
               </TabsTrigger>
               <TabsTrigger
                 value="preview"
-                className="flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
+                className="tab-trigger flex-1 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-black text-gray-500 transition-all"
               >
                 Preview
               </TabsTrigger>

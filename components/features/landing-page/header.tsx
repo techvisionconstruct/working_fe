@@ -21,14 +21,13 @@ export default function Header({
   const [scrolling, setScrolling] = useState(false);
   const router = useRouter();
 
+  // Simplified scroll handler - no preloading needed for SVG
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleScroll = () => {
-        setScrolling(window.scrollY > 50);
-      };
-      window.addEventListener("scroll", handleScroll);
-      return () => window.removeEventListener("scroll", handleScroll);
-    }
+    const handleScroll = () => {
+      setScrolling(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
@@ -42,28 +41,32 @@ export default function Header({
       }`}
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center relative">
-        {/* Left Side: Logo */}
+        {/* Left Side: Logo - Using SVG for better performance */}
         <div className="flex items-center">
           <div
-            className={`transition-all duration-300 ${
+            className={`transition-all duration-300 flex items-center ${
               scrolling ? "h-16" : "h-28"
             }`}
           >
             <Link href="/">
-              <img
-                src={
-                  theme === "dark" || !scrolling
-                    ? "/logo-no-bg-dark mode.png"
-                    : "/logo-no-bg-light mode.png"
-                }
-                alt="Simple Projex Logo"
-                className={`transition-all duration-500 ${
-                  scrolling ? "h-12 mt-2" : "h-28 mt-3"
-                }`}
-              />
+              <div className={`transition-all duration-300 relative ${
+                scrolling ? "w-[120px] h-12" : "w-[240px] h-16"
+              }`}>
+                <img
+                  src="/icons/logo.svg"
+                  alt="Simple Projex Logo"
+                  className={`transition-all duration-300 w-full h-full ${
+                    scrolling ? "filter-none" : "filter-white"
+                  }`}
+                  style={{ 
+                    filter: scrolling ? 'invert(0%)' : 'invert(100%)'
+                  }}
+                />
+              </div>
             </Link>
           </div>
         </div>
+        
         {/* Right Side: Single row for contact info, theme toggle, and login */}
         <div className="hidden lg:flex items-center space-x-6">
           {/* Contact Info */}
@@ -99,16 +102,16 @@ export default function Header({
             </div>
           </button>
           
-          {/* Login Button */}
+          {/* Sign In Button */}
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/signin")}
             className={`border-2 text-sm px-4 py-2 rounded-full flex items-center justify-center transition-all duration-300 ${
               scrolling 
                 ? "bg-primary text-primary-foreground border-primary hover:bg-accent hover:border-accent hover:text-foreground" 
                 : "bg-white/10 backdrop-blur-sm text-white border-white/30 hover:bg-white hover:text-black"
             } font-semibold`}
           >
-            Login
+            Sign In
           </button>
         </div>
         
@@ -158,10 +161,10 @@ export default function Header({
                 </div>
               </button>
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/signin")}
                 className="border-2 text-sm px-4 py-2 rounded-full flex items-center justify-center transition-all duration-300 bg-primary text-primary-foreground border-primary hover:bg-accent hover:border-accent hover:text-foreground font-semibold"
               >
-                Login
+                Sign In
               </button>
             </div>
           </div>

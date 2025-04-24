@@ -44,6 +44,7 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
   const handleSaveProposal = async () => {
     setIsSaving(true);
     try {
+      console.log("Saving proposal:", proposal);
       const result = await createProposal(proposal);
 
       if (result.success) {

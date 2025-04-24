@@ -5,16 +5,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-interface HeroSectionProps {
-  theme: string;
+declare global {
+  interface Window {
+    loadCalendlyScript?: () => void;
+  }
 }
 
-function HeroSection({ theme }: HeroSectionProps) {
+interface HeroSectionProps {
+  theme: string;
+  calendlyReady: boolean;
+}
+
+function HeroSection({ theme, calendlyReady }: HeroSectionProps) {
   const router = useRouter();
 
   const openCalendlyPopup = () => {
-    if (typeof window !== "undefined" && (window as any).Calendly) {
-      (window as any).Calendly.initPopupWidget({
+    if (typeof window !== "undefined" && window.Calendly) {
+      window.Calendly.initPopupWidget({
         url: "https://calendly.com/avorino/simple-projex-demo",
       });
     }
@@ -55,16 +62,23 @@ function HeroSection({ theme }: HeroSectionProps) {
                   size="lg" 
                   className="bg-[#e6a310] text-black hover:bg-[#203a53] hover:text-white font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg rounded-full" 
                   onClick={openCalendlyPopup}
+                  disabled={!calendlyReady}
                 >
-                  Schedule a Demo <ArrowRight className="w-5 h-5" />
+                  {calendlyReady ? (
+                    <>
+                      Schedule a Demo <ArrowRight className="w-5 h-5" />
+                    </>
+                  ) : (
+                    <span className="flex items-center gap-2"><span className="animate-spin rounded-full border-2 border-t-2 border-gray-200 h-5 w-5"></span>Loading…</span>
+                  )}
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline" 
                   className="border-white text-white bg-transparent hover:bg-white hover:text-black font-bold uppercase tracking-wider shadow-lg rounded-full" 
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push("/signin")}
                 >
-                  Login
+                  Sign In
                 </Button>
               </div>
             </CardContent>
