@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DM_Sans, Open_Sans } from "next/font/google";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import "@/assets/style/globals.css";
 
 import { Suspense } from "react";
@@ -49,12 +50,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={bodyClasses}>
-        <UserProvider>
-          <Toaster />
-          <Suspense fallback={<div>Loading...</div>}>
-            {children}
-          </Suspense>
-        </UserProvider>
+        <GoogleOAuthProvider clientId="567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com">
+          <UserProvider>
+            <Toaster />
+            <Suspense fallback={<div>Loading...</div>}>
+              {children}
+            </Suspense>
+          </UserProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );
