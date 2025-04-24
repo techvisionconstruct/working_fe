@@ -98,6 +98,7 @@ export function Sidenav() {
     windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0 
   });
   const { user, isLoading, error } = useUser();
+  const [avatarFallback, setAvatarFallback] = useState('');
   
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +114,12 @@ export function Sidenav() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Set avatar fallback only on client-side to prevent hydration mismatch
+  useEffect(() => {
+    if (user?.username) {
+      setAvatarFallback(user.username[0].toUpperCase());
+    }
+  }, [user?.username]);
 
   useEffect(() => {
     const currentPath = pathname || "/dashboard";
@@ -340,7 +347,7 @@ export function Sidenav() {
                     )}
                   >
                     <Avatar className="h-9 w-9 ring-2 ring-sidebar-ring/20 hover:ring-sidebar-ring/40 transition-all">
-                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{user?.username?.[0]}</AvatarFallback>
+                      <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{avatarFallback}</AvatarFallback>
                     </Avatar>
                   </div>
                   
