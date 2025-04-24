@@ -236,8 +236,8 @@ export function Sidenav() {
             <Image 
               src="/icons/logo.svg" 
               alt="Projex Logo" 
-              width={56} 
-              height={56} 
+              width={58} 
+              height={58} 
               className="object-contain"
             />
           </div>
@@ -270,7 +270,7 @@ export function Sidenav() {
                 <div 
                   style={{ 
                     fontFamily: "'DM Sans', sans-serif", 
-                    fontSize: "8pt",
+                    fontSize: "10pt",
                     letterSpacing: "0",
                     lineHeight: 0.9
                   }} 
@@ -281,7 +281,7 @@ export function Sidenav() {
                 <div 
                   style={{ 
                     fontFamily: "'DM Sans', sans-serif", 
-                    fontSize: "22pt", 
+                    fontSize: "20pt", 
                     letterSpacing: "0.09rem",
                     lineHeight: "0.85"
                   }} 
