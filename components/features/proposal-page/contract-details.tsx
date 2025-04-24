@@ -40,29 +40,42 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
   const parseTermsAndConditions = (termsString: string): TermSection[] => {
     if (!termsString) return [];
     
-    // Split by newlines
-    const termLines = termsString.split('\r\n');
+    // Split by newlines, handling both \r\n and \n
+    const lines = termsString.split(/\r?\n/);
+    const sections: TermSection[] = [];
     
-    return termLines.map((line, index) => {
+    // Process each line as a potential new section
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines
+      if (trimmedLine === '') return;
+      
       // Try to split by colon to get title and description
       const colonIndex = line.indexOf(':');
-      if (colonIndex > -1) {
+      
+      // If this line has a colon, create a new section
+      if (colonIndex > 0 && colonIndex < line.length - 1) {
         const title = line.substring(0, colonIndex).trim();
         const description = line.substring(colonIndex + 1).trim();
-        return {
-          id: index + 1,
+        
+        sections.push({
+          id: sections.length + 1,
           title,
           description
-        };
-      } else {
-        // If no colon, use the whole line as description with generic title
-        return {
-          id: index + 1,
-          title: `Section ${index + 1}`,
-          description: line.trim()
-        };
+        });
+      } 
+      // No colon, create section with generic title
+      else {
+        sections.push({
+          id: sections.length + 1,
+          title: `Section ${sections.length + 1}`,
+          description: trimmedLine
+        });
       }
     });
+    
+    return sections;
   };
   
   // Function to determine signature type and value
