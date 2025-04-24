@@ -15,7 +15,7 @@ export const useCreateProposal = () => {
   const createProposal = async (proposalData: ProposalData): Promise<CreateProposalResponse> => {
     setIsLoading(true);
     setError(null);
-    
+    console.log("Creating proposal with data:", proposalData);
     const token = Cookies.get("auth-token");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
