@@ -32,7 +32,6 @@ import {
   Eye,
   EyeOff,
   Check,
-  Smile,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -156,7 +155,7 @@ export function RegisterForm({
       if (!result.success) {
         throw new Error(result.error || "OTP verification failed");
       }
-      toast.success("Registration successful!", {
+      toast.success("Registration successful", {
         description: `Your account has been created successfully.`,
         duration: 3000,
         position: "top-center",
@@ -204,10 +203,9 @@ export function RegisterForm({
         <CardContent className="p-6">
           {/* Form header */}
           <div className="flex flex-col items-center text-center mb-6">
-            <h1 className="text-2xl font-bold">Create your account now!</h1>
+            <h1 className="text-2xl font-bold">Create your account</h1>
             <p className="text-balance text-muted-foreground">
-              Complete the steps below to register{" "}
-              <Smile className="h-4 w-4 inline" />
+              Complete the steps below to register
             </p>
 
             {/* Progress indicator */}

@@ -12,8 +12,6 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookie from "js-cookie";
-import Link from "next/link";
-import { Laugh } from "lucide-react";
 
 export function LoginForm({
   className,
@@ -77,10 +75,9 @@ export function LoginForm({
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back!!</h1>
+                <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-balance text-muted-foreground">
-                  Sign In to your Simple ProjeX account{" "}
-                  <Laugh className="h-4 w-4 inline" />
+                  Sign in to your Simple ProjeX account
                 </p>
               </div>
               {error && (
