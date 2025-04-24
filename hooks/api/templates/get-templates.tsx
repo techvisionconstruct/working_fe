@@ -1,37 +1,6 @@
 import { useState, useEffect } from "react";
-
-interface User {
-  id: string;
-  email: string;
-  username: string;
-}
-
-interface Module {
-  id: number;
-  name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Parameter {
-  id: number;
-  name: string;
-  value: number;
-  category: string;
-}
-
-interface Template {
-  id: number;
-  name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  user: User;
-  modules: Module[];
-  parameters: Parameter[];
-  image: string;
-}
+import {Template} from "@/types/templates";
+import Cookies from "js-cookie";
 
 interface GetTemplatesResult {
   templates: Template[];
@@ -51,7 +20,12 @@ export const getTemplates = (): GetTemplatesResult => {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/api/templates/templates`);
+      const token = Cookies.get('auth-token');
+      const response = await fetch(`${apiUrl}/api/templates/templates`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Error fetching templates: ${response.statusText}`);

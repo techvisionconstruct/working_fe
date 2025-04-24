@@ -4,7 +4,7 @@ import { Card, CardContent, Badge } from "@/components/shared";
 import Link from "next/link";
 import { ProposalsGridProps } from "@/types/proposals";
 import { getProposals } from "@/hooks/api/proposals/get-proposals";
-import { AnimatedCard } from "./animations/proposal-grid-view-animations";
+import { GridLoader } from "@/components/loader/grid-loader";
 
 export default function ProposalGridView({
   sortOption,
@@ -13,9 +13,12 @@ export default function ProposalGridView({
   const { proposals, isLoading, error, refetch } = getProposals();
 
   const filteredAndSortedProposals = useMemo(() => {
+    if (!Array.isArray(proposals)) return [];
+    
     const filtered = searchQuery
       ? proposals.filter((proposal) =>
-          proposal.name.toLowerCase().includes(searchQuery.toLowerCase())
+          proposal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (proposal.description && proposal.description.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       : proposals;
 
@@ -58,92 +61,101 @@ export default function ProposalGridView({
     });
   }, [proposals, sortOption, searchQuery]);
 
+  if (isLoading) {
+    return <GridLoader />;
+  }
+
   if (!Array.isArray(proposals) || proposals.length === 0) {
     return (
-      <div className="py-8 text-center col-span-3">
-        <p className="text-lg font-medium">No proposals available.</p>
+      <div className="col-span-3 py-8 text-center">
+        <p className="text-lg font-medium text-zinc-400">No proposals available.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredAndSortedProposals.length > 0 ? (
-        filteredAndSortedProposals.map((proposal, index) => (
-          <AnimatedCard key={proposal.id} index={index}>
-            <Card className="h-full rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 pt-6">
-              <div className="w-full h-44 relative -mt-20">
+        filteredAndSortedProposals.map((proposal) => (
+          <Link
+            key={proposal.id}
+            href={`proposals/${proposal.id}`}
+            className="group"
+          >
+            <Card
+              className="h-full rounded-2xl overflow-hidden transition-all duration-200 shadow-none group-hover:shadow-xl group-hover:-translate-y-1 border border-zinc-200 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm cursor-pointer"
+            >
+              <div className="w-full h-40 relative bg-zinc-100 dark:bg-zinc-800">
                 <Image
-                  src={proposal.image}
+                  src={proposal.image || "/placeholder-image.jpg"}
                   alt={proposal.name}
                   fill
                   className="object-cover"
+                  style={{ borderTopLeftRadius: "1rem", borderTopRightRadius: "1rem" }}
                 />
               </div>
-              <CardContent>
-                <h1 className="text-xl font-bold mt-2">{proposal.name}</h1>
-                <p className="mt-1 text-sm text-black/50 line-clamp-3">
+              <CardContent className="p-5">
+                <h2 className="text-lg font-semibold mb-1 text-zinc-900 dark:text-zinc-100 truncate">
+                  {proposal.name}
+                </h2>
+                <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400 line-clamp-3 min-h-[48px]">
                   {proposal.description}
                 </p>
-
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex flex-wrap gap-2 max-w-full">
-                    {proposal.project_modules.slice(0, 4).map((category) => (
-                      <Badge
-                        key={category.id}
-                        variant="outline"
-                        className="font-bold uppercase text-xs"
-                      >
-                        {category.module.name}
-                      </Badge>
-                    ))}
-                    {proposal.project_modules.length > 4 && (
-                      <Badge
-                        variant="outline"
-                        className="font-bold uppercase text-xs"
-                      >
-                        +{proposal.project_modules.length - 4} more
-                      </Badge>
-                    )}
-                  </div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {proposal.project_modules?.slice(0, 4).map((category) => (
+                    <Badge
+                      key={category.id}
+                      variant="outline"
+                      className="font-semibold uppercase text-xs rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-0.5"
+                    >
+                      {category.module?.name || "Module"}
+                    </Badge>
+                  ))}
+                  {proposal.project_modules?.length > 4 && (
+                    <Badge
+                      variant="outline"
+                      className="font-semibold uppercase text-xs rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-0.5"
+                    >
+                      +{proposal.project_modules.length - 4} more
+                    </Badge>
+                  )}
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <span className="uppercase font-bold">Variables</span>
-                    <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
+                <div className="flex gap-2 mb-3">
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-0.5"
+                  >
+                    <span className="uppercase font-semibold">Parameters</span>
+                    <span className="ml-1 h-4 w-4 rounded bg-zinc-200 dark:bg-zinc-700 text-xs text-zinc-700 dark:text-zinc-200 flex items-center justify-center px-1">
                       {proposal.project_parameters?.length || 0}
                     </span>
                   </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <span className="uppercase font-bold">Categories</span>
-                    <span className="ml-1 h-4 w-4 rounded-sm bg-black/50 text-xs text-primary-foreground flex items-center justify-center">
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-0.5"
+                  >
+                    <span className="uppercase font-semibold">Modules</span>
+                    <span className="ml-1 h-4 w-4 rounded bg-zinc-200 dark:bg-zinc-700 text-xs text-zinc-700 dark:text-zinc-200 flex items-center justify-center px-1">
                       {proposal.project_modules?.length || 0}
                     </span>
                   </Badge>
                 </div>
-
-                <div className="flex justify-between items-center mt-4 ml-1">
-                  <p className="text-sm font-bold">
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs font-medium text-zinc-400">
                     {new Date(proposal.created_at).toLocaleDateString("en-US", {
                       month: "2-digit",
                       day: "2-digit",
                       year: "numeric",
                     })}
                   </p>
-                  <Link
-                    href={`proposals/${proposal.id}`}
-                    className="text-sm font-bold hover:underline"
-                  >
-                    Read More
-                  </Link>
                 </div>
               </CardContent>
             </Card>
-          </AnimatedCard>
+          </Link>
         ))
       ) : (
         <div className="col-span-3 py-8 text-center">
-          <p className="text-lg font-medium">
+          <p className="text-lg font-medium text-zinc-400">
             No proposals found matching your search.
           </p>
         </div>

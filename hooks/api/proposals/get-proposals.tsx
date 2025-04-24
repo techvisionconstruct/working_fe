@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Proposal } from '@/types/proposals';
+import Cookies from 'js-cookie';
+
 
 interface GetProposalsResult {
   proposals: Proposal[];
@@ -19,7 +21,12 @@ export const getProposals = (): GetProposalsResult => {
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/api/projects/project`);
+      const token = Cookies.get('auth-token');
+      const response = await fetch(`${apiUrl}/api/projects/project`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
       
       if (!response.ok) {
         throw new Error(`Error fetching proposals: ${response.statusText}`);

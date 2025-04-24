@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProposalData } from "@/types/proposals";
+import Cookies from "js-cookie";
 
 interface CreateProposalResponse {
   success: boolean;
@@ -15,13 +16,14 @@ export const useCreateProposal = () => {
     setIsLoading(true);
     setError(null);
     
-    console.log(proposalData); 
+    const token = Cookies.get("auth-token");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(`${apiUrl}/api/projects/project/new/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(proposalData)
       });

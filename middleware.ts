@@ -2,10 +2,22 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export default function middleware(request: NextRequest) {
-  const authToken = request.cookies.get('auth-token')
+  const authToken = request.cookies.get('auth-token')?.value
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
+  // Redirect logged-in users from login to templates page
+  if ((pathname.startsWith('/signin') || pathname.startsWith('/signup')) && authToken) {
+    const url = new URL('/templates', request.url)
+    return NextResponse.redirect(url)
+  }
+
+  // Allow access to public pages without authentication
+  if (
+    pathname === '/' || 
+    pathname.startsWith('/onboard') || 
+    pathname.startsWith('/signin') || 
+    pathname.startsWith('/signup')
+  ) {
     return NextResponse.next()
   }
   
@@ -19,12 +31,23 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (!authToken) {
-    const url = new URL('/login', request.url)
-    return NextResponse.redirect(url)
+  // Check if authToken looks like a JWT (three dot-separated parts)
+  const isLikelyJWT = authToken && authToken.split('.').length === 3;
+
+  if (!authToken || !isLikelyJWT) {
+    const url = new URL('/signin', request.url);
+    return NextResponse.redirect(url);
   }
 
-  return NextResponse.next()
+  // Add the Authorization header to the request
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('Authorization', `Bearer ${authToken}`)
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
 }
 
 export const config = {

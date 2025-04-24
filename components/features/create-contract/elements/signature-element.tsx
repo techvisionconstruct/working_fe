@@ -1,228 +1,275 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, X, PenTool } from "lucide-react";
+import { Upload, X, PenTool, FileImage, Fingerprint } from "lucide-react";
+import { Button } from "@/components/shared/button/button";
+import { Input } from "@/components/shared/input/input";
+import { cn } from "@/lib/utils";
 
 interface SignatureContent {
   label: string;
   imageData?: string;
+  initials?: string;
+  signatureType: 'image' | 'initials';
 }
 
-// Add isPrintPreview prop to SignatureElementProps
 interface SignatureElementProps {
   content: SignatureContent;
   onChange: (content: SignatureContent) => void;
-  isPrintPreview?: boolean; // Add this new prop
+  isPrintPreview?: boolean;
 }
 
 export const SignatureElement = ({ 
   content, 
   onChange,
-  isPrintPreview = false // Default to false
+  isPrintPreview = false
 }: SignatureElementProps) => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [signatureType, setSignatureType] = useState<'image' | 'initials'>('image');
+  const [initialsValue, setInitialsValue] = useState(content.initials || '');
+  const [labelValue, setLabelValue] = useState(content.label || 'Signature');
+  const [imageData, setImageData] = useState(content.imageData);
   
-  // Load previously uploaded signature from localStorage
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const initialsInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    const savedSignature = localStorage.getItem('savedSignature');
-    if (savedSignature && !content.imageData) {
+    // Don't update the signatureType from content to keep our default
+    setInitialsValue(content.initials || '');
+    setLabelValue(content.label || 'Signature');
+    setImageData(content.imageData);
+  }, [content]);
+
+  const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const initials = e.target.value.toUpperCase().slice(0, 3);
+    setInitialsValue(initials);
+    onChange({
+      ...content,
+      label: labelValue,
+      initials,
+      signatureType: 'initials',
+      imageData: undefined
+    });
+  };
+
+  const handleSignatureTypeChange = (type: 'image' | 'initials') => {
+    setSignatureType(type);
+    if (type === 'initials') {
+      setTimeout(() => initialsInputRef.current?.focus(), 100);
       onChange({
         ...content,
-        imageData: savedSignature
+        label: labelValue,
+        signatureType: type,
+        initials: initialsValue,
+        imageData: undefined
       });
-    } else if (content.imageData) {
-      setUploadedImage(content.imageData);
+    } else {
+      onChange({
+        ...content,
+        label: labelValue,
+        signatureType: type,
+        initials: undefined,
+        imageData
+      });
     }
-  }, []);
-  
-  // Handle drag events
+  };
+
+  const handleFileUpload = (file: File) => {
+    if (!file.type.match('image.*')) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newImageData = e.target?.result as string;
+      setImageData(newImageData);
+      localStorage.setItem('savedSignature', newImageData);
+      onChange({
+        ...content,
+        label: labelValue,
+        signatureType: 'image',
+        imageData: newImageData,
+        initials: undefined
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    setDragActive(e.type === "dragenter" || e.type === "dragover");
   };
-  
-  // Handle dropping an image
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files?.[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
     }
   };
-  
-  // Handle file input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      handleFileUpload(e.target.files[0]);
     }
   };
-  
-  // Process the uploaded image file
-  const processFile = (file: File) => {
-    if (!file.type.match('image.*')) return;
-    
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      const imageData = e.target?.result as string;
-      setUploadedImage(imageData);
-      
-      // Save to localStorage and update content
-      localStorage.setItem('savedSignature', imageData);
-      onChange({
-        ...content,
-        imageData: imageData
-      });
-    };
-    
-    reader.readAsDataURL(file);
-  };
-  
-  // Clear the uploaded signature
+
   const clearSignature = () => {
-    setUploadedImage(null);
+    setImageData(undefined);
     localStorage.removeItem('savedSignature');
     onChange({
       ...content,
+      label: labelValue,
       imageData: undefined
     });
   };
-  
-  // Trigger file input click
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-  
-  // Edit the signature label
+
   const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newLabel = e.target.value;
+    setLabelValue(newLabel);
     onChange({
       ...content,
-      label: e.target.value
+      label: newLabel
     });
   };
-  
-  // Fix the container and drop zone styling to properly contain everything
+
+  useEffect(() => {
+    const savedSignature = localStorage.getItem('savedSignature');
+    if (savedSignature && !content.imageData && signatureType === 'image') {
+      setImageData(savedSignature);
+      onChange({
+        ...content,
+        label: labelValue,
+        imageData: savedSignature,
+        signatureType: 'image'
+      });
+    }
+  }, []);
+
+  const containerClasses = cn(
+    "relative w-[300px] mx-auto",
+    isPrintPreview ? "h-[80px]" : "h-[160px]"
+  );
+
+  const signatureAreaClasses = cn(
+    "w-full h-full flex items-center justify-center",
+    !isPrintPreview && "border rounded-lg"
+  );
+
   return (
-    <div 
-      className="flex flex-col w-full" 
-      style={{ 
-        width: '350px',
-        minHeight: isPrintPreview ? '70px' : '100px',
-        maxHeight: isPrintPreview ? '70px' : '150px',
-        overflow: 'hidden',
-        position: 'relative' // Added to ensure proper containment
-      }}
-    >
-      {/* Only show the label in edit mode, not in print preview */}
+    <div className={containerClasses}>
       {!isPrintPreview && (
-        <div className="flex items-center mb-2 signature-label">
-          <PenTool size={16} className="text-blue-500 mr-2" />
-          <input 
-            type="text"
-            value={content.label || "Signature"}
-            onChange={handleLabelChange}
-            className="text-sm font-medium border-b border-transparent focus:border-blue-500 focus:outline-none"
-            placeholder="Signature label"
-          />
-        </div>
-      )}
-      
-      {!content.imageData && !isPrintPreview ? (
-        <div 
-          className={`border-2 border-dashed rounded-md transition-colors signature-element-container ${
-            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
-          }`}
-          style={{ 
-            height: '70px',
-            display: 'flex', 
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto', // Center the container
-            padding: '2px', // Reduced padding to prevent overflow
-            boxSizing: 'border-box', // Important: include borders in width calculation
-            width: '70%' // Reduced from 90% to 70% for smaller width
-          }}
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={handleDrop}
-          onClick={handleButtonClick}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={handleChange}
-          />
-          
-          <div className="flex items-center justify-center w-full">
-            <Upload className="h-6 w-6 text-gray-400 mr-2 flex-shrink-0" />
-            <div className="flex-grow">
-              <p className="text-sm text-gray-500 text-left whitespace-nowrap overflow-hidden text-ellipsis">
-                Drop signature image
-              </p>
-              <p className="text-xs text-gray-400 text-left whitespace-nowrap overflow-hidden text-ellipsis">
-                PNG with transparency
-              </p>
-            </div>
+        <div className="absolute top-0 left-0 right-0 flex flex-col gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <PenTool size={16} className="text-blue-500 flex-shrink-0" />
+            <Input 
+              type="text"
+              value={labelValue}
+              onChange={handleLabelChange}
+              className="h-7 py-0 px-1 text-sm font-medium border-b border-transparent bg-transparent focus-visible:border-blue-500 focus-visible:ring-0"
+              placeholder="Signature label"
+            />
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant={signatureType === 'image' ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => handleSignatureTypeChange('image')}
+              className="text-xs rounded-full h-7"
+            >
+              <FileImage className="h-3.5 w-3.5 mr-1" />
+              Upload Image
+            </Button>
+            <Button
+              variant={signatureType === 'initials' ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => handleSignatureTypeChange('initials')}
+              className="text-xs rounded-full h-7"
+            >
+              <Fingerprint className="h-3.5 w-3.5 mr-1" />
+              Use Initials
+            </Button>
           </div>
         </div>
-      ) : (
-        /* Image display container - no changes needed here as it's working correctly */
-        <div 
-          className={isPrintPreview ? "" : "relative border border-gray-200 rounded-md group signature-element-container"}
-          style={{ 
-            height: '70px',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: isPrintPreview ? 0 : '8px',
-            backgroundColor: isPrintPreview ? 'transparent' : 'white',
-            overflow: 'hidden',
-            boxSizing: 'border-box', // Include borders in dimensions
-            width: '70%', // Reduced from 90% to 70% for smaller width
-            margin: '0 auto' // Center the container
-          }}
-        >
-          {content.imageData && (
-            <img 
-              src={content.imageData} 
-              alt="Signature" 
-              className="object-contain"
-              style={{ 
-                maxWidth: '90%',
-                maxHeight: '60px',
-                margin: '0 auto',
-                display: 'block'
-              }}
-            />
-          )}
-          
-          {!isPrintPreview && content.imageData && (
-            <button
-              onClick={clearSignature}
-              className="absolute top-1 right-1 p-1 bg-red-50 text-red-500 rounded-bl shadow-sm border border-red-200 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100"
-              aria-label="Remove signature"
-              title="Remove signature"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
       )}
+
+      <div className={cn(
+        "absolute",
+        isPrintPreview ? "inset-0" : "bottom-0 left-0 right-0 h-[80px]"
+      )}>
+        {signatureType === 'initials' ? (
+          <div className={signatureAreaClasses}>
+            {isPrintPreview ? (
+              <span className="text-3xl font-bold italic text-blue-600">
+                {initialsValue}
+              </span>
+            ) : (
+              <input
+                ref={initialsInputRef}
+                type="text"
+                value={initialsValue}
+                onChange={handleInitialsChange}
+                placeholder="ABC"
+                maxLength={3}
+                className="text-center text-2xl font-bold italic w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-blue-600 h-12 placeholder:text-gray-300"
+                aria-label="Enter your initials"
+                autoComplete="off"
+              />
+            )}
+          </div>
+        ) : (
+          <div className={signatureAreaClasses}>
+            {imageData ? (
+              <div className="relative w-full h-full flex items-center justify-center group">
+                <img 
+                  src={imageData} 
+                  alt="Signature" 
+                  className="max-w-[90%] max-h-[70px] object-contain"
+                />
+                {!isPrintPreview && (
+                  <Button
+                    onClick={clearSignature}
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6 p-0.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove signature"
+                  >
+                    <X size={14} />
+                  </Button>
+                )}
+              </div>
+            ) : !isPrintPreview && (
+              <div 
+                className={cn(
+                  "w-full h-full flex items-center justify-center p-2 border-2 border-dashed rounded-md transition-colors cursor-pointer",
+                  dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
+                )}
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                />
+                
+                <div className="flex items-center justify-center">
+                  <Upload className="h-6 w-6 text-gray-400 mr-2" />
+                  <div>
+                    <p className="text-sm text-gray-500">Drop signature image</p>
+                    <p className="text-xs text-gray-400">PNG with transparency</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

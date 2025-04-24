@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +26,16 @@ export default function AddCategory({
   setIsCategoryDialogOpen,
   newCategory,
   setNewCategory,
-  handleAddCategory
+  handleAddCategory,
 }: AddCategoryProps) {
+  const category = newCategory || { name: "" };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCategory({ ...category, name: e.target.value });
+  };
+
   return (
-    <Dialog
-      open={isCategoryDialogOpen}
-      onOpenChange={setIsCategoryDialogOpen}
-    >
+    <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <PlusCircleIcon className="h-4 w-4" /> Add Category
@@ -50,10 +53,8 @@ export default function AddCategory({
             <Label htmlFor="category-name">Category Name</Label>
             <Input
               id="category-name"
-              value={newCategory.name}
-              onChange={(e) =>
-                setNewCategory({ ...newCategory, name: e.target.value })
-              }
+              value={category.name || ""}
+              onChange={handleChange}
               placeholder="e.g., Plumbing"
             />
           </div>
@@ -65,9 +66,14 @@ export default function AddCategory({
           >
             Cancel
           </Button>
-          <Button onClick={handleAddCategory}>Add Category</Button>
+          <Button
+            onClick={handleAddCategory}
+            disabled={!category.name || category.name.trim() === ""}
+          >
+            Add Category
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
