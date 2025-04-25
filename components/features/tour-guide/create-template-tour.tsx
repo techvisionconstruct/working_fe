@@ -25,8 +25,7 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
   const endTour = () => {
     localStorage.setItem("hasSeenCreateTemplateTour", "true");
     setIsRunning(false);
-    // Go back to the first tab when the tour ends
-    setActiveTab("details");
+    // No longer changing tab on skip
   };
 
   useEffect(() => {

@@ -9,29 +9,30 @@ import { X } from "lucide-react";
 
 declare global {
   interface Window {
-    proposalTourEndCallback?: () => void;
-    proposalTourCreateCallback?: () => void;
+    contractTourEndCallback?: () => void;
+    contractTourCreateCallback?: () => void;
   }
 }
 
-type ProposalTourProps = {
+type ContractTourProps = {
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
 };
 
-export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
+export function ContractTour({ isRunning, setIsRunning }: ContractTourProps) {
   const router = useRouter();
 
   // Helper to end the tour
   const endTour = () => {
-    localStorage.setItem("hasSeenProposalsTour", "true");
+    localStorage.setItem("hasSeenContractsTour", "true");
     setIsRunning(false);
-    // No navigation changes when skipping
   };
 
-  // Function to redirect to proposal creation page
-  const redirectToCreateProposal = () => {
-    router.push("/proposals/create");
+  // Helper to redirect to create contract
+  const redirectToCreateContract = () => {
+    localStorage.setItem("hasSeenContractsTour", "true");
+    setIsRunning(false);
+    router.push("/proposals");
   };
 
   useEffect(() => {
@@ -76,6 +77,9 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             color: #aaa !important;
             border-radius: 50%;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-close-btn:hover {
             background: #f2f2f2 !important;
@@ -89,6 +93,8 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            pointer-events: auto !important;
+            z-index: 1000002 !important;
           }
           .apple-popover .driver-popover-progress-text {
             color: #bbb;
@@ -107,15 +113,22 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             margin: 0 0.2rem;
             box-shadow: none !important;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-next-btn {
             background: #222 !important;
             color: #fff !important;
           }
-          .apple-popover .driver-popover-prev-btn:hover,
-          .apple-popover .driver-popover-next-btn:hover {
+          .apple-popover .driver-popover-prev-btn:hover {
             background: #e5e5ea !important;
             color: #111 !important;
+          }
+          .apple-popover .driver-popover-next-btn:hover {
+            background: #0f0f0f !important;
+            color: #fff !important;
           }
           .apple-popover .driver-popover-end-btn {
             border-radius: 8px !important;
@@ -129,6 +142,10 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             margin-right: 0;
             box-shadow: none !important;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-end-btn:hover {
             background: #222 !important;
@@ -150,7 +167,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
-            z-index: 1000;
+            z-index: 1000010 !important;
           }
           .tour-skip-btn:hover {
             background-color: #f2f2f2;
@@ -173,7 +190,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
           
           /* Critical fixes for pointer events */
           #driver-page-overlay {
-            pointer-events: none !important;
+            pointer-events: auto !important;
           }
           .driver-active-element {
             pointer-events: auto !important;
@@ -182,6 +199,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
           }
           .driver-popover {
             pointer-events: auto !important;
+            z-index: 1000001 !important;
           }
           .driver-popover-footer button, 
           .driver-popover-close-btn,
@@ -216,6 +234,18 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
               skipBtn.onclick = endTour;
               popover.appendChild(skipBtn);
             }
+            
+            // Fix for buttons to ensure they are clickable
+            const footer = popover.querySelector('.driver-popover-footer');
+            if (footer) {
+              const buttons = footer.querySelectorAll('button');
+              buttons.forEach(button => {
+                button.style.pointerEvents = 'auto';
+                button.style.cursor = 'pointer';
+                button.style.position = 'relative';
+                button.style.zIndex = '1000010';
+              });
+            }
           }
         }, 100);
       };
@@ -230,7 +260,7 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
         stageRadius: 8,
         overlayOpacity: 0.6,
         overlayClickBehavior: 'close',
-        disableActiveInteraction: false, // Allow interacting with highlighted elements
+        disableActiveInteraction: false,
         progressText: '{{current}} / {{total}}',
         popoverClass: 'apple-popover',
         nextBtnText: 'Next',
@@ -239,28 +269,28 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
         steps: [
           {
             popover: {
-              title: "Welcome to Proposals ✨",
-              description: `<p>Your hub for creating and managing client proposals.</p><p>Let's take a quick tour.</p>`,
+              title: "Welcome to Contracts ✨",
+              description: `<p>Your central hub for managing client contracts and agreements.</p><p>Let's take a quick tour.</p>`,
               align: "center",
-            },
-            onHighlighted: () => addSkipButton()
-          },
-          {
-            element: "#new-proposal",
-            popover: {
-              title: "Create New Proposals 📝",
-              description: `<p>Click here to create professional proposals for your clients.</p>`,
-              side: "bottom",
-              align: "start",
             },
             onHighlighted: () => addSkipButton()
           },
           {
             element: "#content",
             popover: {
-              title: "Proposal Collection 📋",
-              description: `<p>All your proposals are listed here. Easily browse, sort, and filter them.</p>`,
+              title: "Contract Collection 📋",
+              description: `<p>This is your contract hub where all your client agreements are stored and managed.</p><p>Each card shows essential information including signature status, which indicates whether contractors and clients have signed the document.</p>`,
               side: "top",
+              align: "start",
+            },
+            onHighlighted: () => addSkipButton()
+          },
+          {
+            element: ".flex.gap-2 a[href='/proposals']",
+            popover: {
+              title: "Create New Contracts 📝",
+              description: `<p>Contracts are generated through proposals.</p><p>Click here to navigate to the proposals section where you can select an existing proposal or create a new one to generate a contract.</p>`,
+              side: "bottom",
               align: "start",
             },
             onHighlighted: () => addSkipButton()
@@ -269,14 +299,14 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
             popover: {
               title: "You're Ready! 🎉",
               description: `<div style='text-align:center;'>
-                <p>You now know how to manage proposals in Simple Projex.</p>
+                <p>You now know how to manage contracts in Simple Projex.</p>
                 <p>Need this tour again? Click the Tour Guide button anytime.</p>
                 <div style='display:flex;justify-content:center;margin-top:20px;'>
                   <button 
-                    onclick='window.proposalTourCreateCallback()' 
+                    onclick='window.contractTourCreateCallback()' 
                     style='padding:8px 16px;border-radius:6px;background-color:#222;color:#fff;border:none;cursor:pointer;font-weight:500;font-size:1rem;'
                   >
-                    Create your first proposal
+                    Create your first contract
                   </button>
                 </div>
               </div>`,
@@ -290,8 +320,8 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
       });
 
       // Set up window callbacks for the buttons in the tour
-      window.proposalTourEndCallback = endTour;
-      window.proposalTourCreateCallback = redirectToCreateProposal;
+      window.contractTourEndCallback = endTour;
+      window.contractTourCreateCallback = redirectToCreateContract;
 
       // Start the tour
       driverObj.drive();
@@ -299,8 +329,8 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
       // Cleanup function
       return () => {
         driverObj.destroy();
-        delete window.proposalTourEndCallback;
-        delete window.proposalTourCreateCallback;
+        delete window.contractTourEndCallback;
+        delete window.contractTourCreateCallback;
       };
     }
   }, [isRunning, router]);

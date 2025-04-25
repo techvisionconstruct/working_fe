@@ -26,6 +26,7 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
   const endTour = () => {
     localStorage.setItem("hasSeenTemplatesTour", "true");
     setIsRunning(false);
+    // No navigation changes when skipping
   };
 
   // Helper to redirect
