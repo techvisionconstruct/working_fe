@@ -226,8 +226,21 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     }
   });
 
-  // State to track if editing mode is active
+  // Check if contract is already signed by client
+  const isContractSigned = !!(
+    proposal?.contract?.clientImage || 
+    (proposal?.contract?.clientInitials && proposal?.contract?.clientInitials.trim() !== "")
+  );
+
+  // State to track if editing mode is active - disabled if contract is signed
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Disable editing if contract is signed
+  React.useEffect(() => {
+    if (isContractSigned && isEditing) {
+      setIsEditing(false);
+    }
+  }, [isContractSigned]);
 
   // Handle input changes
   const handleInputChange = (
@@ -1002,7 +1015,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
                 onClick={handleCreateContract}
-                disabled={contractMutation.isPending}
+                disabled={contractMutation.isPending || isContractSigned}
               >
                 {contractMutation.isPending ? (
                   <>
@@ -1052,6 +1065,11 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                   </>
                 )}
               </Button>
+              {isContractSigned && proposal?.contract && (
+                <p className="text-xs text-amber-600 mt-1 text-center">
+                  Contract is signed and cannot be updated
+                </p>
+              )}
               <Button
                 variant="secondary"
                 className="w-full flex items-center justify-center gap-2"
@@ -1074,13 +1092,13 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 </svg>
                 Print Contract
               </Button>
-              <Separator className="my-2" />{" "}
+              <Separator className="my-2" />
               <div className="rounded-md border p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Edit Mode</span>
                   <div
-                    className="w-10 h-5 bg-muted relative rounded-full cursor-pointer"
-                    onClick={() => setIsEditing(!isEditing)}
+                    className={`w-10 h-5 bg-muted relative rounded-full ${isContractSigned ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={() => isContractSigned ? null : setIsEditing(!isEditing)}
                   >
                     <div
                       className={`absolute w-4 h-4 rounded-full top-0.5 transition-all ${
@@ -1091,6 +1109,11 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     />
                   </div>
                 </div>
+                {isContractSigned && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Editing is disabled because this contract has been signed by the client.
+                  </p>
+                )}
               </div>
               <Card className="mt-4">
                 <CardHeader className="pb-2 pt-4">
