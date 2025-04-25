@@ -6,10 +6,12 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Badge,
   Button,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
 } from "@/components/shared";
-import { Calendar, User, FileText } from "lucide-react";
+import { FileText, CheckCircle2, XCircle, Clock, Eye } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
@@ -44,17 +46,17 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {contracts.map((contract) => (
         <div
           key={contract.uuid}
           className="group cursor-pointer"
           onClick={() => handleClick(contract)}
         >
-          <Card className="h-full overflow-hidden hover:shadow-md transition-all border border-border hover:border-primary/20">
-            <CardHeader className="p-4 pb-2">
+          <Card className="h-full overflow-hidden hover:shadow-md transition-all">
+            <CardHeader className="p-4 pb-3">
               <div className="flex justify-between items-start">
-                <div>
+                <div className="w-full">
                   <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
                     {contract.contractName || "Untitled Contract"}
                   </CardTitle>
@@ -62,41 +64,71 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
                     {contract.clientName || "No client specified"}
                   </CardDescription>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Badge variant="outline" className="whitespace-nowrap">
-                    {contract.status || "Draft"}
-                  </Badge>
-                  <div className="flex gap-1.5 mt-1.5">
-                    <span 
-                      className={`h-6 w-6 rounded-sm flex items-center justify-center text-xs font-bold ${
-                        contract.contractorInitials || (contract.signatures?.contractor?.value)
-                          ? "bg-green-100 text-green-700 border border-green-300"
-                          : "bg-gray-100 text-gray-400 border border-gray-200"
-                      }`}
-                      title={`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "signed" : "not signed"}`}
-                    >
-                      C
-                    </span>
-                    <span 
-                      className={`h-6 w-6 rounded-sm flex items-center justify-center text-xs font-bold ${
-                        contract.clientInitials || (contract.signatures?.client?.value)
-                          ? "bg-green-100 text-green-700 border border-green-300"
-                          : "bg-gray-100 text-gray-400 border border-gray-200"
-                      }`}
-                      title={`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "signed" : "not signed"}`}
-                    >
-                      P
-                    </span>
-                  </div>
-                </div>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-2">
-              <p className="text-sm text-muted-foreground line-clamp-2 h-10 mb-2">
+            
+            <CardContent className="p-4 pt-1 space-y-4">
+              {/* Signature Status - Prominent Display */}
+              <div className="rounded-lg grid grid-cols-2 gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`flex items-center gap-2 p-2.5 rounded-md ${
+                      contract.contractorInitials || (contract.signatures?.contractor?.value)
+                        ? "bg-green-50/80 text-green-700"
+                        : "bg-muted/30 text-muted-foreground"
+                    }`}>
+                      {contract.contractorInitials || (contract.signatures?.contractor?.value) ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground/70" />
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium">Contractor</span>
+                        <span className="text-xs opacity-80">
+                          {contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Not Signed"}`}
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`flex items-center gap-2 p-2.5 rounded-md ${
+                      contract.clientInitials || (contract.signatures?.client?.value)
+                        ? "bg-green-50/80 text-green-700"
+                        : "bg-muted/30 text-muted-foreground"
+                    }`}>
+                      {contract.clientInitials || (contract.signatures?.client?.value) ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground/70" />
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium">Client</span>
+                        <span className="text-xs opacity-80">
+                          {contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Not Signed"}`}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              <p className="text-sm text-muted-foreground line-clamp-2">
                 {contract.contractDescription || "No description provided"}
               </p>
-              <div className="flex items-center text-xs text-muted-foreground mt-2">
-                <Calendar className="h-3.5 w-3.5 mr-1" />
+            </CardContent>
+            
+            <CardFooter className="p-4 pt-3 flex justify-between items-center border-t bg-muted/5">
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
                 <span>
                   {contract.contractDate
                     ? formatDistanceToNow(new Date(contract.contractDate), {
@@ -105,14 +137,14 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
                     : "No date"}
                 </span>
               </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-2 flex justify-between items-center border-t bg-muted/20">
-              <div className="flex items-center text-xs">
-                <User className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {contract.clientName || "No client"}
-                </span>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 hover:bg-primary/10 rounded-full"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1" />
+                <span className="text-xs">View</span>
+              </Button>
             </CardFooter>
           </Card>
         </div>

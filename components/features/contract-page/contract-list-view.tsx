@@ -1,17 +1,16 @@
 import React from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Badge,
   Button,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  Card,
 } from "@/components/shared";
-import { Eye, FileText } from "lucide-react";
+import { Eye, FileText, CheckCircle2, XCircle, CalendarDays, User } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ContractListProps {
   contracts: any[];
@@ -44,83 +43,110 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
   };
 
   return (
-    <div className="rounded-md border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Contract Name</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Signatures</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contracts.map((contract) => (
-            <TableRow 
-              key={contract.uuid}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleClick(contract)}
-            >
-              <TableCell className="font-medium">
-                <span className="hover:text-primary transition-colors">
+    <div className="space-y-2">
+      {contracts.map((contract, index) => (
+        <Card
+          key={contract.uuid}
+          className={cn(
+            "overflow-hidden transition-all cursor-pointer hover:shadow-md",
+            index % 2 === 0 ? "bg-white" : "bg-muted/10"
+          )}
+          onClick={() => handleClick(contract)}
+        >
+          <div className="flex flex-col md:flex-row md:items-center p-0">
+            {/* Contract main info */}
+            <div className="flex-1 p-4 md:pr-1">
+              <div className="flex items-start justify-between">
+                <h3 className="font-medium text-lg group-hover:text-primary transition-colors">
                   {contract.contractName || "Untitled Contract"}
-                </span>
-              </TableCell>
-              <TableCell>{contract.clientName || "No client"}</TableCell>
-              <TableCell>
-                {contract.contractDate
-                  ? format(new Date(contract.contractDate), "MMM d, yyyy")
-                  : "No date"}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {contract.status || "Draft"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <span 
-                    className={`h-7 w-7 rounded-sm flex items-center justify-center text-xs font-bold ${
-                      contract.contractorInitials || (contract.signatures?.contractor?.value)
-                        ? "bg-green-100 text-green-700 border border-green-300"
-                        : "bg-gray-100 text-gray-400 border border-gray-200"
-                    }`}
-                    title={`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "signed" : "not signed"}`}
-                  >
-                    C
-                  </span>
-                  <span 
-                    className={`h-7 w-7 rounded-sm flex items-center justify-center text-xs font-bold ${
-                      contract.clientInitials || (contract.signatures?.client?.value)
-                        ? "bg-green-100 text-green-700 border border-green-300"
-                        : "bg-gray-100 text-gray-400 border border-gray-200"
-                    }`}
-                    title={`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "signed" : "not signed"}`}
-                  >
-                    P
+                </h3>
+              </div>
+              
+              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1.5 mb-2">
+                <div className="flex items-center">
+                  <User className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+                  <span>{contract.clientName || "No client"}</span>
+                </div>
+                <div className="flex items-center">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+                  <span>
+                    {contract.contractDate
+                      ? format(new Date(contract.contractDate), "MMM d, yyyy")
+                      : "No date"}
                   </span>
                 </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-primary hover:text-primary-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClick(contract);
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="sr-only">View Contract</span>
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </div>
+              
+              <p className="text-sm text-muted-foreground line-clamp-2 max-w-2xl">
+                {contract.contractDescription || "No description provided"}
+              </p>
+            </div>
+            
+            {/* Signature status - prominent display */}
+            <div className="flex gap-3 p-4 border-t md:border-t-0 md:border-l md:pl-4 md:pr-6
+                            flex-row md:items-center md:w-auto md:min-w-[240px]">
+              <div className="flex flex-1 md:flex-none gap-2 md:gap-3">
+                <div className="flex items-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
+                        contract.contractorInitials || (contract.signatures?.contractor?.value)
+                          ? "bg-green-50/80 text-green-700"
+                          : "bg-muted/30 text-muted-foreground"
+                        }`}>
+                        {contract.contractorInitials || (contract.signatures?.contractor?.value) ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-muted-foreground/70" />
+                        )}
+                        <span className="font-medium text-xs whitespace-nowrap">Contractor</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Not Signed"}`}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                
+                <div className="flex items-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
+                        contract.clientInitials || (contract.signatures?.client?.value)
+                          ? "bg-green-50/80 text-green-700"
+                          : "bg-muted/30 text-muted-foreground"
+                        }`}>
+                        {contract.clientInitials || (contract.signatures?.client?.value) ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-muted-foreground/70" />
+                        )}
+                        <span className="font-medium text-xs whitespace-nowrap">Client</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Not Signed"}`}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 hover:bg-primary/10 hover:text-primary rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClick(contract);
+                }}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="sr-only">View Contract</span>
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }

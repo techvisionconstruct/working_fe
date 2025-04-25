@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Tabs, TabsContent, Card, CardContent } from "@/components/shared";
+import React, { useState, useEffect } from "react";
+import { Tabs, TabsContent, Card, CardContent, Button } from "@/components/shared";
 import { TemplateDetailsTab } from "@/components/features/create-template-page/template-details-tab";
 import { ParametersTab } from "@/components/features/create-template-page/parameters-tab";
 import { ModulesTab } from "@/components/features/create-template-page/modules-tab";
@@ -11,26 +11,40 @@ import {
   ParameterForm,
   TemplateDetailsForm,
 } from "@/components/features/create-template-page/zod-schema";
-import { Check, CircleDot } from "lucide-react";
+import { Check, CircleDot, HelpCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { postTemplate } from "@/api/server/templates";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CreateTemplateTour } from "@/components/features/tour-guide/create-template-tour";
 
 export default function CreateTemplate() {
   const router = useRouter();
-  const [tab, setTab] = React.useState("details");
+  const [tab, setTab] = useState("details");
   const [templateDetails, setTemplateDetails] =
-    React.useState<TemplateDetailsForm>({
+    useState<TemplateDetailsForm>({
       name: "",
       description: "",
       image: undefined,
     });
-  const [parameters, setParameters] = React.useState<ParameterForm>([]);
-  const [modules, setModules] = React.useState<ModuleForm>([]);
+  const [parameters, setParameters] = useState<ParameterForm>([]);
+  const [modules, setModules] = useState<ModuleForm>([]);
+  const [isTourRunning, setIsTourRunning] = useState(false);
   const tabSteps = ["details", "modules", "parameters", "preview"];
   const currentStepIndex = tabSteps.indexOf(tab);
   
+  // Check if the user has seen the tour
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem("hasSeenCreateTemplateTour") === "true";
+    if (!hasSeenTour) {
+      setIsTourRunning(true);
+    }
+  }, []);
+
+  const startTour = () => {
+    setIsTourRunning(true);
+  };
+
   const { mutate: submitTemplate, isPending } = useMutation({
     mutationFn: postTemplate,
     onSuccess: (data) => {
@@ -53,7 +67,7 @@ export default function CreateTemplate() {
   };
 
   return (
-    <div className="w-full px-4">
+    <div className="w-full px-4 relative">
       <div className="flex flex-col space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Create Template</h1>
@@ -70,7 +84,8 @@ export default function CreateTemplate() {
                 {tabSteps.map((step, index) => (
                   <div
                     key={step}
-                    className="flex flex-col items-center relative"
+                    className={`flex flex-col items-center relative tab-trigger ${index === 0 ? 'details-tab-trigger' : ''} ${index === 1 ? 'modules-tab-trigger' : ''} ${index === 2 ? 'parameters-tab-trigger' : ''} ${index === 3 ? 'preview-tab-trigger' : ''}`}
+                    data-value={step}
                     onClick={() => {
                       if (index <= currentStepIndex + 1) {
                         setTab(step);
@@ -112,7 +127,7 @@ export default function CreateTemplate() {
                 ))}
               </div>
 
-              <TabsContent value="details">
+              <TabsContent value="details" className="details-tab-content">
                 <TemplateDetailsTab
                   value={templateDetails}
                   onChange={setTemplateDetails}
@@ -120,7 +135,7 @@ export default function CreateTemplate() {
                 />
               </TabsContent>
 
-              <TabsContent value="modules">
+              <TabsContent value="modules" className="modules-tab-content">
                 <ModulesTab
                   value={modules}
                   onChange={setModules}
@@ -129,7 +144,7 @@ export default function CreateTemplate() {
                 />
               </TabsContent>
 
-              <TabsContent value="parameters">
+              <TabsContent value="parameters" className="parameters-tab-content">
                 <ParametersTab
                   value={parameters}
                   onChange={setParameters}
@@ -138,7 +153,7 @@ export default function CreateTemplate() {
                 />
               </TabsContent>
 
-              <TabsContent value="preview">
+              <TabsContent value="preview" className="preview-tab-content">
                 <PreviewTab
                   templateDetails={templateDetails}
                   parameters={parameters}
@@ -159,6 +174,26 @@ export default function CreateTemplate() {
             </Tabs>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Tour guide component */}
+      <CreateTemplateTour 
+        isRunning={isTourRunning} 
+        setIsRunning={setIsTourRunning}
+        activeTab={tab}
+        setActiveTab={setTab}
+      />
+
+      {/* Floating help button */}
+      <div className="fixed bottom-6 right-6">
+        <Button
+          onClick={startTour}
+          variant="secondary"
+          className="rounded-full w-12 h-12 shadow-lg bg-white text-gray-800 hover:bg-gray-100 border border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 dark:text-gray-200"
+          aria-label="Start tour guide"
+        >
+          <HelpCircle size={24} />
+        </Button>
       </div>
     </div>
   );
