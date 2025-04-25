@@ -8,12 +8,15 @@ export async function postTemplate(template: Omit<Template, 'id' | 'created_at' 
   try {
     const formData = new FormData();
     Object.entries(template).forEach(([key, value]) => {
-      if (typeof value === 'object' && value !== null) {
+      if (key === 'image' && value instanceof File) {
+        formData.append(key, value);
+      } else if (Array.isArray(value)) {
         formData.append(key, JSON.stringify(value));
-      } else {
+      } else if (value !== undefined && value !== null) {
         formData.append(key, String(value));
       }
     });
+    
     
     const response = await fetch(`${API_URL}/api/templates/templates/new/`, {
       method: 'POST',
