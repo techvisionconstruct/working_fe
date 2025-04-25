@@ -36,6 +36,24 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
     );
   }
 
+  // Helper function to check if a signature exists (text or image)
+  const isSignatureProvided = (contract: any, party: 'contractor' | 'client') => {
+    // Check for direct initials property
+    if (party === 'contractor' && contract.contractorInitials) return true;
+    if (party === 'client' && contract.clientInitials) return true;
+    
+    // Check for direct image property
+    if (party === 'contractor' && contract.contractorImage) return true;
+    if (party === 'client' && contract.clientImage) return true;
+    
+    // Check in signatures object
+    if (contract.signatures && contract.signatures[party]) {
+      return !!contract.signatures[party].value;
+    }
+    
+    return false;
+  };
+
   const handleClick = (contract: any) => {
     if (onContractClick) {
       onContractClick(contract.uuid);
@@ -90,11 +108,11 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
-                        contract.contractorInitials || (contract.signatures?.contractor?.value)
+                        isSignatureProvided(contract, 'contractor')
                           ? "bg-green-50/80 text-green-700"
                           : "bg-muted/30 text-muted-foreground"
                         }`}>
-                        {contract.contractorInitials || (contract.signatures?.contractor?.value) ? (
+                        {isSignatureProvided(contract, 'contractor') ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
@@ -103,7 +121,7 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Not Signed"}`}
+                      {`Contractor ${isSignatureProvided(contract, 'contractor') ? "Signed" : "Not Signed"}`}
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -112,11 +130,11 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
-                        contract.clientInitials || (contract.signatures?.client?.value)
+                        isSignatureProvided(contract, 'client')
                           ? "bg-green-50/80 text-green-700"
                           : "bg-muted/30 text-muted-foreground"
                         }`}>
-                        {contract.clientInitials || (contract.signatures?.client?.value) ? (
+                        {isSignatureProvided(contract, 'client') ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
@@ -125,7 +143,7 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Not Signed"}`}
+                      {`Client ${isSignatureProvided(contract, 'client') ? "Signed" : "Not Signed"}`}
                     </TooltipContent>
                   </Tooltip>
                 </div>
