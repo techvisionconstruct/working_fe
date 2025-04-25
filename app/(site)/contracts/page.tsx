@@ -1,215 +1,127 @@
 "use client";
 
-import React from "react";
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { getContracts } from "@/api/client/contracts";
+import { getProposals } from "@/api/client/proposals";
+import { ContractList } from "@/components/features/contract-page/contract-list-view";
+import { ContractGridView } from "@/components/features/contract-page/contract-grid-view";
+import { ContractLoader } from "@/components/features/contract-page/loader";
+import { useQuery } from "@tanstack/react-query";
+import React, { useState, useCallback } from "react";
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  Button,
-  Separator,
+  Input,
 } from "@/components/shared";
-import { SortByComponent } from "@/components/shared/ui/sort-by-component";
-import { SearchComponent } from "@/components/shared/ui/search-component";
-import { SortOption } from "@/types/sort";
-import TemplateGridView from "@/components/ui/templates/template-grid-view";
-import TemplateListView from "@/components/ui/templates/template-list-view";
+import { LayoutGrid, List, Search, Plus } from "lucide-react";
 import Link from "next/link";
-import { Info } from "lucide-react";
-import ContractGridView from "@/components/ui/contracts/contract-grid-view";
-import ContractListView from "@/components/ui/contracts/contract-list-view";
+import { useRouter } from "next/navigation";
 
-export default function Contracts() {
+export default function ContractsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const viewParam = searchParams.get("view");
-  const [activeTab, setActiveTab] = useState<string>(
-    viewParam === "list" ? "list" : "grid"
+  
+  // Fetch both contracts and proposals
+  const contracts = useQuery({
+    queryKey: ["contracts"],
+    queryFn: getContracts,
+  });
+  
+  const proposals = useQuery({
+    queryKey: ["proposals"],
+    queryFn: getProposals,
+  });
+
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("grid");
+
+  const handleContractClick = useCallback((contractUuid: string) => {
+    if (proposals.data && proposals.data.length > 0) {
+      const matchingProposal = proposals.data.find(
+        (proposal: any) => proposal.contract?.uuid === contractUuid
+      );
+      if (matchingProposal) {
+        router.push(`/proposals/${matchingProposal.id}`);
+        return;
+      }
+    }
+  }, [proposals.data, router]);
+
+  const filteredContracts = (contracts.data || []).filter(
+    (contract: any) => {
+      const searchMatch =
+        contract.title?.toLowerCase().includes(search.toLowerCase()) ||
+        contract.description?.toLowerCase().includes(search.toLowerCase()) ||
+        contract.clientName?.toLowerCase().includes(search.toLowerCase());
+      return searchMatch;
+    }
   );
 
-  const [sortOption, setSortOption] = useState<SortOption>({
-    value: "date-descending",
-    label: "Date (Newest First)",
-  });
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [runTour, setRunTour] = useState(false);
-  const [tourId, setTourId] = useState(0); // To force TemplateTour to re-render properly
+  if (contracts.isLoading || proposals.isLoading) {
+    return <ContractLoader />;
+  }
 
-  // Check if user has seen the tour before - run on initial mount only
-  // useEffect(() => {
-  //   const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour");
-  //   if (!hasSeenTour) {
-  //     // Delay the start of the tour slightly to ensure all components are rendered
-  //     const timeout = setTimeout(() => {
-  //       setRunTour(true);
-  //     }, 500);
+  if (contracts.isError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-red-500">Error loading contracts</div>
+      </div>
+    );
+  }
 
-  //     return () => clearTimeout(timeout);
-  //   }
-  // }, []);
-
-  const handleSortChange = (newSortOption: SortOption) => {
-    setSortOption(newSortOption);
-  };
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    router.push(`/contracts?view=${value}`, { scroll: false });
-  };
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <div className="container mx-auto px-2 md:px-6 pb-10">
-        <Tabs
-          defaultValue={activeTab}
-          value={activeTab}
-          onValueChange={handleTabChange}
+    <div>
+      <div className="flex items-center justify-between">
+        <div className="text-2xl font-bold">Contracts</div>
+        <Link
+          href="/proposals"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="sticky top-0 z-10 w-full left-0 bg-background/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
-            <div className="container mx-auto pt-8 pb-3">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
-                <div className="flex flex-col gap-1">
-                  <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                    Templates
-                  </h1>
-                  <p className="text-base text-zinc-500 dark:text-zinc-400">
-                    Manage and track your templates.
-                  </p>
-                </div>
-                <Link href={"/templates/create"} className="shrink-0">
-                  <Button
-                    id="new-template"
-                    className="uppercase font-semibold tracking-wide rounded-xl px-7 py-5 h-11 text-sm bg-zinc-900 text-white 
-                shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.06),0_4px_16px_-2px_rgba(0,0,0,0.1),0_0_0_0_rgba(255,255,255,0)_inset] 
-                dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2),0_4px_16px_-2px_rgba(0,0,0,0.3),0_0_0_0_rgba(255,255,255,0.1)_inset]
-                transition-all duration-300 ease-out
-                hover:bg-zinc-800 hover:scale-[1.02] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.1),0_4px_24px_-4px_rgba(0,0,0,0.15),0_0_0_0_rgba(255,255,255,0.2)_inset] 
-                dark:hover:shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.3),0_4px_24px_-4px_rgba(0,0,0,0.4),0_0_0_0_rgba(255,255,255,0.2)_inset]
-                active:scale-[0.98] active:shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_-2px_rgba(0,0,0,0.1),0_0_0_0_rgba(255,255,255,0.1)_inset]
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
-                  >
-                    <span className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="lucide lucide-plus"
-                      >
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
-                      </svg>
-                      New Template
-                    </span>
-                  </Button>
-                </Link>
-              </div>
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <SearchComponent
-                    onChange={handleSearchChange}
-                    value={searchQuery}
-                    className="rounded-lg px-4 py-2.5 h-11 text-sm border border-zinc-200 dark:border-zinc-700 shadow-sm bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm focus-within:ring-2 focus-within:ring-zinc-300 dark:focus-within:ring-zinc-700 focus-within:ring-offset-0"
-                  />
-                  <SortByComponent
-                    onChange={handleSortChange}
-                    initialValue={sortOption.value}
-                    className="rounded-lg px-4 py-2.5 h-11 text-sm border border-zinc-200 dark:border-zinc-700 shadow-sm bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm focus-within:ring-2 focus-within:ring-zinc-300 dark:focus-within:ring-zinc-700 focus-within:ring-offset-0"
-                  />
-                </div>
-                <TabsList className="rounded-lg bg-zinc-100 dark:bg-zinc-800/70 p-1 flex gap-0.5 h-10">
-                  <TabsTrigger
-                    value="grid"
-                    className="rounded-md px-4 py-2 text-sm font-medium
-                  data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm 
-                  data-[state=inactive]:text-zinc-500 data-[state=inactive]:hover:text-zinc-700
-                  dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-zinc-100 
-                  dark:data-[state=inactive]:text-zinc-400 dark:data-[state=inactive]:hover:text-zinc-300
-                  transition-all duration-150"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="lucide lucide-grid"
-                      >
-                        <rect width="7" height="7" x="3" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="14" rx="1" />
-                        <rect width="7" height="7" x="3" y="14" rx="1" />
-                      </svg>
-                      Grid
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="list"
-                    className="rounded-md px-4 py-2 text-sm font-medium
-                  data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm 
-                  data-[state=inactive]:text-zinc-500 data-[state=inactive]:hover:text-zinc-700
-                  dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-zinc-100 
-                  dark:data-[state=inactive]:text-zinc-400 dark:data-[state=inactive]:hover:text-zinc-300
-                  transition-all duration-150"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="lucide lucide-list"
-                      >
-                        <line x1="8" x2="21" y1="6" y2="6" />
-                        <line x1="8" x2="21" y1="12" y2="12" />
-                        <line x1="8" x2="21" y1="18" y2="18" />
-                        <line x1="3" x2="3.01" y1="6" y2="6" />
-                        <line x1="3" x2="3.01" y1="12" y2="12" />
-                        <line x1="3" x2="3.01" y1="18" y2="18" />
-                      </svg>
-                      List
-                    </span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
-          </div>
-          <div className="container mx-auto mt-2" id="content">
-            <TabsContent value="grid">
-              <ContractGridView
-                sortOption={sortOption}
-                searchQuery={searchQuery}
-              />
-            </TabsContent>
-            <TabsContent value="list">
-              <ContractListView
-                sortOption={sortOption}
-                searchQuery={searchQuery}
-              />
-            </TabsContent>
-          </div>
+          Create Contract
+          <Plus className="h-4 w-4" />
+        </Link>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        Manage all your client contracts in one place. Track status, access details, and keep your agreements organized.
+      </div>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between my-4">
+        <div className="relative flex-1 max-w-md w-full">
+          <Input
+            type="text"
+            placeholder="Search contracts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
+          <span className="absolute left-2 top-2.5 text-muted-foreground pointer-events-none">
+            <Search className="h-4 w-4 ml-1" />
+          </span>
+        </div>
+        <Tabs value={tab} onValueChange={setTab} className="w-auto">
+          <TabsList>
+            <TabsTrigger value="grid">
+              <LayoutGrid className="h-5 w-5" strokeWidth={1.5} />
+            </TabsTrigger>
+            <TabsTrigger value="list">
+              <List className="h-5 w-5" strokeWidth={1.5} />
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
       </div>
-    </Suspense>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        <TabsContent value="grid">
+          <ContractGridView 
+            contracts={filteredContracts} 
+            onContractClick={handleContractClick}
+          />
+        </TabsContent>
+        <TabsContent value="list">
+          <ContractList 
+            contracts={filteredContracts} 
+            onContractClick={handleContractClick}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

@@ -37,8 +37,6 @@ export default function ProposalById() {
       </div>
     );
   }
-
-  console.log(proposal.data);
   
   return (
     <Tabs defaultValue="proposal" className="w-full">
