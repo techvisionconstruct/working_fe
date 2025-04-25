@@ -209,54 +209,7 @@ export function CreateProposalTour({ isRunning, setIsRunning, activeTab, setActi
               description: `<p>Welcome to the Proposal Creator!</p><p>Let's walk through creating a professional client proposal in just a few steps.</p>`,
               align: "center",
               onNextClick: () => {
-                moveToTab("template");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => {
-              moveToTab("template");
-              addSkipButton();
-            }
-          },
-          {
-            element: ".template-tab-content",
-            popover: {
-              title: "1. Select a Template 📋",
-              description: `<p>Start by choosing a template for your proposal.</p><p>This will determine the structure and style of your proposal.</p>`,
-              side: "bottom",
-              align: "start",
-              onNextClick: () => {
                 moveToTab("details");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => {
-              moveToTab("template");
-              addSkipButton();
-            }
-          },
-          {
-            element: ".tab-trigger[value='details']",
-            popover: {
-              title: "2. Add Proposal Details 📝",
-              description: `<p>Next, you'll add client information and project details.</p><p>Click here to enter basic information about the proposal.</p>`,
-              side: "bottom",
-              onNextClick: () => {
-                moveToTab("details");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => addSkipButton()
-          },
-          {
-            element: ".details-tab-content",
-            popover: {
-              title: "Fill in Client Details ✏️",
-              description: `<p>Add client name, project title, and other essential information.</p><p>This helps personalize your proposal for the client.</p>`,
-              side: "bottom",
-              align: "start",
-              onNextClick: () => {
-                moveToTab("variables");
                 driverObj.moveNext();
               }
             },
@@ -266,13 +219,90 @@ export function CreateProposalTour({ isRunning, setIsRunning, activeTab, setActi
             }
           },
           {
-            element: ".tab-trigger[value='variables']",
+            element: ".details-tab-content",
             popover: {
-              title: "3. Set Variables 🔢",
-              description: `<p>Variables help calculate costs and timelines.</p><p>Click here to customize the values for your project scope.</p>`,
+              title: "1. Proposal Details 📝",
+              description: `<p>Start by filling in the basic information about your proposal.</p><p>Add client details, project name, description, and contact information.</p>`,
+              side: "bottom",
+              align: "start",
+              onNextClick: () => {
+                moveToTab("template");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => {
+              moveToTab("details");
+              addSkipButton();
+            }
+          },
+          {
+            element: ".tab-trigger[data-value='template']",
+            popover: {
+              title: "2. Select a Template 📋",
+              description: `<p>Next, choose a template for your proposal.</p><p>Templates provide structure and pre-configured elements for your project.</p>`,
               side: "bottom",
               onNextClick: () => {
-                moveToTab("variables");
+                moveToTab("template");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => addSkipButton()
+          },
+          {
+            element: ".template-tab-content",
+            popover: {
+              title: "Choose Your Template 🖼️",
+              description: `<p>Browse and select a template that fits your project needs.</p><p>Templates include pre-configured modules and parameters to speed up your proposal creation.</p>`,
+              side: "bottom",
+              align: "start",
+              onNextClick: () => {
+                moveToTab("modules");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => {
+              moveToTab("template");
+              addSkipButton();
+            }
+          },
+          {
+            element: ".tab-trigger[data-value='modules']",
+            popover: {
+              title: "3. Configure Modules & Elements 🧩",
+              description: `<p>Modules are sections of your project that contain elements.</p><p>Click here to customize what's included in your proposal.</p>`,
+              side: "bottom",
+              onNextClick: () => {
+                moveToTab("modules");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => addSkipButton()
+          },
+          {
+            element: ".modules-tab-content",
+            popover: {
+              title: "Customize Project Elements 🔧",
+              description: `<p>Select which modules and elements to include in your proposal.</p><p>Each element represents a specific component of work with associated costs.</p>`,
+              side: "bottom",
+              align: "start",
+              onNextClick: () => {
+                moveToTab("parameters");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => {
+              moveToTab("modules");
+              addSkipButton();
+            }
+          },
+          {
+            element: ".tab-trigger[data-value='parameters']",
+            popover: {
+              title: "4. Set Parameters & Submit 🔢",
+              description: `<p>Parameters are variables that affect pricing and scope.</p><p>Adjust these values to customize your proposal for this specific project.</p>`,
+              side: "bottom",
+              onNextClick: () => {
+                moveToTab("parameters");
                 driverObj.moveNext();
               }
             },
@@ -281,73 +311,13 @@ export function CreateProposalTour({ isRunning, setIsRunning, activeTab, setActi
           {
             element: ".parameters-tab-content",
             popover: {
-              title: "Adjust Variable Values ⚙️",
-              description: `<p>Set values for each variable like project scope, timeline, etc.</p><p>These values will automatically calculate costs in the next step.</p>`,
+              title: "Finalize Your Proposal 🎯",
+              description: `<p>Review and adjust the parameter values for your specific project needs.</p><p>Once everything looks good, submit your proposal to create it!</p>`,
               side: "bottom",
-              align: "start",
-              onNextClick: () => {
-                moveToTab("costs");
-                driverObj.moveNext();
-              }
+              align: "start"
             },
             onHighlighted: () => {
-              moveToTab("variables");
-              addSkipButton();
-            }
-          },
-          {
-            element: ".tab-trigger[value='costs']",
-            popover: {
-              title: "4. Calculate Costs 💰",
-              description: `<p>Review and adjust the cost calculations.</p><p>Click here to see how variables affect your pricing.</p>`,
-              side: "bottom",
-              onNextClick: () => {
-                moveToTab("costs");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => addSkipButton()
-          },
-          {
-            element: ".categories-tab-content",
-            popover: {
-              title: "Review Cost Calculations 📊",
-              description: `<p>Here you can see how costs are calculated based on your variables.</p><p>Adjust formulas or values if needed before finalizing.</p>`,
-              side: "bottom",
-              align: "start",
-              onNextClick: () => {
-                moveToTab("preview");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => {
-              moveToTab("costs");
-              addSkipButton();
-            }
-          },
-          {
-            element: ".tab-trigger[value='preview']",
-            popover: {
-              title: "5. Preview & Send 👁️",
-              description: `<p>The final step is reviewing your proposal.</p><p>Click here to see how it will appear to your client.</p>`,
-              side: "bottom",
-              onNextClick: () => {
-                moveToTab("preview");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => addSkipButton()
-          },
-          {
-            element: ".preview-tab-content",
-            popover: {
-              title: "Ready to Share! 🎉",
-              description: `<p>Your proposal is ready to be shared with your client.</p><p>You can download it as a PDF or send it directly via email.</p>`,
-              side: "top",
-              align: "start",
-            },
-            onHighlighted: () => {
-              moveToTab("preview");
+              moveToTab("parameters");
               addSkipButton(true);
             }
           }

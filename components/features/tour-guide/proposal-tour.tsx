@@ -7,6 +7,13 @@ import "driver.js/dist/driver.css";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/shared";
 import { X } from "lucide-react";
 
+declare global {
+  interface Window {
+    proposalTourEndCallback?: () => void;
+    proposalTourCreateCallback?: () => void;
+  }
+}
+
 type ProposalTourProps = {
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
@@ -18,13 +25,11 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
   // Helper to end the tour
   const endTour = () => {
     localStorage.setItem("hasSeenProposalsTour", "true");
-    setIsRunning(false);
+    router.push("/proposals/create");
   };
 
-  // Helper to redirect
+  // Function to redirect to proposal creation page
   const redirectToCreateProposal = () => {
-    localStorage.setItem("hasSeenProposalsTour", "true");
-    setIsRunning(false);
     router.push("/proposals/create");
   };
 
@@ -164,6 +169,29 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
           .apple-popover[data-last-step="true"] .driver-popover-close-btn {
             display: none !important;
           }
+          
+          /* Critical fixes for pointer events */
+          #driver-page-overlay {
+            pointer-events: none !important;
+          }
+          .driver-active-element {
+            pointer-events: auto !important;
+            user-select: auto !important;
+            z-index: 1000000 !important;
+          }
+          .driver-popover {
+            pointer-events: auto !important;
+          }
+          .driver-popover-footer button, 
+          .driver-popover-close-btn,
+          .tour-skip-btn,
+          .driver-popover-description button {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+          }
+          .driver-popover-tip {
+            pointer-events: none !important;
+          }
         `;
         document.head.appendChild(style);
       }
@@ -191,11 +219,17 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
         }, 100);
       };
 
+      // Create the driver object with fixed configuration
       const driverObj = driver({
         showProgress: true,
         animate: true,
-        allowClose: false,
+        smoothScroll: true,
+        allowClose: false, // Disable built-in close button
         stagePadding: 5,
+        stageRadius: 8,
+        overlayOpacity: 0.6,
+        overlayClickBehavior: 'close',
+        disableActiveInteraction: false, // Allow interacting with highlighted elements
         progressText: '{{current}} / {{total}}',
         popoverClass: 'apple-popover',
         nextBtnText: 'Next',
@@ -237,7 +271,12 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
                 <p>You now know how to manage proposals in Simple Projex.</p>
                 <p>Need this tour again? Click the Tour Guide button anytime.</p>
                 <div style='display:flex;justify-content:center;margin-top:20px;'>
-                  <button onclick='window.proposalTourCreateCallback()' style='padding:8px 16px;border-radius:6px;background-color:#222;color:#fff;border:none;cursor:pointer;font-weight:500;font-size:1rem;'>Create your first proposal</button>
+                  <button 
+                    onclick='window.proposalTourCreateCallback()' 
+                    style='padding:8px 16px;border-radius:6px;background-color:#222;color:#fff;border:none;cursor:pointer;font-weight:500;font-size:1rem;'
+                  >
+                    Create your first proposal
+                  </button>
                 </div>
               </div>`,
               align: "center",
@@ -248,9 +287,15 @@ export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
         ],
         onDestroyed: endTour
       });
+
+      // Set up window callbacks for the buttons in the tour
       window.proposalTourEndCallback = endTour;
       window.proposalTourCreateCallback = redirectToCreateProposal;
+
+      // Start the tour
       driverObj.drive();
+      
+      // Cleanup function
       return () => {
         driverObj.destroy();
         delete window.proposalTourEndCallback;

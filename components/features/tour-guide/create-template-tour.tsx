@@ -226,7 +226,7 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
               side: "bottom",
               align: "start",
               onNextClick: () => {
-                moveToTab("parameters");
+                moveToTab("modules");
                 driverObj.moveNext();
               }
             },
@@ -236,10 +236,40 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
             }
           },
           {
-            element: ".tab-trigger[value='parameters']",
+            element: ".tab-trigger[data-value='modules']",
             popover: {
-              title: "2. Define Variables 🔄",
-              description: `<p>Variables make your templates dynamic.</p><p>Click here to define variables like project scope, timeline, etc.</p>`,
+              title: "2. Select Modules 📦",
+              description: `<p>Modules are the building blocks of your template.</p><p>Click here to add and configure modules for your template.</p>`,
+              side: "bottom",
+              onNextClick: () => {
+                moveToTab("modules");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => addSkipButton()
+          },
+          {
+            element: ".modules-tab-content",
+            popover: {
+              title: "Configure Modules 🧩",
+              description: `<p>Here you can add modules that will be included in your template.</p><p>Each module represents a section or category of work in your projects.</p>`,
+              side: "bottom",
+              align: "start",
+              onNextClick: () => {
+                moveToTab("parameters");
+                driverObj.moveNext();
+              }
+            },
+            onHighlighted: () => {
+              moveToTab("modules");
+              addSkipButton();
+            }
+          },
+          {
+            element: ".tab-trigger[data-value='parameters']",
+            popover: {
+              title: "3. Define Parameters 🔢",
+              description: `<p>Parameters are variables that make your template dynamic.</p><p>Click here to define parameters like project scope, timeline, or project-specific numbers.</p>`,
               side: "bottom",
               onNextClick: () => {
                 moveToTab("parameters");
@@ -251,12 +281,12 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
           {
             element: ".parameters-tab-content",
             popover: {
-              title: "Create Variables ⚙️",
-              description: `<p>Each variable can have a name, default value, and formula.</p><p>These variables will be used to calculate costs in your proposals.</p>`,
+              title: "Create Parameters ⚙️",
+              description: `<p>Add parameters that will be used to calculate costs in your proposals.</p><p>Each parameter can have a name, default value, and data type.</p>`,
               side: "bottom",
               align: "start",
               onNextClick: () => {
-                moveToTab("categories");
+                moveToTab("preview");
                 driverObj.moveNext();
               }
             },
@@ -266,37 +296,7 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
             }
           },
           {
-            element: ".tab-trigger[value='categories']",
-            popover: {
-              title: "3. Organize Categories 📋",
-              description: `<p>Categories help structure your template.</p><p>Click here to organize your template content into sections.</p>`,
-              side: "bottom",
-              onNextClick: () => {
-                moveToTab("categories");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => addSkipButton()
-          },
-          {
-            element: ".categories-tab-content",
-            popover: {
-              title: "Define Categories 🗂️",
-              description: `<p>Add sections like Project Overview, Timeline, Deliverables, etc.</p><p>You can create a hierarchy for better organization.</p>`,
-              side: "bottom",
-              align: "start",
-              onNextClick: () => {
-                moveToTab("preview");
-                driverObj.moveNext();
-              }
-            },
-            onHighlighted: () => {
-              moveToTab("categories");
-              addSkipButton();
-            }
-          },
-          {
-            element: ".tab-trigger[value='preview']",
+            element: ".tab-trigger[data-value='preview']",
             popover: {
               title: "4. Preview & Save 👁️",
               description: `<p>The final step is reviewing your template.</p><p>Click here to preview how your template will appear.</p>`,

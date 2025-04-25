@@ -77,6 +77,9 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             color: #aaa !important;
             border-radius: 50%;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-close-btn:hover {
             background: #f2f2f2 !important;
@@ -90,6 +93,8 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            pointer-events: auto !important;
+            z-index: 1000002 !important;
           }
           .apple-popover .driver-popover-progress-text {
             color: #bbb;
@@ -108,15 +113,22 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             margin: 0 0.2rem;
             box-shadow: none !important;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-next-btn {
             background: #222 !important;
             color: #fff !important;
           }
-          .apple-popover .driver-popover-prev-btn:hover,
-          .apple-popover .driver-popover-next-btn:hover {
+          .apple-popover .driver-popover-prev-btn:hover {
             background: #e5e5ea !important;
             color: #111 !important;
+          }
+          .apple-popover .driver-popover-next-btn:hover {
+            background: #0f0f0f !important;
+            color: #fff !important;
           }
           .apple-popover .driver-popover-end-btn {
             border-radius: 8px !important;
@@ -130,6 +142,10 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             margin-right: 0;
             box-shadow: none !important;
             transition: background 0.15s;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 1000010 !important;
           }
           .apple-popover .driver-popover-end-btn:hover {
             background: #222 !important;
@@ -151,7 +167,7 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
-            z-index: 1000;
+            z-index: 1000010 !important;
           }
           .tour-skip-btn:hover {
             background-color: #f2f2f2;
@@ -161,13 +177,39 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             background-color: #333;
             color: #eee;
           }
+
           /* Fix for Next button text */
           .driver-popover-next-btn::after {
             display: none !important;
           }
+
           /* Hide close button on last step */
           .apple-popover[data-last-step="true"] .driver-popover-close-btn {
             display: none !important;
+          }
+          
+          /* Critical fixes for pointer events */
+          #driver-page-overlay {
+            pointer-events: auto !important;
+          }
+          .driver-active-element {
+            pointer-events: auto !important;
+            user-select: auto !important;
+            z-index: 1000000 !important;
+          }
+          .driver-popover {
+            pointer-events: auto !important;
+            z-index: 1000001 !important;
+          }
+          .driver-popover-footer button, 
+          .driver-popover-close-btn,
+          .tour-skip-btn,
+          .driver-popover-description button {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+          }
+          .driver-popover-tip {
+            pointer-events: none !important;
           }
         `;
         document.head.appendChild(style);
@@ -192,15 +234,33 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
               skipBtn.onclick = endTour;
               popover.appendChild(skipBtn);
             }
+            
+            // Fix for buttons to ensure they are clickable
+            const footer = popover.querySelector('.driver-popover-footer');
+            if (footer) {
+              const buttons = footer.querySelectorAll('button');
+              buttons.forEach(button => {
+                button.style.pointerEvents = 'auto';
+                button.style.cursor = 'pointer';
+                button.style.position = 'relative';
+                button.style.zIndex = '1000010';
+              });
+            }
           }
         }, 100);
       };
 
+      // Create the driver object with fixed configuration
       const driverObj = driver({
         showProgress: true,
         animate: true,
-        allowClose: false,
+        smoothScroll: true,
+        allowClose: false, // Disable built-in close button
         stagePadding: 5,
+        stageRadius: 8,
+        overlayOpacity: 0.6,
+        overlayClickBehavior: 'close',
+        disableActiveInteraction: false,
         progressText: '{{current}} / {{total}}',
         popoverClass: 'apple-popover',
         nextBtnText: 'Next',
@@ -210,7 +270,7 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
           {
             popover: {
               title: "Welcome to Templates ✨",
-              description: `<p>Your hub for creating and managing project templates.</p><p>Let's take a quick tour.</p>`,
+              description: `<p>Your library of reusable project templates.</p><p>Let's take a quick tour.</p>`,
               align: "center",
             },
             onHighlighted: () => addSkipButton()
@@ -219,7 +279,7 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
             element: "#new-template",
             popover: {
               title: "Create New Templates 📝",
-              description: `<p>Click here to create professional templates for your projects.</p>`,
+              description: `<p>Click here to create reusable templates for your projects.</p>`,
               side: "bottom",
               align: "start",
             },
@@ -242,7 +302,12 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
                 <p>You now know how to manage templates in Simple Projex.</p>
                 <p>Need this tour again? Click the Tour Guide button anytime.</p>
                 <div style='display:flex;justify-content:center;margin-top:20px;'>
-                  <button onclick='window.templateTourCreateCallback()' style='padding:8px 16px;border-radius:6px;background-color:#222;color:#fff;border:none;cursor:pointer;font-weight:500;font-size:1rem;'>Create your first template</button>
+                  <button 
+                    onclick='window.templateTourCreateCallback()' 
+                    style='padding:8px 16px;border-radius:6px;background-color:#222;color:#fff;border:none;cursor:pointer;font-weight:500;font-size:1rem;'
+                  >
+                    Create your first template
+                  </button>
                 </div>
               </div>`,
               align: "center",
@@ -253,9 +318,15 @@ export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
         ],
         onDestroyed: endTour
       });
+
+      // Set up window callbacks for the buttons in the tour
       window.templateTourEndCallback = endTour;
       window.templateTourCreateCallback = redirectToCreateTemplate;
+
+      // Start the tour
       driverObj.drive();
+      
+      // Cleanup function
       return () => {
         driverObj.destroy();
         delete window.templateTourEndCallback;
