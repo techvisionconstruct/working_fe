@@ -392,8 +392,6 @@ Payment schedule:
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead>Element</TableHead>
-                                    <TableHead>Material Formula</TableHead>
-                                    <TableHead>Labor Formula</TableHead>
                                     <TableHead className="text-right">
                                       Material Cost
                                     </TableHead>
@@ -423,10 +421,8 @@ Payment schedule:
                                         <TableCell className="font-medium">
                                           {element.element.name}
                                         </TableCell>
-                                        <TableCell>{element.element.formula}</TableCell>
-                                        <TableCell>
-                                          {element.element.labor_formula}
-                                        </TableCell>
+                                        
+                                        
                                         <TableCell className="text-right">
                                           $
                                           {calculateMaterialCost(
@@ -468,7 +464,7 @@ Payment schedule:
                                                 element,
                                                 proposal.project_parameters
                                               )) *
-                                            (1 + element.markup / 100)
+                                            (1 + Number(element.markup) / 100)
                                           ).toFixed(2)}
                                         </TableCell>
                                       </TableRow>
