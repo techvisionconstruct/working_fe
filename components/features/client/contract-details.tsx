@@ -17,11 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import {
-  postContract,
-  updateContract,
-  sendContract,
-} from "@/api/server/contracts";
+import { clientSignature, updateContract } from "@/api/server/contracts";
 import { toast } from "sonner";
 
 interface TermSection {
@@ -36,45 +32,11 @@ interface Signature {
   file: File | null;
 }
 
-interface ContractDetailsProps {
+interface ClientContractViewProps {
   proposal: any;
 }
 
-export function ContractDetails({ proposal }: ContractDetailsProps) {
-  const parseTermsAndConditions = (termsString: string): TermSection[] => {
-    if (!termsString) return [];
-
-    const lines = termsString.split(/\r?\n/);
-    const sections: TermSection[] = [];
-
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-
-      if (trimmedLine === "") return;
-
-      const colonIndex = line.indexOf(":");
-
-      if (colonIndex > 0 && colonIndex < line.length - 1) {
-        const title = line.substring(0, colonIndex).trim();
-        const description = line.substring(colonIndex + 1).trim();
-
-        sections.push({
-          id: sections.length + 1,
-          title,
-          description,
-        });
-      } else {
-        sections.push({
-          id: sections.length + 1,
-          title: `Section ${sections.length + 1}`,
-          description: trimmedLine,
-        });
-      }
-    });
-
-    return sections;
-  };
-
+export function ContractDetails({ proposal }: ClientContractViewProps) {
   const getSignatureData = (
     initials: string | null,
     image: string | null
@@ -95,7 +57,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
   };
 
   // State for client details
-  const [clientDetails, setClientDetails] = useState({
+  const [clientDetails] = useState({
     name: proposal?.contract?.clientName || proposal?.client_name || "",
     email: proposal?.contract?.clientEmail || proposal?.client_email || "",
     phone:
@@ -112,8 +74,8 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     });
   };
 
-  // React Query mutation for contract creation/update
-  const contractMutation = useMutation({
+  // React Query mutation for contract signing
+  const signContractMutation = useMutation({
     mutationFn: (data: any) => {
       // Check if contract exists and has an ID
       if (proposal?.contract) {
@@ -127,104 +89,50 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           console.error("No contract ID found in the proposal object");
           throw new Error("Contract ID is missing");
         }
-        return updateContract(contractId, data);
+        return clientSignature(contractId, data);
       } else {
-        return postContract(data);
+        throw new Error("No contract found to sign");
       }
     },
     onSuccess: (data) => {
-      const isUpdate = !!proposal?.contract;
-      toast.success(
-        isUpdate
-          ? "Contract updated successfully"
-          : "Contract created successfully",
-        {
-          position: "top-center",
-          duration: 3000,
-        }
-      );
-    },
-    onError: (error) => {
-      console.error("Error with contract operation:", error);
-      toast.error(
-        `Failed to ${proposal?.contract ? "update" : "create"} contract: ${
-          error.message
-        }`,
-        {
-          position: "top-center",
-          duration: 5000,
-        }
-      );
-    },
-  });
-
-  // React Query mutation for sending the contract
-  const sendContractMutation = useMutation({
-    mutationFn: (contractId: string) => {
-      return sendContract(contractId);
-    },
-    onSuccess: (data) => {
-      toast.success("Contract sent successfully!", {
+      toast.success("Contract signed successfully!", {
         position: "top-center",
         duration: 3000,
       });
     },
     onError: (error) => {
-      console.error("Error sending contract:", error);
-      toast.error(`Failed to send contract: ${error.message}`, {
+      console.error("Error signing contract:", error);
+      toast.error(`Failed to sign contract: ${error.message}`, {
         position: "top-center",
         duration: 5000,
       });
     },
   });
 
-  const handleSendContract = () => {
-    if (!proposal?.contract) {
-      toast.error("Cannot send contract: No contract found", {
+  const handleSignContract = () => {
+    if (!signatures.client.value) {
+      toast.error("Please provide your signature before signing the contract", {
         position: "top-center",
         duration: 3000,
       });
       return;
     }
 
-    // Try to find the contract ID - check different possible properties
-    const contractId =
-      proposal.contract.id ||
-      proposal.contract.contract_id ||
-      proposal.contract.uuid;
-
-    if (!contractId) {
-      toast.error("Cannot send contract: No contract ID found", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return;
-    }
-
-    sendContractMutation.mutate(contractId);
-  };
-
-  const handleCreateContract = () => {
     const contractData = {
-      proposal_id: proposal.id,
-      title: agreementTitle,
-      client: clientDetails,
-      terms: termsSections,
-      signatures: signatures,
+      clientInitials: signatures.client.type === "text" ? signatures.client.value : null,
+      clientImage: signatures.client.type === "image" ? signatures.client.value : null,
     };
 
-    contractMutation.mutate(contractData);
+    signContractMutation.mutate(contractData);
   };
 
-  const [agreementTitle, setAgreementTitle] = useState(
+  const [agreementTitle] = useState(
     proposal?.contract?.contractName || "SERVICE AGREEMENT"
   );
 
-  // State for terms and conditions - parse from termsAndConditions string if available
-  const [termsSections, setTermsSections] = useState<TermSection[]>(() => {
-    if (proposal?.contract?.termsAndConditions) {
-      return parseTermsAndConditions(proposal.contract.termsAndConditions);
-    } else if (proposal?.contract?.terms) {
+  // State for terms and conditions
+  const [termsSections] = useState<TermSection[]>(() => {
+    if (proposal?.contract?.terms) {
       return proposal.contract.terms;
     } else {
       return [
@@ -285,80 +193,43 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
   // Check if contract is already signed by client
   const isContractSigned = !!(
-    proposal?.contract?.clientImage ||
-    (proposal?.contract?.clientInitials &&
-      proposal?.contract?.clientInitials.trim() !== "")
+    proposal?.contract?.clientImage || 
+    (proposal?.contract?.clientInitials && proposal?.contract?.clientInitials.trim() !== "")
   );
 
-  // State to track if editing mode is active - disabled if contract is signed
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Disable editing if contract is signed
-  React.useEffect(() => {
-    if (isContractSigned && isEditing) {
-      setIsEditing(false);
-    }
-  }, [isContractSigned]);
-
-  // Handle input changes
+  // Handle input changes for signature
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    sectionId?: number
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
 
-    // Check if this is a terms field
-    if (name === "termsTitle" || name === "termsDescription") {
-      if (sectionId) {
-        setTermsSections((prev) =>
-          prev.map((section) =>
-            section.id === sectionId
-              ? {
-                  ...section,
-                  [name === "termsTitle" ? "title" : "description"]: value,
-                }
-              : section
-          )
-        );
-      }
-    }
     // Check if this is a signature field
-    else if (name === "clientInitials" || name === "contractorInitials") {
-      const party = name === "clientInitials" ? "client" : "contractor";
+    if (name === "clientInitials") {
       setSignatures((prev) => ({
         ...prev,
-        [party]: {
-          ...prev[party as keyof typeof prev],
+        client: {
+          ...prev.client,
           type: "text",
           value: value,
         },
       }));
-    } else {
-      setClientDetails((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
     }
   };
 
-  const handleSignatureTypeChange = (
-    party: "client" | "contractor",
-    type: "text" | "image"
-  ) => {
+  const handleSignatureTypeChange = (type: "text" | "image") => {
     setSignatures((prev) => ({
       ...prev,
-      [party]: {
-        ...prev[party],
+      client: {
+        ...prev.client,
         type: type,
         // Reset value when switching types
-        value: type === "text" ? prev[party].value : "",
-        file: type === "image" ? prev[party].file : null,
+        value: type === "text" ? prev.client.value : "",
+        file: type === "image" ? prev.client.file : null,
       },
     }));
   };
 
   const handleSignatureImageUpload = async (
-    party: "client" | "contractor",
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
@@ -367,8 +238,8 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
         const base64String = await fileToBase64(file);
         setSignatures((prev) => ({
           ...prev,
-          [party]: {
-            ...prev[party],
+          client: {
+            ...prev.client,
             type: "image",
             value: base64String, // Store base64 string instead of blob URL
             file: file, // Keep the original file if needed
@@ -378,27 +249,6 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
         console.error("Error converting file to base64:", error);
       }
     }
-  };
-
-  const addTermsSection = () => {
-    const newId =
-      termsSections.length > 0
-        ? Math.max(...termsSections.map((s) => s.id)) + 1
-        : 1;
-
-    setTermsSections((prev) => [
-      ...prev,
-      {
-        id: newId,
-        title: "New Section",
-        description: "Enter section content here.",
-      },
-    ]);
-  };
-
-  // Remove a terms section
-  const removeTermsSection = (id: number) => {
-    setTermsSections((prev) => prev.filter((section) => section.id !== id));
   };
 
   // Format date to a readable format
@@ -436,20 +286,9 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
             <div className="mb-8">
-              {isEditing ? (
-                <div className="mb-4">
-                  <Input
-                    name="agreementTitle"
-                    value={agreementTitle}
-                    onChange={(e) => setAgreementTitle(e.target.value)}
-                    className="text-3xl font-bold text-center uppercase border-blue-500 shadow-sm ring-2 ring-blue-300 bg-blue-50/50 focus:border-blue-600 focus:ring-2 focus:ring-blue-400 transition-all"
-                  />
-                </div>
-              ) : (
-                <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
-                  {agreementTitle}
-                </h1>
-              )}
+              <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
+                {agreementTitle}
+              </h1>
               <div className="space-y-0 text-muted-foreground text-center">
                 <p className="text-md">
                   This Service Agreement is entered into as of April 25, 2025,
@@ -471,7 +310,6 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
               </div>
             </div>
 
-            {/* Rest of the contract content */}
             <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider">
               Contract Details
             </h2>
@@ -542,7 +380,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     </CardContent>
                   </Card>
 
-                  {/* Contractor Information */}
+                  {/* Contract Summary */}
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">
@@ -574,12 +412,6 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                               : "N/A"}
                           </span>
                         </div>
-                        {proposal.user && (
-                          <div className="flex justify-between text-sm">
-                            <span>Created By</span>
-                            <span>{proposal.user.username || "N/A"}</span>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -689,108 +521,27 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                   <div className="overflow-hidden">
                     <div>
                       <div className="p-2 relative">
-                        {isEditing ? (
-                          <div className="space-y-2">
+                        <div className="text-slate-800">
+                          <div className="space-y-6 leading-relaxed">
                             {termsSections.map((section, index) => (
-                              <div
-                                key={section.id}
-                                className="space-y-3 pb-5 border-b border-dashed last:border-0"
-                              >
-                                <div className="flex justify-between items-center">
-                                  <p className="text-sm font-semibold">
-                                    Section {index + 1}
-                                  </p>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-destructive"
-                                    onClick={() =>
-                                      removeTermsSection(section.id)
-                                    }
-                                  >
-                                    Remove
-                                  </Button>
+                              <div key={section.id} className="mb-6">
+                                <div className="flex items-baseline gap-3 mb-2">
+                                  <div className="w-7 h-7 rounded-full border border-primary/30 flex items-center justify-center flex-shrink-0 text-primary bg-primary/5">
+                                    <span className="text-xs font-bold">
+                                      {index + 1}
+                                    </span>
+                                  </div>
+                                  <h5 className="text-base font-bold uppercase tracking-wide text-slate-700">
+                                    {section.title}
+                                  </h5>
                                 </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor={`termsTitle-${section.id}`}>
-                                    Section Title
-                                  </Label>
-                                  <Input
-                                    id={`termsTitle-${section.id}`}
-                                    name="termsTitle"
-                                    value={section.title}
-                                    onChange={(e) =>
-                                      handleInputChange(e, section.id)
-                                    }
-                                    placeholder="Enter section title"
-                                    className="font-medium border-blue-500 shadow-sm ring-2 ring-blue-300 bg-blue-50/50 focus:border-blue-600 focus:ring-2 focus:ring-blue-400 transition-all"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label
-                                    htmlFor={`termsDescription-${section.id}`}
-                                  >
-                                    Section Content
-                                  </Label>
-                                  <textarea
-                                    id={`termsDescription-${section.id}`}
-                                    name="termsDescription"
-                                    value={section.description}
-                                    onChange={(e) =>
-                                      handleInputChange(e, section.id)
-                                    }
-                                    placeholder="Enter section content"
-                                    className="w-full min-h-[100px] p-2 border rounded-md resize-y border-blue-500 shadow-sm ring-2 ring-blue-300 bg-blue-50/50 focus:border-blue-600 focus:ring-2 focus:ring-blue-400 transition-all"
-                                  />
+                                <div className="ml-10 text-sm text-slate-600 leading-relaxed">
+                                  {section.description}
                                 </div>
                               </div>
                             ))}
-                            <Button
-                              variant="outline"
-                              className="w-full flex items-center gap-1"
-                              onClick={addTermsSection}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="lucide lucide-plus"
-                              >
-                                <path d="M5 12h14" />
-                                <path d="M12 5v14" />
-                              </svg>
-                              Add Section
-                            </Button>
                           </div>
-                        ) : (
-                          <div className="text-slate-800">
-                            <div className="space-y-6 leading-relaxed">
-                              {termsSections.map((section, index) => (
-                                <div key={section.id} className="mb-6">
-                                  <div className="flex items-baseline gap-3 mb-2">
-                                    <div className="w-7 h-7 rounded-full border border-primary/30 flex items-center justify-center flex-shrink-0 text-primary bg-primary/5">
-                                      <span className="text-xs font-bold">
-                                        {index + 1}
-                                      </span>
-                                    </div>
-                                    <h5 className="text-base font-bold uppercase tracking-wide text-slate-700">
-                                      {section.title}
-                                    </h5>
-                                  </div>
-                                  <div className="ml-10 text-sm text-slate-600 leading-relaxed">
-                                    {section.description}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -798,12 +549,12 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
                 {/* Signatures */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                  {/* Client Signature - Always an input field unless already signed */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Client Signature</h3>
-
-                    <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
-                      {signatures.client.value ? (
-                        signatures.client.type === "text" ? (
+                    <h3 className="text-lg font-semibold">Your Signature</h3>
+                    {isContractSigned ? (
+                      <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
+                        {signatures.client.type === "text" ? (
                           <p className="font-medium text-xl">
                             {signatures.client.value}
                           </p>
@@ -813,126 +564,81 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                             alt="Client signature"
                             className="max-h-full object-contain"
                           />
-                        )
-                      ) : (
-                        <p className="text-muted-foreground">
-                          Signature required
-                        </p>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {new Date().toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">
-                      Contractor Signature
-                    </h3>
-                    {isEditing ? (
+                        )}
+                      </div>
+                    ) : (
                       <div className="border rounded-lg p-4 bg-muted/10">
                         <div className="flex gap-4 mb-3">
                           <div className="flex items-center space-x-2">
                             <input
                               type="radio"
-                              id="contractorInitialsOption"
-                              name="contractorSignatureType"
+                              id="clientInitialsOption"
+                              name="clientSignatureType"
                               className="w-4 h-4"
-                              checked={signatures.contractor.type === "text"}
-                              onChange={() =>
-                                handleSignatureTypeChange("contractor", "text")
-                              }
+                              checked={signatures.client.type === "text"}
+                              onChange={() => handleSignatureTypeChange("text")}
                             />
-                            <Label htmlFor="contractorInitialsOption">
-                              Initials
+                            <Label htmlFor="clientInitialsOption">
+                              Type Initials
                             </Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <input
                               type="radio"
-                              id="contractorImageOption"
-                              name="contractorSignatureType"
+                              id="clientImageOption"
+                              name="clientSignatureType"
                               className="w-4 h-4"
-                              checked={signatures.contractor.type === "image"}
-                              onChange={() =>
-                                handleSignatureTypeChange("contractor", "image")
-                              }
+                              checked={signatures.client.type === "image"}
+                              onChange={() => handleSignatureTypeChange("image")}
                             />
-                            <Label htmlFor="contractorImageOption">Image</Label>
+                            <Label htmlFor="clientImageOption">Upload Signature</Label>
                           </div>
                         </div>
 
-                        {signatures.contractor.type === "text" ? (
+                        {signatures.client.type === "text" ? (
                           <div className="space-y-2">
-                            <Label htmlFor="contractorInitials">
+                            <Label htmlFor="clientInitials">
                               Enter your initials
                             </Label>
                             <Input
-                              id="contractorInitials"
-                              name="contractorInitials"
-                              value={signatures.contractor.value}
+                              id="clientInitials"
+                              name="clientInitials"
+                              value={signatures.client.value}
                               onChange={handleInputChange}
                               placeholder="Type your initials"
-                              className="font-medium border-blue-500 shadow-sm ring-2 ring-blue-300 bg-blue-50/50 focus:border-blue-600 focus:ring-2 focus:ring-blue-400 transition-all"
+                              className="font-medium"
                             />
-                            {signatures.contractor.value && (
+                            {signatures.client.value && (
                               <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white">
                                 <p className="font-medium text-xl">
-                                  {signatures.contractor.value}
+                                  {signatures.client.value}
                                 </p>
                               </div>
                             )}
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <Label htmlFor="contractorSignatureImage">
+                            <Label htmlFor="clientSignatureImage">
                               Upload your signature
                             </Label>
                             <Input
-                              id="contractorSignatureImage"
-                              name="contractorSignatureImage"
+                              id="clientSignatureImage"
+                              name="clientSignatureImage"
                               type="file"
                               accept="image/*"
-                              onChange={(e) =>
-                                handleSignatureImageUpload("contractor", e)
-                              }
-                              className="text-sm bg-blue-50/50 border-blue-500 hover:bg-blue-100/70 transition-all focus:border-blue-600 file:bg-blue-500 file:text-white file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 cursor-pointer shadow-sm ring-2 ring-blue-300"
+                              onChange={handleSignatureImageUpload}
+                              className="text-sm"
                             />
-                            {signatures.contractor.value && (
+                            {signatures.client.value && ( 
                               <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white overflow-hidden">
                                 <img
-                                  src={signatures.contractor.value}
-                                  alt="Contractor signature"
+                                  src={signatures.client.value}
+                                  alt="Client signature"
                                   className="max-h-full object-contain"
                                 />
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
-                        {signatures.contractor.value ? (
-                          signatures.contractor.type === "text" ? (
-                            <p className="font-medium text-xl">
-                              {signatures.contractor.value}
-                            </p>
-                          ) : (
-                            <img
-                              src={signatures.contractor.value}
-                              alt="Contractor signature"
-                              className="max-h-full object-contain"
-                            />
-                          )
-                        ) : (
-                          <p className="text-muted-foreground">
-                            Signature required
-                          </p>
                         )}
                       </div>
                     )}
@@ -945,6 +651,38 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                       })}
                     </p>
                   </div>
+                  
+                  {/* Contractor Signature - Read-only view */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">
+                      Contractor Signature
+                    </h3>
+                    <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
+                      {signatures.contractor.value ? (
+                        signatures.contractor.type === "text" ? (
+                          <p className="font-medium text-xl">
+                            {signatures.contractor.value}
+                          </p>
+                        ) : (
+                          <img
+                            src={signatures.contractor.value}
+                            alt="Contractor signature"
+                            className="max-h-full object-contain"
+                          />
+                        )
+                      ) : (
+                        <p className="text-muted-foreground">
+                          Pending contractor signature
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Date:{" "}
+                      {proposal?.contract?.updatedAt 
+                        ? formatDate(proposal.contract.updatedAt)
+                        : "Pending"}
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -955,124 +693,87 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           </div>
         </div>
 
-        {/* Quick Actions - Right Side (Narrower) */}
+        {/* Client Actions - Right Side (Narrower) */}
         <div className="lg:col-span-1">
           <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold mb-4">Contract Actions</h3>
             <div className="space-y-3">
-              <Button
-                variant="default"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={handleSendContract}
-                disabled={sendContractMutation.isPending || !proposal?.contract}
-              >
-                {sendContractMutation.isPending ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
+              {!isContractSigned ? (
+                <Button
+                  variant="default"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={handleSignContract}
+                  disabled={signContractMutation.isPending || !signatures.client.value}
+                >
+                  {signContractMutation.isPending ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Signing...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
                         stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-mail"
-                    >
-                      <rect width="20" height="16" x="2" y="4" rx="2" />
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                    </svg>
-                    Send to Client
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={handleCreateContract}
-                disabled={contractMutation.isPending || isContractSigned}
-              >
-                {contractMutation.isPending ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {proposal?.contract ? "Updating..." : "Creating..."}
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-file-text"
-                    >
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" x2="8" y1="13" y2="13" />
-                      <line x1="16" x2="8" y1="17" y2="17" />
-                      <line x1="10" x2="8" y1="9" y2="9" />
-                    </svg>
-                    {proposal?.contract ? "Update Contract" : "Create Contract"}
-                  </>
-                )}
-              </Button>
-              {isContractSigned && proposal?.contract && (
-                <p className="text-xs text-amber-600 mt-1 text-center">
-                  Contract is signed and cannot be updated
-                </p>
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                      </svg>
+                      Sign Contract
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3 text-green-700 text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="inline-block mr-2"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  You have signed this contract
+                </div>
               )}
+              
               <Button
                 variant="secondary"
                 className="w-full flex items-center justify-center gap-2"
+                onClick={() => window.print()}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1092,39 +793,10 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 </svg>
                 Print Contract
               </Button>
-              <Separator className="my-2" />
-              <div className="rounded-md border p-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Edit Mode</span>
-                  <div
-                    className={`w-10 h-5 bg-muted relative rounded-full ${
-                      isContractSigned
-                        ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer"
-                    }`}
-                    onClick={() =>
-                      isContractSigned ? null : setIsEditing(!isEditing)
-                    }
-                  >
-                    <div
-                      className={`absolute w-4 h-4 rounded-full top-0.5 transition-all ${
-                        isEditing
-                          ? "bg-primary right-0.5"
-                          : "bg-muted-foreground left-0.5"
-                      }`}
-                    />
-                  </div>
-                </div>
-                {isContractSigned && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    Editing is disabled because this contract has been signed by
-                    the client.
-                  </p>
-                )}
-              </div>
+              
               <Card className="mt-4">
                 <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm">Contract Stats</CardTitle>
+                  <CardTitle className="text-sm">Contract Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4">
                   <div className="text-xs space-y-1 text-muted-foreground">
@@ -1141,6 +813,12 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     <div className="flex justify-between">
                       <span>Modules:</span>
                       <span>{proposal?.project_modules?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <span className={`font-semibold ${isContractSigned ? 'text-green-600' : 'text-amber-600'}`}>
+                        {isContractSigned ? 'Signed' : 'Pending Signature'}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
