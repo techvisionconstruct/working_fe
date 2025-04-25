@@ -45,6 +45,24 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
     }
   };
 
+  // Helper function to check if a signature exists (text or image)
+  const isSignatureProvided = (contract: any, party: 'contractor' | 'client') => {
+    // Check for direct initials property
+    if (party === 'contractor' && contract.contractorInitials) return true;
+    if (party === 'client' && contract.clientInitials) return true;
+    
+    // Check for direct image property
+    if (party === 'contractor' && contract.contractorImage) return true;
+    if (party === 'client' && contract.clientImage) return true;
+    
+    // Check in signatures object
+    if (contract.signatures && contract.signatures[party]) {
+      return !!contract.signatures[party].value;
+    }
+    
+    return false;
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {contracts.map((contract) => (
@@ -73,11 +91,11 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={`flex items-center gap-2 p-2.5 rounded-md ${
-                      contract.contractorInitials || (contract.signatures?.contractor?.value)
+                      isSignatureProvided(contract, 'contractor')
                         ? "bg-green-50/80 text-green-700"
                         : "bg-muted/30 text-muted-foreground"
                     }`}>
-                      {contract.contractorInitials || (contract.signatures?.contractor?.value) ? (
+                      {isSignatureProvided(contract, 'contractor') ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground/70" />
@@ -85,24 +103,24 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
                       <div className="flex flex-col">
                         <span className="text-xs font-medium">Contractor</span>
                         <span className="text-xs opacity-80">
-                          {contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Pending"}
+                          {isSignatureProvided(contract, 'contractor') ? "Signed" : "Pending"}
                         </span>
                       </div>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {`Contractor ${contract.contractorInitials || (contract.signatures?.contractor?.value) ? "Signed" : "Not Signed"}`}
+                    {`Contractor ${isSignatureProvided(contract, 'contractor') ? "Signed" : "Not Signed"}`}
                   </TooltipContent>
                 </Tooltip>
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={`flex items-center gap-2 p-2.5 rounded-md ${
-                      contract.clientInitials || (contract.signatures?.client?.value)
+                      isSignatureProvided(contract, 'client')
                         ? "bg-green-50/80 text-green-700"
                         : "bg-muted/30 text-muted-foreground"
                     }`}>
-                      {contract.clientInitials || (contract.signatures?.client?.value) ? (
+                      {isSignatureProvided(contract, 'client') ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground/70" />
@@ -110,13 +128,13 @@ export function ContractGridView({ contracts = [], onContractClick }: ContractGr
                       <div className="flex flex-col">
                         <span className="text-xs font-medium">Client</span>
                         <span className="text-xs opacity-80">
-                          {contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Pending"}
+                          {isSignatureProvided(contract, 'client') ? "Signed" : "Pending"}
                         </span>
                       </div>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {`Client ${contract.clientInitials || (contract.signatures?.client?.value) ? "Signed" : "Not Signed"}`}
+                    {`Client ${isSignatureProvided(contract, 'client') ? "Signed" : "Not Signed"}`}
                   </TooltipContent>
                 </Tooltip>
               </div>
