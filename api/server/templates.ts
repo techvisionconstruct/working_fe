@@ -17,7 +17,6 @@ export async function postTemplate(template: Omit<Template, 'id' | 'created_at' 
       }
     });
     
-    
     const response = await fetch(`${API_URL}/api/templates/templates/new/`, {
       method: 'POST',
       headers: {
