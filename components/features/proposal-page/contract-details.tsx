@@ -17,7 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { postContract } from "@/api/server/contracts";
+import { postContract, updateContract } from "@/api/server/contracts";
 
 interface TermSection {
   id: number;
@@ -36,61 +36,56 @@ interface ContractDetailsProps {
 }
 
 export function ContractDetails({ proposal }: ContractDetailsProps) {
-  // Parse the terms and conditions string into structured sections
   const parseTermsAndConditions = (termsString: string): TermSection[] => {
     if (!termsString) return [];
-    
-    // Split by newlines, handling both \r\n and \n
+
     const lines = termsString.split(/\r?\n/);
     const sections: TermSection[] = [];
-    
-    // Process each line as a potential new section
+
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
-      
-      // Skip empty lines
-      if (trimmedLine === '') return;
-      
-      // Try to split by colon to get title and description
-      const colonIndex = line.indexOf(':');
-      
-      // If this line has a colon, create a new section
+
+      if (trimmedLine === "") return;
+
+      const colonIndex = line.indexOf(":");
+
       if (colonIndex > 0 && colonIndex < line.length - 1) {
         const title = line.substring(0, colonIndex).trim();
         const description = line.substring(colonIndex + 1).trim();
-        
+
         sections.push({
           id: sections.length + 1,
           title,
-          description
+          description,
         });
-      } 
-      // No colon, create section with generic title
-      else {
+      } else {
         sections.push({
           id: sections.length + 1,
           title: `Section ${sections.length + 1}`,
-          description: trimmedLine
+          description: trimmedLine,
         });
       }
     });
-    
+
     return sections;
   };
-  
+
   // Function to determine signature type and value
-  const getSignatureData = (initials: string | null, image: string | null): Signature => {
+  const getSignatureData = (
+    initials: string | null,
+    image: string | null
+  ): Signature => {
     if (image) {
       return {
         type: "image",
         value: image,
-        file: null
+        file: null,
       };
     } else {
       return {
         type: "text",
         value: initials || "",
-        file: null
+        file: null,
       };
     }
   };
@@ -99,27 +94,38 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
   const [clientDetails, setClientDetails] = useState({
     name: proposal?.contract?.clientName || proposal?.client_name || "",
     email: proposal?.contract?.clientEmail || proposal?.client_email || "",
-    phone: proposal?.contract?.clientPhoneNumber || proposal?.phone_number || "",
+    phone:
+      proposal?.contract?.clientPhoneNumber || proposal?.phone_number || "",
     address: proposal?.contract?.clientAddress || proposal?.address || "",
   });
 
-  // React Query mutation for contract creation
-  const createContractMutation = useMutation({
-    mutationFn: postContract,
-    onSuccess: (data) => {
-      // Handle successful contract creation
-      console.log("Contract created successfully:", data);
-      // You might want to redirect or show a success message
+  // React Query mutation for contract creation/update
+  const contractMutation = useMutation({
+    mutationFn: (data: any) => {
+      // Check if contract exists and has an ID
+      if (proposal?.contract) {
+        // Try to find the contract ID - check different possible properties
+        const contractId =
+          proposal.contract.id ||
+          proposal.contract.contract_id ||
+          proposal.contract.uuid;
+
+        if (!contractId) {
+          console.error("No contract ID found in the proposal object");
+          throw new Error("Contract ID is missing");
+        }
+        return updateContract(contractId, data);
+      } else {
+        return postContract(data);
+      }
     },
+    onSuccess: (data) => {},
     onError: (error) => {
-      // Handle error in contract creation
-      console.error("Error creating contract:", error);
+      console.error("Error with contract operation:", error);
     },
   });
 
-  // Function to handle contract creation
   const handleCreateContract = () => {
-    // Prepare contract data from the component state
     const contractData = {
       proposal_id: proposal.id,
       title: agreementTitle,
@@ -127,12 +133,10 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
       terms: termsSections,
       signatures: signatures,
     };
-    
-    // Execute the mutation with the contract data
-    createContractMutation.mutate(contractData);
+
+    contractMutation.mutate(contractData);
   };
 
-  // State for agreement title - use contract data if available
   const [agreementTitle, setAgreementTitle] = useState(
     proposal?.contract?.contractName || "SERVICE AGREEMENT"
   );
@@ -166,13 +170,15 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     client: Signature;
     contractor: Signature;
   }>(() => {
-    if (proposal?.contract?.clientInitials !== undefined || 
-        proposal?.contract?.clientImage !== undefined ||
-        proposal?.contract?.contractorInitials !== undefined ||
-        proposal?.contract?.contractorImage !== undefined) {
+    if (
+      proposal?.contract?.clientInitials !== undefined ||
+      proposal?.contract?.clientImage !== undefined ||
+      proposal?.contract?.contractorInitials !== undefined ||
+      proposal?.contract?.contractorImage !== undefined
+    ) {
       return {
         client: getSignatureData(
-          proposal.contract.clientInitials, 
+          proposal.contract.clientInitials,
           proposal.contract.clientImage
         ),
         contractor: getSignatureData(
@@ -234,8 +240,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           value: value,
         },
       }));
-    }
-    else {
+    } else {
       setClientDetails((prev) => ({
         ...prev,
         [name]: value,
@@ -357,8 +362,8 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
               )}
               <div className="space-y-0 text-muted-foreground text-center">
                 <p className="text-md">
-                  This Service Agreement  is entered into as of
-                  April 25, 2025, by and between:
+                  This Service Agreement is entered into as of April 25, 2025,
+                  by and between:
                 </p>
                 <p className="text-md">
                   Service Provider: Simple ProjeX, with its principal place of
@@ -971,15 +976,31 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
                 onClick={handleCreateContract}
-                disabled={createContractMutation.isPending}
+                disabled={contractMutation.isPending}
               >
-                {createContractMutation.isPending ? (
+                {contractMutation.isPending ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
-                    Creating...
+                    {proposal?.contract ? "Updating..." : "Creating..."}
                   </>
                 ) : (
                   <>
@@ -1001,7 +1022,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                       <line x1="16" x2="8" y1="17" y2="17" />
                       <line x1="10" x2="8" y1="9" y2="9" />
                     </svg>
-                    Create Contract
+                    {proposal?.contract ? "Update Contract" : "Create Contract"}
                   </>
                 )}
               </Button>
@@ -1027,9 +1048,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 </svg>
                 Print Contract
               </Button>
-
-              <Separator className="my-2" />
-
+              <Separator className="my-2" />{" "}
               <div className="rounded-md border p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Edit Mode</span>
@@ -1046,39 +1065,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     />
                   </div>
                 </div>
-                {isEditing && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Edit client information:
-                    </p>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Client Name"
-                        name="name"
-                        value={clientDetails.name}
-                        onChange={handleInputChange}
-                        className="text-sm h-8"
-                      />
-                      <Input
-                        placeholder="Client Address"
-                        name="address"
-                        value={clientDetails.address}
-                        onChange={handleInputChange}
-                        className="text-sm h-8"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 w-full text-xs"
-                      onClick={saveClientDetails}
-                    >
-                      Save Changes
-                    </Button>
-                  </div>
-                )}
               </div>
-
               <Card className="mt-4">
                 <CardHeader className="pb-2 pt-4">
                   <CardTitle className="text-sm">Contract Stats</CardTitle>

@@ -1,5 +1,3 @@
-// 'use server'
-
 import { Template } from '@/components/features/create-template-page/types';
 import Cookies from "js-cookie";
 
