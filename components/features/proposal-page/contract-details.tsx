@@ -99,6 +99,15 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     address: proposal?.contract?.clientAddress || proposal?.address || "",
   });
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // React Query mutation for contract creation/update
   const contractMutation = useMutation({
     mutationFn: (data: any) => {
@@ -264,22 +273,26 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     }));
   };
 
-  const handleSignatureImageUpload = (
+  const handleSignatureImageUpload = async (
     party: "client" | "contractor",
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setSignatures((prev) => ({
-        ...prev,
-        [party]: {
-          ...prev[party],
-          type: "image",
-          value: imageUrl,
-          file: file,
-        },
-      }));
+      try {
+        const base64String = await fileToBase64(file);
+        setSignatures((prev) => ({
+          ...prev,
+          [party]: {
+            ...prev[party],
+            type: "image",
+            value: base64String, // Store base64 string instead of blob URL
+            file: file, // Keep the original file if needed
+          },
+        }));
+      } catch (error) {
+        console.error("Error converting file to base64:", error);
+      }
     }
   };
 
