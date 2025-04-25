@@ -5,8 +5,7 @@ import {
   Button,
   Label
 } from "@/components/shared";
-import { FileImage } from "lucide-react";
-import { ProposalFormData } from "./types";
+import { CloudUpload, X } from "lucide-react";
 
 interface ProposalDetailsTabProps {
   value: {
@@ -81,20 +80,72 @@ export function ProposalDetailsTab({
           </div>
 
           <div>
-            <Label htmlFor="image">Proposal Image URL</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                id="image"
-                name="image"
-                placeholder="Image URL"
-                value={value.image}
-                onChange={handleInputChange}
-                className={errors["image"] ? "border-red-500" : ""}
-              />
-              <Button variant="outline" className="flex-shrink-0">
-                <FileImage className="h-4 w-4 mr-2" />
-                Browse
-              </Button>
+            <Label htmlFor="image">Proposal Image</Label>
+            <div className="mt-1">
+              {!value.image ? (
+                <div className="border-2 border-dashed h-48 flex flex-col items-center justify-center bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors mb-4">
+                  <CloudUpload className="w-10 h-10 mb-3 text-muted-foreground" />
+                  <p className="mb-2 text-base font-medium text-muted-foreground">
+                    Upload an image
+                  </p>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          onChange({
+                            ...value,
+                            image: event.target?.result as string || "",
+                          });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mb-2"
+                    onClick={() => {
+                      document.getElementById("image-upload")?.click();
+                    }}
+                  >
+                    Choose file
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG or GIF recommended (max. 5MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="relative mb-4">
+                  <div className="relative h-48 w-full overflow-hidden rounded-lg border">
+                    <img
+                      src={value.image}
+                      alt="Proposal"
+                      className="h-full w-full object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8 rounded-full shadow-md absolute top-2 right-2"
+                      onClick={() => {
+                        onChange({
+                          ...value,
+                          image: "",
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
             {errors["image"] && (
               <p className="text-sm text-red-500 mt-1">{errors["image"]}</p>
