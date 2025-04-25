@@ -17,7 +17,6 @@ import { LayoutGrid, List, Search, Plus } from "lucide-react";
 import Link from "next/link";
 import { ProposalLoader } from "@/components/features/proposal-page/loader";
 
-// Extend Window interface to add our custom callback functions
 declare global {
   interface Window {
     proposalTourEndCallback?: () => void;

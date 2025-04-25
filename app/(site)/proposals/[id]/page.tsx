@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { getProposalById } from "@/api/client/proposals";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/shared";
 import { ProposalDetails } from "@/components/features/proposal-page/proposal-details";
 import { ContractDetails } from "@/components/features/proposal-page/contract-details";
@@ -11,11 +11,32 @@ import { ProposalDetailedLoader } from "@/components/features/proposal-page/load
 
 export default function ProposalById() {
   const { id } = useParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState<string>("proposal");
+
+  useEffect(() => {
+    if (pathname.includes("/contract")) {
+      setActiveTab("contract");
+    } else {
+      setActiveTab("proposal");
+    }
+  }, [pathname]);
 
   const proposal = useQuery({
     queryKey: ["proposal", id],
     queryFn: () => getProposalById(Number(id)),
   });
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    if (value === "proposal") {
+      router.push(`/proposals/${id}`);
+    } else if (value === "contract") {
+      router.push(`/proposals/${id}/contract`);
+    }
+  };
 
   if (proposal.isLoading) {
     return <ProposalDetailedLoader />;
@@ -39,7 +60,7 @@ export default function ProposalById() {
   }
   
   return (
-    <Tabs defaultValue="proposal" className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="w-full mb-4">
         <TabsTrigger value="proposal" className="flex-1">
           Proposal Details

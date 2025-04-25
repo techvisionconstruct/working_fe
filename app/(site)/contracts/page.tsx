@@ -41,7 +41,7 @@ export default function ContractsPage() {
         (proposal: any) => proposal.contract?.uuid === contractUuid
       );
       if (matchingProposal) {
-        router.push(`/proposals/${matchingProposal.id}`);
+        router.push(`/proposals/${matchingProposal.id}/contract`);
         return;
       }
     }
