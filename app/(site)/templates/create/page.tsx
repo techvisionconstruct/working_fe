@@ -15,6 +15,7 @@ import { Check, CircleDot } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { postTemplate } from "@/api/server/templates";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function CreateTemplate() {
   const router = useRouter();
@@ -33,11 +34,17 @@ export default function CreateTemplate() {
   const { mutate: submitTemplate, isPending } = useMutation({
     mutationFn: postTemplate,
     onSuccess: (data) => {
+      toast.success("Template created successfully", {
+        position: "top-center",
+        duration: 3000,
+      });
       router.push(`/templates/${data.id}`);
     },
     onError: (error) => {
-      console.error("Error creating template:", error);
-      alert(`Failed to create template: ${error.message}`);
+      toast.error(`Failed to create template: ${error.message}`, {
+        position: "top-center",
+        duration: 5000,
+      });
     }
   });
 
@@ -136,6 +143,7 @@ export default function CreateTemplate() {
                   templateDetails={templateDetails}
                   parameters={parameters}
                   modules={modules}
+                  isSubmitting={isPending}
                   onSubmit={() => {
                     submitTemplate({
                       name: templateDetails.name,

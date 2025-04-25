@@ -36,7 +36,7 @@ interface ContractDetailsProps {
   proposal: any;
 }
 
-export function ContractDetails({ proposal }: ContractDetailsProps) {
+export function ClientContractDetails({ proposal }: ContractDetailsProps) {
   const parseTermsAndConditions = (termsString: string): TermSection[] => {
     if (!termsString) return [];
 

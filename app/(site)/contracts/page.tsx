@@ -20,8 +20,6 @@ import { useRouter } from "next/navigation";
 
 export default function ContractsPage() {
   const router = useRouter();
-  
-  // Fetch both contracts and proposals
   const contracts = useQuery({
     queryKey: ["contracts"],
     queryFn: getContracts,

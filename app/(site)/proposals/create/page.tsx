@@ -17,6 +17,7 @@ import {
 } from "@/components/shared";
 import { Save, Loader2, Info } from "lucide-react";
 import { evaluateFormula } from "@/lib/formula-evaluator";
+import { toast } from "sonner";
 
 import { ProposalDetailsTab } from "@/components/features/create-proposal-page/proposal-details-tab";
 import { TemplateSelectionTab } from "@/components/features/create-proposal-page/template-selection-tab";
@@ -80,12 +81,18 @@ export default function CreateProposal() {
   const { mutate: submitProposal, isPending } = useMutation({
     mutationFn: postProposal,
     onSuccess: (data) => {
-      console.log("Proposal created successfully:", data);
-      // router.push(`/proposals/${data.id}`);
+      toast.success("Proposal created successfully", {
+        position: "top-center",
+        duration: 3000,
+      });
+      router.push(`/proposals/${data.id}`);
     },
     onError: (error) => {
       console.error("Error creating proposal:", error);
-      alert(`Failed to create proposal: ${error.message}`);
+      toast.error(`Failed to create proposal: ${error.message}`, {
+        position: "top-center",
+        duration: 5000,
+      });
     },
   });
 
@@ -271,7 +278,6 @@ export default function CreateProposal() {
     setErrors({});
 
     try {
-      // Recreate the formData structure for validation
       const formData: ProposalFormData = {
         ...proposalDetails,
         selectedTemplate,
@@ -291,9 +297,14 @@ export default function CreateProposal() {
         });
         setErrors(newErrors);
 
-        // Navigate to the appropriate tab based on validation errors
         const firstError = validationResult.error.errors[0];
         const errorPath = firstError.path[0] as string;
+
+        // Show toast notification for validation error
+        toast.error(`Please fix the following issue: ${firstError.message}`, {
+          position: "top-center",
+          duration: 5000,
+        });
 
         if (
           errorPath.includes("name") ||
@@ -332,11 +343,10 @@ export default function CreateProposal() {
       });
     } catch (error) {
       console.error("Error creating proposal:", error);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to create proposal. Please try again.",
-      //   variant: "destructive"
-      // });
+      toast.error("Failed to create proposal. Please try again.", {
+        position: "top-center",
+        duration: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }
