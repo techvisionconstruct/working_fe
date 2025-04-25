@@ -25,6 +25,8 @@ export function CreateProposalTour({ isRunning, setIsRunning, activeTab, setActi
   const endTour = () => {
     localStorage.setItem("hasSeenCreateProposalTour", "true");
     setIsRunning(false);
+    // Go back to the first tab when the tour ends
+    setActiveTab("details");
   };
 
   useEffect(() => {
@@ -314,7 +316,12 @@ export function CreateProposalTour({ isRunning, setIsRunning, activeTab, setActi
               title: "Finalize Your Proposal 🎯",
               description: `<p>Review and adjust the parameter values for your specific project needs.</p><p>Once everything looks good, submit your proposal to create it!</p>`,
               side: "bottom",
-              align: "start"
+              align: "start",
+              onNextClick: () => {
+                // Go back to first tab before ending the tour
+                moveToTab("details");
+                driverObj.moveNext();
+              }
             },
             onHighlighted: () => {
               moveToTab("parameters");

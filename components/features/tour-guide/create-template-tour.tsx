@@ -25,6 +25,8 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
   const endTour = () => {
     localStorage.setItem("hasSeenCreateTemplateTour", "true");
     setIsRunning(false);
+    // Go back to the first tab when the tour ends
+    setActiveTab("details");
   };
 
   useEffect(() => {
@@ -315,6 +317,11 @@ export function CreateTemplateTour({ isRunning, setIsRunning, activeTab, setActi
               description: `<p>Take one last look at your template before saving.</p><p>Once everything looks good, click Save to create your template!</p>`,
               side: "top",
               align: "start",
+              onNextClick: () => {
+                // Go back to first tab before ending the tour
+                moveToTab("details");
+                driverObj.moveNext();
+              }
             },
             onHighlighted: () => {
               moveToTab("preview");
