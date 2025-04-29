@@ -964,15 +964,14 @@ export function TradesTab({
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Hammer className="h-5 w-5 text-gray-600" aria-hidden="true" />
                   Trades
-                  <HelpTooltip 
-                    label="Help: Trades Section" 
-                    tip="Trades organize your project elements into categories like Framing, Electrical, or Plumbing."
-                  />
                 </CardTitle>
                 <Badge variant="outline" className="font-normal py-1">
                   {tradesAdded.length} Added
                 </Badge>
               </div>
+              <CardDescription>
+                Trades organize your project elements into categories like Framing, Electrical, or Plumbing.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="relative">

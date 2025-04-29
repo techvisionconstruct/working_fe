@@ -79,7 +79,23 @@ export default function CreateTemplate() {
           <CardContent className="p-6">
             <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
               <div className="flex justify-between items-center w-full mb-8 relative max-w-5xl mx-auto">
-                <div className="absolute top-5 left-0 w-full h-0.5 bg-muted -z-10"></div>
+                {/* Background track for progress bar */}
+                <div className="absolute top-[22px] left-[6%] right-[6%] h-1.5 bg-muted rounded-full"></div>
+                
+                {/* Progress bars between steps */}
+                <div 
+                  className={`absolute top-[22px] left-[6%] w-[44%] h-1.5 rounded-full transition-all duration-500 ease-in-out ${
+                    currentStepIndex >= 1 ? "bg-primary shadow-sm shadow-primary/20" : "bg-muted"
+                  }`}
+                  style={{ zIndex: 5 }}
+                ></div>
+                <div 
+                  className={`absolute top-[22px] left-[50%] w-[44%] h-1.5 rounded-full transition-all duration-500 ease-in-out ${
+                    currentStepIndex >= 2 ? "bg-primary shadow-sm shadow-primary/20" : "bg-muted"
+                  }`}
+                  style={{ zIndex: 5 }}
+                ></div>
+
                 {tabSteps.map((step, index) => (
                   <div
                     key={step}
@@ -90,17 +106,18 @@ export default function CreateTemplate() {
                         setTab(step);
                       }
                     }}
+                    style={{ zIndex: 10 }}
                   >
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center border-2 cursor-pointer 
                         ${
                           index <= currentStepIndex
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
                             : index === currentStepIndex + 1
                             ? "border-primary text-primary hover:bg-primary/10"
                             : "border-muted-foreground text-muted-foreground"
                         }
-                        transition-all duration-200 hover:scale-105
+                        transition-all duration-300 hover:scale-105 z-10
                       `}
                     >
                       {index < currentStepIndex ? (
