@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, Card, CardContent, Button } from "@/components/shared";
 import { TemplateDetailsTab } from "@/components/features/create-template-page/template-details-tab";
-import { ParametersTab } from "@/components/features/create-template-page/parameters-tab";
-import { ModulesTab } from "@/components/features/create-template-page/modules-tab";
+import { TradesTab } from "@/components/features/create-template-page/trades-tab";
 import { PreviewTab } from "@/components/features/create-template-page/preview-tab";
 import {
   ModuleForm,
@@ -30,7 +29,7 @@ export default function CreateTemplate() {
   const [parameters, setParameters] = useState<ParameterForm>([]);
   const [modules, setModules] = useState<ModuleForm>([]);
   const [isTourRunning, setIsTourRunning] = useState(false);
-  const tabSteps = ["details", "modules", "parameters", "preview"];
+  const tabSteps = ["details", "trades", "preview"];
   const currentStepIndex = tabSteps.indexOf(tab);
   
   // Check if the user has seen the tour
@@ -84,7 +83,7 @@ export default function CreateTemplate() {
                 {tabSteps.map((step, index) => (
                   <div
                     key={step}
-                    className={`flex flex-col items-center relative tab-trigger ${index === 0 ? 'details-tab-trigger' : ''} ${index === 1 ? 'modules-tab-trigger' : ''} ${index === 2 ? 'parameters-tab-trigger' : ''} ${index === 3 ? 'preview-tab-trigger' : ''}`}
+                    className={`flex flex-col items-center relative tab-trigger ${index === 0 ? 'details-tab-trigger' : ''} ${index === 1 ? 'trades-tab-trigger' : ''} ${index === 2 ? 'preview-tab-trigger' : ''}`}
                     data-value={step}
                     onClick={() => {
                       if (index <= currentStepIndex + 1) {
@@ -131,39 +130,17 @@ export default function CreateTemplate() {
                 <TemplateDetailsTab
                   value={templateDetails}
                   onChange={setTemplateDetails}
-                  onNext={() => setTab("modules")}
+                  onNext={() => setTab("trades")}
                 />
               </TabsContent>
 
-              <TabsContent value="modules" className="modules-tab-content">
-                <ModulesTab
-                  value={modules}
-                  onChange={setModules}
-                  onPrev={() => setTab("details")}
-                  onNext={() => setTab("parameters")}
+              <TabsContent value="trades" className="trades-tab-content">
+                <TradesTab
+                  moduleValue={modules}
+                  onModuleChange={setModules}
                   parameterValue={parameters}
                   onParameterChange={setParameters}
-                  openAddParamDialog={(name) => {
-                    // Store name in localStorage to use when parameter tab is active
-                    if (name) localStorage.setItem('pendingParamName', name);
-                    setTab("parameters");
-                  }}
-                  handleAddParamDialog={() => {
-                    // This would typically be handled in the parameters tab
-                    console.log("Add param dialog should be handled in parameters tab");
-                  }}
-                  handleAddParam={(param) => {
-                    // Add the parameter to the parameters array
-                    setParameters(prev => [...prev, param]);
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="parameters" className="parameters-tab-content">
-                <ParametersTab
-                  value={parameters}
-                  onChange={setParameters}
-                  onPrev={() => setTab("modules")}
+                  onPrev={() => setTab("details")}
                   onNext={() => setTab("preview")}
                 />
               </TabsContent>
