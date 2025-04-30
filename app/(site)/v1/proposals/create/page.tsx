@@ -33,6 +33,7 @@ import {
   ElementWithValues,
   validateProposalForm,
 } from "@/components/features/create-proposal-page/zod-schema";
+import { TemplateElementWithValues } from "@/components/features/create-proposal-page/types";
 
 export default function CreateProposal() {
   const router = useRouter();
@@ -132,7 +133,7 @@ export default function CreateProposal() {
     };
 
     // Map template elements to the format required for selectedElements
-    let elementsFromTemplate = templateElements.map((templateElement) => {
+    let elementsFromTemplate = templateElements.map((templateElement: TemplateElementWithValues) => {
       return {
         id: templateElement.element.id,
         element: templateElement.element,
@@ -186,7 +187,7 @@ export default function CreateProposal() {
     elements: ElementWithValues[],
     parameters: Parameter[]
   ) => {
-    return elements.map((el) => {
+    return elements.map((el: ElementWithValues) => {
       const materialFormula = el.formula || el.element.formula || "";
       const materialCost = evaluateFormula(materialFormula, parameters);
 
@@ -314,7 +315,6 @@ export default function CreateProposal() {
         const firstError = validationResult.error.errors[0];
         const errorPath = firstError.path[0] as string;
 
-        // Show toast notification for validation error
         toast.error(`Please fix the following issue: ${firstError.message}`, {
           position: "top-center",
           duration: 5000,
@@ -342,7 +342,43 @@ export default function CreateProposal() {
         return;
       }
 
-      submitProposal({
+      const formattedElements = selectedElements.map(el => ({
+        id: el.id,
+        formula: el.formula || "",
+        labor_formula: el.labor_formula || "",
+        markup: parseInt(el.markup.toString()) || 0,
+        material_cost: parseInt(el.material_cost.toString()) || 0, 
+        labor_cost: parseInt(el.labor_cost.toString()) || 0, 
+        element: {
+          id: el.element.id,
+          name: el.element.name,
+          description: el.element.description || "",
+          formula: el.element.formula || "",
+          labor_formula: el.element.labor_formula || ""
+        },
+        module: {
+          id: el.module.id,
+          name: el.module.name,
+          description: el.module.description || ""
+        }
+      }));
+
+      const formattedParameters = selectedParameters.map(param => {
+        let paramValue = param.value;
+        
+        if (typeof paramValue === 'string' && !isNaN(Number(paramValue))) {
+          paramValue = parseFloat(paramValue);
+        }
+        
+        return {
+          id: param.id,
+          name: param.name,
+          value: paramValue,
+          type: param.type || "number" 
+        };
+      });
+
+      const payload = {
         id: selectedTemplate?.id,
         name: proposalDetails.name,
         title: proposalDetails.name,
@@ -352,9 +388,12 @@ export default function CreateProposal() {
         clientPhone: proposalDetails.phone_number,
         clientAddress: proposalDetails.address,
         image: proposalDetails.image,
-        parameters: selectedParameters,
-        template_elements: selectedElements,
-      });
+        parameters: formattedParameters,
+        template_elements: formattedElements,
+      };
+      
+      console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+      submitProposal(payload);
     } catch (error) {
       console.error("Error creating proposal:", error);
       toast.error("Failed to create proposal. Please try again.", {
