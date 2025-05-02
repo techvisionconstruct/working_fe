@@ -3,8 +3,8 @@ import Cookies from "js-cookie";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const TOKEN = Cookies.get('auth-token');
 
-export const getParameters = async () => {
-  const res = await fetch(`${API_URL}/api/parameters/parameters`, {
+export const getVariables = async () => {
+  const res = await fetch(`${API_URL}/v1/variable-types/list/`, {
     headers: {
       'Authorization': `Bearer ${TOKEN}`
     }
@@ -12,8 +12,8 @@ export const getParameters = async () => {
   return res.json();
 };
 
-export const getParameterById = async (id: number) => {
-  const res = await fetch(`${API_URL}/api/parameters/parameters/${id}`, {
+export const getVariableById = async (id: string) => {
+  const res = await fetch(`${API_URL}/v1/variable-types/detail/${id}`, {
     headers: {
       'Authorization': `Bearer ${TOKEN}`
     }

@@ -1,10 +1,11 @@
 import Cookies from "js-cookie";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const TOKEN = Cookies.get('auth-token');
+const getAuthToken = () => Cookies.get("auth-token");
 
-export const getElements = async (moduleName: string) => {
-  const res = await fetch(`${API_URL}/api/elements/elements?modules=${moduleName}`, {
+export const getElements = async () => {
+  const TOKEN = getAuthToken();
+  const res = await fetch(`${API_URL}/v1/elements/list/`, {
     headers: {
       Authorization: `Bearer ${TOKEN}`,
     },
@@ -13,7 +14,8 @@ export const getElements = async (moduleName: string) => {
 };
 
 export const getElementById = async (id: number) => {
-  const res = await fetch(`${API_URL}/api/elements/elements/${id}`, {
+  const TOKEN = getAuthToken();
+  const res = await fetch(`${API_URL}/v1/elements/detail/${id}`, {
     headers: {
       Authorization: `Bearer ${TOKEN}`,
     },
