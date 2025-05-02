@@ -28,14 +28,16 @@ import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getVariables } from "@/api/client/variables";
 import { getVariables as getVariableTypes } from "@/api/client/variable_types";
+import { updateTrade } from "@/api/server/trades";
 import { getTrades } from "@/api/client/trades";
 import { getElements } from "@/api/client/elements";
 import { createVariable } from "@/api/server/variables";
 import { createTrade } from "@/api/server/trades";
-import { createElement } from "@/api/server/elements";
+import { createElement, updateElement } from "@/api/server/elements";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { TradeResponse } from "@/types/trades/dto";
+
 
 interface TradesAndElementsStepProps {
   data: {
@@ -70,6 +72,27 @@ const replaceVariableIdsWithNames = (
   return displayFormula;
 };
 
+// Function to convert variable names to IDs for backend submission
+const replaceVariableNamesWithIds = (
+  formula: string,
+  variableList: VariableResponse[]
+): string => {
+  if (!formula || !variableList) return formula;
+
+  let backendFormula = formula;
+  
+  // Create a regex to match variable names in curly braces
+  const namePattern = /\{([^{}]+)\}/g;
+  
+  // Replace all occurrences of {name} with {id}
+  backendFormula = backendFormula.replace(namePattern, (match, variableName) => {
+    const variable = variableList.find(v => v.name === variableName);
+    return variable ? `{${variable.id}}` : match;
+  });
+
+  return backendFormula;
+};
+
 const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
   updateTrades,
@@ -100,12 +123,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     Record<string, string>
   >({});
   const [showAddElementDialog, setShowAddElementDialog] = useState(false);
+  const [showEditElementDialog, setShowEditElementDialog] = useState(false);
   const [currentTradeId, setCurrentTradeId] = useState<string | null>(null);
+  const [currentElementId, setCurrentElementId] = useState<string | null>(null);
   const [newElementName, setNewElementName] = useState("");
   const [newElementDescription, setNewElementDescription] = useState("");
-  const [newElementMaterialFormula, setNewElementMaterialFormula] =
-    useState("");
+  const [newElementMaterialFormula, setNewElementMaterialFormula] = useState("");
   const [newElementLaborFormula, setNewElementLaborFormula] = useState("");
+  
+  // Formula autocomplete states
+  const [materialSuggestions, setMaterialSuggestions] = useState<VariableResponse[]>([]);
+  const [laborSuggestions, setLaborSuggestions] = useState<VariableResponse[]>([]);
+  const [showMaterialSuggestions, setShowMaterialSuggestions] = useState(false);
+  const [showLaborSuggestions, setShowLaborSuggestions] = useState(false);
+  const [selectedMaterialSuggestion, setSelectedMaterialSuggestion] = useState<number>(0);
+  const [selectedLaborSuggestion, setSelectedLaborSuggestion] = useState<number>(0);
+  const [formulaFieldSource, setFormulaFieldSource] = useState<"material" | "labor" | null>(null);
+  const [pendingVariableName, setPendingVariableName] = useState<string>("");
 
   // UI state
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,6 +195,38 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       if (response && response.data) {
         const createdVariable = response.data;
         updateVariables([...variables, createdVariable]);
+        
+        // Insert the newly created variable into the formula field that triggered the dialog
+        if (formulaFieldSource === "material" && pendingVariableName) {
+          // Insert the new variable in place of what was being typed
+          const formula = newElementMaterialFormula;
+          const lastBraceIndex = formula.lastIndexOf("{" + pendingVariableName);
+          if (lastBraceIndex !== -1) {
+            // Replace the partial variable name with the full variable name and closing brace
+            const newFormula = 
+              formula.substring(0, lastBraceIndex) + 
+              `{${createdVariable.name}}` + 
+              formula.substring(lastBraceIndex + pendingVariableName.length + 1);
+            setNewElementMaterialFormula(newFormula);
+          }
+        } else if (formulaFieldSource === "labor" && pendingVariableName) {
+          // Insert the new variable in place of what was being typed
+          const formula = newElementLaborFormula;
+          const lastBraceIndex = formula.lastIndexOf("{" + pendingVariableName);
+          if (lastBraceIndex !== -1) {
+            // Replace the partial variable name with the full variable name and closing brace
+            const newFormula = 
+              formula.substring(0, lastBraceIndex) + 
+              `{${createdVariable.name}}` + 
+              formula.substring(lastBraceIndex + pendingVariableName.length + 1);
+            setNewElementLaborFormula(newFormula);
+          }
+        }
+
+        // Reset the formula field source and pending variable
+        setFormulaFieldSource(null);
+        setPendingVariableName("");
+
         toast.success("Variable created successfully", {
           position: "top-center",
           description: `"${createdVariable.name}" has been added to your template.`,
@@ -213,7 +279,70 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       },
     });
 
-  // Element mutation
+  // Trade update mutation to connect elements to trades
+  const { mutate: updateTradeMutation, isPending: isUpdatingTrade } = useMutation({
+    mutationFn: ({ tradeId, data }: { tradeId: string; data: { elements: string[] } }) => 
+      updateTrade(tradeId, data),
+    onSuccess: () => {
+      // No need to update UI state again since we already did it in createElementMutation
+    },
+    onError: (error) => {
+      toast.error("Failed to connect element to trade", {
+        position: "top-center",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+    }
+  });
+
+  // Element update mutation
+  const { mutate: updateElementMutation, isPending: isUpdatingElement } = useMutation({
+    mutationFn: ({ elementId, data }: { elementId: string, data: any }) => 
+      updateElement(elementId, data),
+    onSuccess: (response) => {
+      if (response && response.data) {
+        const updatedElement = response.data;
+        
+        // Update the element in all trades where it exists
+        const updatedTrades = trades.map(trade => {
+          if (trade.elements && trade.elements.some(e => e.id === updatedElement.id)) {
+            return {
+              ...trade,
+              elements: trade.elements.map(element => 
+                element.id === updatedElement.id ? updatedElement : element
+              )
+            };
+          }
+          return trade;
+        });
+        
+        updateTrades(updatedTrades);
+        
+        toast.success("Element updated successfully", {
+          position: "top-center",
+          description: `"${updatedElement.name}" has been updated.`,
+        });
+        
+        // Reset form and close dialog
+        setShowEditElementDialog(false);
+        setCurrentElementId(null);
+        setNewElementName("");
+        setNewElementDescription("");
+        setNewElementMaterialFormula("");
+        setNewElementLaborFormula("");
+      }
+    },
+    onError: (error) => {
+      toast.error("Failed to update element", {
+        position: "top-center",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+      });
+    }
+  });
+
+  // Element creation mutation
   const { mutate: createElementMutation, isPending: isCreatingElement } =
     useMutation({
       mutationFn: createElement,
@@ -232,8 +361,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             }
             return trade;
           });
-
+          
+          // Update the UI state first
           updateTrades(updatedTrades);
+          
+          // Then update the backend to connect the element to the trade using React Query mutation
+          if (currentTradeId) {
+            // Find the current trade that we're adding the element to
+            const currentTrade = trades.find(trade => trade.id === currentTradeId);
+            if (currentTrade) {
+              // Get all elements including the new one
+              const updatedElements = [...(currentTrade.elements || []), createdElement].map(elem => elem.id);
+              
+              // Use the updateTradeMutation to connect element to trade
+              updateTradeMutation({
+                tradeId: currentTradeId,
+                data: { elements: updatedElements }
+              });
+            }
+          }
 
           toast.success("Element created successfully", {
             position: "top-center",
@@ -304,6 +450,193 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           return matchesQuery && !isAlreadyInTrade;
         })
       : [];
+
+  // Helper functions for formula autocomplete
+  const filterVariableSuggestions = (input: string, prefix: string = ""): VariableResponse[] => {
+    if (!input || !prefix) return [];
+    
+    // Find the current word being typed after the last space
+    const lastSpaceIndex = input.lastIndexOf(prefix);
+    if (lastSpaceIndex === -1) return [];
+    
+    // Get current partial variable name being typed
+    const currentPartial = input.substring(lastSpaceIndex + prefix.length).trim();
+    if (!currentPartial) return [];
+    
+    // Filter variables that match the partial input
+    return variables.filter(variable => 
+      variable.name.toLowerCase().includes(currentPartial.toLowerCase())
+    );
+  };
+  
+  const handleMaterialFormulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewElementMaterialFormula(value);
+    
+    // Check if we're typing a variable reference
+    if (value.includes("{") && !value.endsWith("}")) {
+      const suggestions = filterVariableSuggestions(value, "{");
+      setMaterialSuggestions(suggestions);
+      setShowMaterialSuggestions(suggestions.length > 0);
+      setSelectedMaterialSuggestion(0);
+    } else {
+      setShowMaterialSuggestions(false);
+    }
+  };
+  
+  const handleLaborFormulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewElementLaborFormula(value);
+    
+    // Check if we're typing a variable reference
+    if (value.includes("{") && !value.endsWith("}")) {
+      const suggestions = filterVariableSuggestions(value, "{");
+      setLaborSuggestions(suggestions);
+      setShowLaborSuggestions(suggestions.length > 0);
+      setSelectedLaborSuggestion(0);
+      
+      // Extract what the user is typing as a potential variable name
+      const lastBraceIndex = value.lastIndexOf("{");
+      if (lastBraceIndex !== -1) {
+        const partialVarName = value.substring(lastBraceIndex + 1).trim();
+        
+        // If user has typed something meaningful and pressed Enter with no matches
+        if (partialVarName && (e.nativeEvent as InputEvent).inputType === "insertLineBreak" && suggestions.length === 0) {
+          // Open the add variable dialog with the partial variable name
+          setPendingVariableName(partialVarName);
+          setFormulaFieldSource("labor");
+          setNewVarName(partialVarName);
+          setShowAddDialog(true);
+          setShowLaborSuggestions(false);
+          
+          // Prevent adding the newline character to the formula
+          setNewElementLaborFormula(value.replace(/\n/g, ""));
+        }
+      }
+    } else {
+      setShowLaborSuggestions(false);
+    }
+  };
+  
+  const insertVariableInFormula = (formula: string, variableName: string): string => {
+    // Find the last opening brace to replace everything from there to cursor with the variable name
+    const lastOpenBrace = formula.lastIndexOf("{");
+    if (lastOpenBrace === -1) return formula;
+    
+    return formula.substring(0, lastOpenBrace) + `{${variableName}}` + " ";
+  };
+  
+  const handleMaterialFormulaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // If we have suggestions, handle keyboard navigation
+    if (showMaterialSuggestions && materialSuggestions.length > 0) {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedMaterialSuggestion(prev => 
+            prev < materialSuggestions.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedMaterialSuggestion(prev => 
+            prev > 0 ? prev - 1 : materialSuggestions.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (materialSuggestions[selectedMaterialSuggestion]) {
+            const selectedVar = materialSuggestions[selectedMaterialSuggestion];
+            setNewElementMaterialFormula(prev => 
+              insertVariableInFormula(prev, selectedVar.name)
+            );
+            setShowMaterialSuggestions(false);
+          }
+          break;
+        case "Escape":
+          setShowMaterialSuggestions(false);
+          break;
+      }
+      return; // Exit early if we're handling suggestions
+    }
+    
+    // Handle creating a new variable when Enter is pressed while typing in braces
+    if (e.key === "Enter" && newElementMaterialFormula.includes("{") && !newElementMaterialFormula.endsWith("}")) {
+      e.preventDefault();
+      
+      // Extract variable name being typed
+      const lastBraceIndex = newElementMaterialFormula.lastIndexOf("{");
+      if (lastBraceIndex !== -1) {
+        const partialVarName = newElementMaterialFormula.substring(lastBraceIndex + 1).trim();
+        
+        // If there's a name typed and it doesn't match existing variables
+        if (partialVarName && !variables.some(v => v.name.toLowerCase() === partialVarName.toLowerCase())) {
+          // Set the variable name in the add dialog
+          setNewVarName(partialVarName);
+          // Track which formula field triggered the dialog
+          setFormulaFieldSource("material");
+          setPendingVariableName(partialVarName);
+          // Open the dialog
+          setShowAddDialog(true);
+        }
+      }
+    }
+  };
+  
+  const handleLaborFormulaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // If we have suggestions, handle keyboard navigation
+    if (showLaborSuggestions && laborSuggestions.length > 0) {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedLaborSuggestion(prev => 
+            prev < laborSuggestions.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedLaborSuggestion(prev => 
+            prev > 0 ? prev - 1 : laborSuggestions.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (laborSuggestions[selectedLaborSuggestion]) {
+            const selectedVar = laborSuggestions[selectedLaborSuggestion];
+            setNewElementLaborFormula(prev => 
+              insertVariableInFormula(prev, selectedVar.name)
+            );
+            setShowLaborSuggestions(false);
+          }
+          break;
+        case "Escape":
+          setShowLaborSuggestions(false);
+          break;
+      }
+      return; // Exit early if we're handling suggestions
+    }
+    
+    // Handle creating a new variable when Enter is pressed while typing in braces
+    if (e.key === "Enter" && newElementLaborFormula.includes("{") && !newElementLaborFormula.endsWith("}")) {
+      e.preventDefault();
+      
+      // Extract variable name being typed
+      const lastBraceIndex = newElementLaborFormula.lastIndexOf("{");
+      if (lastBraceIndex !== -1) {
+        const partialVarName = newElementLaborFormula.substring(lastBraceIndex + 1).trim();
+        
+        // If there's a name typed and it doesn't match existing variables
+        if (partialVarName && !variables.some(v => v.name.toLowerCase() === partialVarName.toLowerCase())) {
+          // Set the variable name in the add dialog
+          setNewVarName(partialVarName);
+          // Track which formula field triggered the dialog
+          setFormulaFieldSource("labor");
+          setPendingVariableName(partialVarName);
+          // Open the dialog
+          setShowAddDialog(true);
+        }
+      }
+    }
+  };
 
   const handleSelectVariable = (variable: VariableResponse) => {
     const newVar: VariableResponse = {
@@ -435,18 +768,93 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleAddElement = () => {
     if (!newElementName.trim() || !currentTradeId) return;
 
-    // Prepare element data
+    // Convert formula variable names to IDs for backend submission
+    const materialFormula = newElementMaterialFormula.trim() 
+      ? replaceVariableNamesWithIds(newElementMaterialFormula.trim(), variables)
+      : undefined;
+    
+    const laborFormula = newElementLaborFormula.trim()
+      ? replaceVariableNamesWithIds(newElementLaborFormula.trim(), variables) 
+      : undefined;
+
+    // Prepare element data with ID-based formulas
     const elementData = {
       name: newElementName.trim(),
       description: newElementDescription.trim() || undefined,
-      material_cost_formula: newElementMaterialFormula.trim() || undefined,
-      labor_cost_formula: newElementLaborFormula.trim() || undefined,
+      material_cost_formula: materialFormula,
+      labor_cost_formula: laborFormula,
     };
 
     // Create the element
     createElementMutation(elementData);
 
     // Success handling is done in the mutation's onSuccess callback
+  };
+  
+  const handleEditElement = () => {
+    if (!newElementName.trim() || !currentElementId) return;
+
+    // Convert formula variable names to IDs for backend submission
+    const materialFormula = newElementMaterialFormula.trim() 
+      ? replaceVariableNamesWithIds(newElementMaterialFormula.trim(), variables)
+      : undefined;
+    
+    const laborFormula = newElementLaborFormula.trim()
+      ? replaceVariableNamesWithIds(newElementLaborFormula.trim(), variables) 
+      : undefined;
+
+    // Prepare element data with ID-based formulas
+    const elementData = {
+      name: newElementName.trim(),
+      description: newElementDescription.trim() || undefined,
+      material_cost_formula: materialFormula,
+      labor_cost_formula: laborFormula,
+    };
+
+    // Update the element
+    updateElementMutation({
+      elementId: currentElementId,
+      data: elementData
+    });
+    
+    // Success handling is done in the mutation's onSuccess callback
+  };
+  
+  const handleOpenEditDialog = (element: ElementResponse) => {
+    // Set the current element ID
+    setCurrentElementId(element.id);
+    
+    // Pre-fill the form with the element's data
+    setNewElementName(element.name);
+    setNewElementDescription(element.description || "");
+    
+    // Convert formula IDs back to names for display
+    if (element.material_cost_formula) {
+      setNewElementMaterialFormula(
+        replaceVariableIdsWithNames(
+          element.material_cost_formula,
+          variables,
+          element.material_formula_variables || []
+        )
+      );
+    } else {
+      setNewElementMaterialFormula("");
+    }
+    
+    if (element.labor_cost_formula) {
+      setNewElementLaborFormula(
+        replaceVariableIdsWithNames(
+          element.labor_cost_formula,
+          variables,
+          element.labor_formula_variables || []
+        )
+      );
+    } else {
+      setNewElementLaborFormula("");
+    }
+    
+    // Open the edit dialog
+    setShowEditElementDialog(true);
   };
   return (
     <div className="space-y-8">
@@ -872,31 +1280,158 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           <Label htmlFor="material-formula">
                             Material Cost Formula (Optional)
                           </Label>
-                          <Input
-                            id="material-formula"
-                            placeholder="e.g., length * width * 10"
-                            value={newElementMaterialFormula}
-                            onChange={(e) =>
-                              setNewElementMaterialFormula(e.target.value)
-                            }
-                          />
-                          <div className="text-xs text-muted-foreground">
+                          <div className="relative">
+                            <Input
+                              id="material-formula"
+                              placeholder="e.g., {Wall Length} * {Wall Width} * 10"
+                              value={newElementMaterialFormula}
+                              onChange={handleMaterialFormulaChange}
+                              onKeyDown={handleMaterialFormulaKeyDown}
+                            />
+                            {showMaterialSuggestions && materialSuggestions.length > 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                                {materialSuggestions.map((variable, index) => (
+                                  <div 
+                                    key={variable.id} 
+                                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedMaterialSuggestion === index ? 'bg-accent text-accent-foreground' : ''}`}
+                                    onClick={() => {
+                                      setNewElementMaterialFormula(prev => 
+                                        insertVariableInFormula(prev, variable.name)
+                                      );
+                                      setShowMaterialSuggestions(false);
+                                    }}
+                                  >
+                                    {variable.name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " + ");
+                              }}
+                            >
+                              +
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " - ");
+                              }}
+                            >
+                              -
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " * ");
+                              }}
+                            >
+                              ×
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " / ");
+                              }}
+                            >
+                              ÷
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-2">
                             Use curly braces to reference variables, e.g.,{" "}
-                            {"{Wall Length}"} * {"{Wall Width}"}
+                            {"{Wall Length}"} * {"{Wall Width}"} or type {"{"} to see suggestions
                           </div>
                         </div>
+                        
                         <div className="grid gap-2">
                           <Label htmlFor="labor-formula">
                             Labor Cost Formula (Optional)
                           </Label>
-                          <Input
-                            id="labor-formula"
-                            placeholder="e.g., length * width * 5"
-                            value={newElementLaborFormula}
-                            onChange={(e) =>
-                              setNewElementLaborFormula(e.target.value)
-                            }
-                          />
+                          <div className="relative">
+                            <Input
+                              id="labor-formula"
+                              placeholder="e.g., {Wall Length} * {Wall Width} * 5"
+                              value={newElementLaborFormula}
+                              onChange={handleLaborFormulaChange}
+                              onKeyDown={handleLaborFormulaKeyDown}
+                            />
+                            {showLaborSuggestions && laborSuggestions.length > 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                                {laborSuggestions.map((variable, index) => (
+                                  <div 
+                                    key={variable.id} 
+                                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedLaborSuggestion === index ? 'bg-accent text-accent-foreground' : ''}`}
+                                    onClick={() => {
+                                      setNewElementLaborFormula(prev => 
+                                        insertVariableInFormula(prev, variable.name)
+                                      );
+                                      setShowLaborSuggestions(false);
+                                    }}
+                                  >
+                                    {variable.name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " + ");
+                              }}
+                            >
+                              +
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " - ");
+                              }}
+                            >
+                              -
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " * ");
+                              }}
+                            >
+                              ×
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " / ");
+                              }}
+                            >
+                              ÷
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Use curly braces to reference variables, e.g.,{" "}
+                            {"{Wall Length}"} * {"{Wall Width}"} or type {"{"} to see suggestions
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
@@ -922,6 +1457,232 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             </>
                           ) : (
                             "Add Element"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  {/* Dialog for editing an element */}
+                  <Dialog
+                    open={showEditElementDialog}
+                    onOpenChange={setShowEditElementDialog}
+                  >
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center">
+                          <BracesIcon className="mr-2 h-4 w-4" />
+                          Edit Element
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-element-name">Element Name</Label>
+                          <Input
+                            id="edit-element-name"
+                            placeholder="Wall Framing"
+                            value={newElementName}
+                            onChange={(e) => setNewElementName(e.target.value)}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-element-description">
+                            Description (Optional)
+                          </Label>
+                          <Textarea
+                            id="edit-element-description"
+                            placeholder="Description of this element"
+                            value={newElementDescription}
+                            onChange={(e) =>
+                              setNewElementDescription(e.target.value)
+                            }
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-material-formula">
+                            Material Cost Formula (Optional)
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="edit-material-formula"
+                              placeholder="e.g., {Wall Length} * {Wall Width} * 10"
+                              value={newElementMaterialFormula}
+                              onChange={handleMaterialFormulaChange}
+                              onKeyDown={handleMaterialFormulaKeyDown}
+                            />
+                            {showMaterialSuggestions && materialSuggestions.length > 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                                {materialSuggestions.map((variable, index) => (
+                                  <div 
+                                    key={variable.id} 
+                                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedMaterialSuggestion === index ? 'bg-accent text-accent-foreground' : ''}`}
+                                    onClick={() => {
+                                      setNewElementMaterialFormula(prev => 
+                                        insertVariableInFormula(prev, variable.name)
+                                      );
+                                      setShowMaterialSuggestions(false);
+                                    }}
+                                  >
+                                    {variable.name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " + ");
+                              }}
+                            >
+                              +
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " - ");
+                              }}
+                            >
+                              -
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " * ");
+                              }}
+                            >
+                              ×
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementMaterialFormula(prev => prev + " / ");
+                              }}
+                            >
+                              ÷
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Use curly braces to reference variables, e.g.,{" "}
+                            {"{Wall Length}"} * {"{Wall Width}"} or type {"{"} to see suggestions
+                          </div>
+                        </div>
+                        
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-labor-formula">
+                            Labor Cost Formula (Optional)
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="edit-labor-formula"
+                              placeholder="e.g., {Wall Length} * {Wall Width} * 5"
+                              value={newElementLaborFormula}
+                              onChange={handleLaborFormulaChange}
+                              onKeyDown={handleLaborFormulaKeyDown}
+                            />
+                            {showLaborSuggestions && laborSuggestions.length > 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                                {laborSuggestions.map((variable, index) => (
+                                  <div 
+                                    key={variable.id} 
+                                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedLaborSuggestion === index ? 'bg-accent text-accent-foreground' : ''}`}
+                                    onClick={() => {
+                                      setNewElementLaborFormula(prev => 
+                                        insertVariableInFormula(prev, variable.name)
+                                      );
+                                      setShowLaborSuggestions(false);
+                                    }}
+                                  >
+                                    {variable.name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " + ");
+                              }}
+                            >
+                              +
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " - ");
+                              }}
+                            >
+                              -
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " * ");
+                              }}
+                            >
+                              ×
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setNewElementLaborFormula(prev => prev + " / ");
+                              }}
+                            >
+                              ÷
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Use curly braces to reference variables, e.g.,{" "}
+                            {"{Wall Length}"} * {"{Wall Width}"} or type {"{"} to see suggestions
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowEditElementDialog(false);
+                            setCurrentElementId(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (newElementName.trim() && currentElementId) {
+                              handleEditElement();
+                            }
+                          }}
+                          disabled={isUpdatingElement}
+                          type="submit"
+                        >
+                          {isUpdatingElement ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            "Save Changes"
                           )}
                         </Button>
                       </DialogFooter>
@@ -1111,20 +1872,34 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         </div>
                                       </div>
 
-                                      {/* Remove element button */}
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                                        onClick={() =>
-                                          handleRemoveElement(
-                                            element.id,
-                                            trade.id
-                                          )
-                                        }
-                                      >
-                                        <X className="h-2.5 w-2.5" />
-                                      </Button>
+                                      <div className="absolute -top-2 -right-2 flex gap-1">
+                                        {/* Edit element button */}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
+                                          onClick={() => handleOpenEditDialog(element)}
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                          </svg>
+                                        </Button>
+                                        {/* Remove element button */}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
+                                          onClick={() =>
+                                            handleRemoveElement(
+                                              element.id,
+                                              trade.id
+                                            )
+                                          }
+                                        >
+                                          <X className="h-2.5 w-2.5" />
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
