@@ -8,110 +8,157 @@ import {
   CardContent,
   Badge
 } from "@/components/shared";
-import { TemplateFormData } from "../CreateTemplateForm";
+import { TemplateCreateRequest } from "@/types/templates/dto";
+import { TradeResponse } from "@/types/trades/dto";
+import { ElementResponse } from "@/types/elements/dto";
+import { VariableResponse } from "@/types/variables/dto";
 import { Check, FileText, ListChecks } from "lucide-react";
 
+const replaceVariableIdsWithNames = (
+  formula: string,
+  variableList: VariableResponse[],
+  formulaVars: Record<string, any>[]
+): string => {
+  if (!formula || !formulaVars || !variableList) return formula;
+
+  let displayFormula = formula;
+
+  formulaVars.forEach((variable) => {
+    const variableName =
+      variableList.find((v) => v.id === variable.id)?.name ||
+      variable.name ||
+      variable.id;
+
+    // Replace all occurrences of {id} with {name}
+    const idPattern = new RegExp(`\\{${variable.id}\\}`, "g");
+    displayFormula = displayFormula.replace(idPattern, `{${variableName}}`);
+  });
+
+  return displayFormula;
+};
+
 interface PreviewStepProps {
-  data: TemplateFormData;
+  data: TemplateCreateRequest;
+  tradeObjects?: TradeResponse[];
+  elementObjects?: ElementResponse[];
+  variableObjects?: VariableResponse[];
 }
 
-const PreviewStep: React.FC<PreviewStepProps> = ({ data }) => {
+const PreviewStep: React.FC<PreviewStepProps> = ({ 
+  data, 
+  tradeObjects = [], 
+  variableObjects = [] 
+}) => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Preview & Submit</h2>
-        <p className="text-muted-foreground mb-6">
-          Review your template details before creating it.
-        </p>
+    <div className="p-0 mx-auto">
+      <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl shadow flex items-center justify-center">
+        <div className="text-3xl font-bold text-center text-primary/70">Template Preview</div>
+      </div>
+      
+      <h2 className="text-4xl font-bold mb-2 tracking-tight leading-tight">
+        {data.name || "Untitled Template"}
+      </h2>
+      <p className="text-lg text-muted-foreground mb-2">
+        {data.description || "No description provided"}
+      </p>
+      
+      <div className="flex flex-wrap gap-2 mt-3 mb-6">
+        <Badge variant="outline" className="capitalize">
+          Status: {data.status || "draft"}
+        </Badge>
+        <Badge variant="outline">
+          {data.is_public ? "Public" : "Private"}
+        </Badge>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            Template Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="divide-y divide-muted">
-            <div className="grid grid-cols-3 py-3">
-              <dt className="font-medium">Name</dt>
-              <dd className="col-span-2">{data.details.name || "—"}</dd>
-            </div>
-            <div className="grid grid-cols-3 py-3">
-              <dt className="font-medium">Category</dt>
-              <dd className="col-span-2">
-                {data.details.category ? (
-                  <Badge variant="outline" className="capitalize">
-                    {data.details.category}
-                  </Badge>
-                ) : "—"}
-              </dd>
-            </div>
-            <div className="grid grid-cols-3 py-3">
-              <dt className="font-medium">Description</dt>
-              <dd className="col-span-2 whitespace-pre-wrap">
-                {data.details.description || "—"}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center">
-            <ListChecks className="mr-2 h-5 w-5" />
-            Trades & Elements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Applicable Trades ({data.trades.length})</h4>
-              <div className="flex flex-wrap gap-2">
-                {data.trades.length > 0 ? (
-                  data.trades.map((trade) => (
-                    <Badge key={trade} variant="secondary">
-                      {trade}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-muted-foreground">No trades selected</span>
+      {variableObjects.length > 0 && (
+        <div className="mt-8 w-full">
+          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+            Variables
+          </h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {variableObjects.map((variable) => (
+              <span
+                key={variable.id}
+                className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
+              >
+                {variable.name}{variable.value !== undefined && `: ${variable.value}`}
+                {variable.variable_type && (
+                  <span className="text-[10px] text-gray-400 ml-1">
+                    ({variable.variable_type.name})
+                  </span>
                 )}
-              </div>
-            </div>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
-            <div>
-              <h4 className="font-medium mb-2">Template Elements ({data.elements.length})</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {data.elements.length > 0 ? (
-                  data.elements.map((element) => (
-                    <div 
-                      key={element.id} 
-                      className="flex items-center border rounded-md p-2 bg-muted/30"
-                    >
-                      <Check className="h-4 w-4 mr-2 text-primary" />
-                      <span>{element.type}</span>
+      {tradeObjects.length > 0 && (
+        <div className="mt-8 w-full">
+          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+            Trades
+          </h3>
+          <div className="flex flex-col gap-4">
+            {tradeObjects.map((trade) => (
+              <div
+                key={trade.id}
+                className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors"
+              >
+                <h4 className="font-medium text-base mb-1">{trade.name}</h4>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {trade.description || "No description"}
+                </p>
+
+                {trade.elements && trade.elements.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
+                      Elements
                     </div>
-                  ))
-                ) : (
-                  <span className="text-muted-foreground md:col-span-2">No elements selected</span>
+                    {trade.elements.map((element) => (
+                      <div className="flex flex-col gap-2" key={element.id}>
+                        <div className="flex items-center gap-3 p-4 rounded border bg-background">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{element.name}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">{element.description}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            {element.material_cost_formula && (
+                              <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                                Material: {replaceVariableIdsWithNames(
+                                  element.material_cost_formula,
+                                  variableObjects,
+                                  element.material_formula_variables || []
+                                )}
+                              </span>
+                            )}
+                            {element.labor_cost_formula && (
+                              <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                                Labor: {replaceVariableIdsWithNames(
+                                  element.labor_cost_formula,
+                                  variableObjects,
+                                  element.labor_formula_variables || []
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center">
-            <Check className="h-5 w-5 mr-2 text-primary" />
-            <p>Your template is ready to be created. Click "Create Template" to proceed.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mt-8 p-4 border border-primary/20 rounded-lg bg-primary/5">
+        <div className="flex items-center">
+          <Check className="h-5 w-5 mr-2 text-primary" />
+          <p>Your template is ready to be created. Review details above and click "Create Template" to proceed.</p>
+        </div>
+      </div>
     </div>
   );
 };

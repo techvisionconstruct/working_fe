@@ -45,7 +45,6 @@ interface TradesAndElementsStepProps {
     variables: VariableResponse[];
   };
   updateTrades: (trades: TradeResponse[]) => void;
-  updateElements: (elements: ElementResponse[]) => void;
   updateVariables?: (variables: VariableResponse[]) => void;
 }
 
@@ -72,7 +71,6 @@ const replaceVariableIdsWithNames = (
   return displayFormula;
 };
 
-// Function to convert variable names to IDs for backend submission
 const replaceVariableNamesWithIds = (
   formula: string,
   variableList: VariableResponse[]
@@ -80,11 +78,7 @@ const replaceVariableNamesWithIds = (
   if (!formula || !variableList) return formula;
 
   let backendFormula = formula;
-  
-  // Create a regex to match variable names in curly braces
   const namePattern = /\{([^{}]+)\}/g;
-  
-  // Replace all occurrences of {name} with {id}
   backendFormula = backendFormula.replace(namePattern, (match, variableName) => {
     const variable = variableList.find(v => v.name === variableName);
     return variable ? `{${variable.id}}` : match;
@@ -96,7 +90,6 @@ const replaceVariableNamesWithIds = (
 const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
   updateTrades,
-  updateElements,
   updateVariables = () => {},
 }) => {
   // =========== STATE MANAGEMENT ===========

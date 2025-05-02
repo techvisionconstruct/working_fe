@@ -32,12 +32,11 @@ const CreateTemplateForm = () => {
     is_public: false,
   });
 
-  // Store full objects for UI display and editing
   const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     []
   );
-  const [elementObjects, setElementObjects] = useState<ElementResponse[]>([]);
+
   const updateFormData = (field: string, data: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -63,7 +62,22 @@ const CreateTemplateForm = () => {
 
   const handleSubmit = async () => {
     try {
-      console.log("Submitting template:", formData);
+      const updatedFormData = {
+        ...formData,
+        trades: tradeObjects.map(trade => trade.id),
+        variables: variableObjects.map(variable => variable.id)
+      };
+      
+      const requestPayload = {
+        name: updatedFormData.name,
+        description: updatedFormData.description,
+        status: updatedFormData.status,
+        origin: updatedFormData.origin,
+        trades: updatedFormData.trades,
+        variables: updatedFormData.variables
+      };
+
+      console.log("Submitting template:", requestPayload);
       alert("Template created successfully!");
     } catch (error) {
       console.error("Error creating template:", error);
@@ -115,10 +129,6 @@ const CreateTemplateForm = () => {
                 variables.map((variable) => variable.id)
               );
             }}
-            updateElements={() => {
-              // This prop is required but not used in current implementation
-              // Can be implemented later when element management is added
-            }}
           />
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={handleBack}>
@@ -129,7 +139,7 @@ const CreateTemplateForm = () => {
         </TabsContent>
 
         <TabsContent value="preview" className="p-6">
-          <PreviewStep data={formData} />
+          <PreviewStep data={formData} tradeObjects={tradeObjects} variableObjects={variableObjects} />
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={handleBack}>
               Back
