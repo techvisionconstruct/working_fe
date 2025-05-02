@@ -5,10 +5,10 @@ import {
   Card,
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
   Button,
 } from "@/components/shared";
+import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 import TemplateDetailsStep from "@/components/features/create-template-page/template-details-step";
 import TradesAndElementsStep from "@/components/features/create-template-page/template-and-elements-step";
 import PreviewStep from "@/components/features/create-template-page/preview-step";
@@ -16,7 +16,8 @@ import StepIndicator from "@/components/features/create-template-page/step-indic
 import { TemplateCreateRequest } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { ElementResponse } from "@/types/elements/dto";
+import { createTemplateSchema, validateTradeElements } from "@/zod-schemas/templates/create-template-schema";
+import { createTemplate } from "@/api/server/templates";
 
 export default function CreateTemplate() {
   const [currentStep, setCurrentStep] = useState<string>("details");
@@ -36,6 +37,22 @@ export default function CreateTemplate() {
     const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
       []
     );
+    
+    // Define the mutation for template creation
+    const createTemplateMutation = useMutation({
+      mutationFn: createTemplate,
+      onSuccess: () => {
+        toast.success("Template created successfully!", {
+          description: "Your template has been saved"
+        });
+      },
+      onError: (error: any) => {
+        console.error("API error:", error);
+        toast.error("Failed to create template", {
+          description: error instanceof Error ? error.message : "Please try again later"
+        });
+      }
+    });
   
     const updateFormData = (field: string, data: any) => {
       setFormData((prev) => ({
@@ -67,6 +84,26 @@ export default function CreateTemplate() {
           trades: tradeObjects.map(trade => trade.id),
           variables: variableObjects.map(variable => variable.id)
         };
+
+        const validationResult = createTemplateSchema.safeParse(updatedFormData);
+        
+        if (!validationResult.success) {
+          const errorMessages = validationResult.error.errors.map(err => 
+            `${err.path.join('.')}: ${err.message}`
+          ).join(', ');
+          toast.error("Validation Error", {
+            description: errorMessages,
+          });
+          return;
+        }
+        
+        const hasTradesWithElements = validateTradeElements(tradeObjects);
+        if (!hasTradesWithElements) {
+          toast.error("Validation Error", {
+            description: "At least one trade must have elements",
+          });
+          return;
+        }
         
         const requestPayload = {
           name: updatedFormData.name,
@@ -78,22 +115,24 @@ export default function CreateTemplate() {
         };
   
         console.log("Submitting template:", requestPayload);
-        alert("Template created successfully!");
+        
+        createTemplateMutation.mutate(requestPayload);
       } catch (error) {
         console.error("Error creating template:", error);
+        toast.error("Failed to create template. Please try again.");
       }
     };
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create New Template</h1>
-        <p className="text-muted-foreground mt-2">
+    <div className="container">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">Create New Template</h1>
+        <p className="text-muted-foreground text-sm">
           Create a new template to standardize your proposals and contracts
         </p>
       </div>
 
       <Card className="w-full">
-        <div className="p-6 border-b">
+        <div className="w-full mx-auto pl-6 pr-8 py-6 border-b">
           <StepIndicator
             steps={["Template Details", "Trades & Elements", "Preview"]}
             currentStep={

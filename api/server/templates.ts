@@ -1,28 +1,30 @@
-import { Template } from '@/components/features/create-template-page/types';
+import { TemplateCreateRequest } from "@/types/templates/dto";
 import Cookies from "js-cookie";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const TOKEN = Cookies.get("auth-token");
 
-export async function postTemplate(template: Omit<Template, 'id' | 'created_at' | 'updated_at'>) {
+export async function createTemplate(template: TemplateCreateRequest) {
   try {
-    const formData = new FormData();
-    Object.entries(template).forEach(([key, value]) => {
-      if (key === 'image' && value instanceof File) {
-        formData.append(key, value);
-      } else if (Array.isArray(value)) {
-        formData.append(key, JSON.stringify(value));
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
+    const payload: Record<string, any> = {};
     
-    const response = await fetch(`${API_URL}/api/templates/templates/new/`, {
+    if (template.name) payload.name = template.name;
+    if (template.description) payload.description = template.description;
+    if (template.status) payload.status = template.status;
+    if (template.origin) payload.origin = template.origin;
+    if (template.source_id) payload.source_id = template.source_id;
+    if (template.owner) payload.owner = template.owner;
+    if (template.trades) payload.trades = template.trades;
+    if (template.variables) payload.variables = template.variables;
+    if (template.is_public !== undefined) payload.is_public = template.is_public;
+    
+    const response = await fetch(`${API_URL}/v1/templates/create/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${TOKEN}`
+        'Authorization': `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json'
       },
-      body: formData
+      body: JSON.stringify(payload)
     })
 
     if (!response.ok) {

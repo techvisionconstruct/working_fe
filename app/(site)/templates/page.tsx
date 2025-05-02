@@ -121,81 +121,88 @@ export default function TemplatesPage() {
         </TabsContent>
       </Tabs>
 
-      {templates?.meta && (
-        <div className="mt-6">
-          <nav
-            className="flex items-center justify-center mt-8"
-            aria-label="Pagination"
-          >
-            <div className="flex flex-col items-center space-y-2">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={page === 1 || isPending}
-                >
-                  Previous
-                </Button>
+      {/* Pagination - always visible */}
+      <div className="mt-6">
+        <nav
+          className="flex items-center justify-center mt-8"
+          aria-label="Pagination"
+        >
+          <div className="flex flex-col items-center space-y-2">
+            {templates?.meta ? (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={page === 1 || isPending}
+                  >
+                    Previous
+                  </Button>
 
-                <div className="flex items-center">
-                  {Array.from(
-                    { length: Math.min(5, templates.meta.total_pages) },
-                    (_, i) => {
-                      const pageNumber = i + 1;
-                      return (
+                  <div className="flex items-center">
+                    {Array.from(
+                      { length: Math.min(5, templates.meta.total_pages) },
+                      (_, i) => {
+                        const pageNumber = i + 1;
+                        return (
+                          <Button
+                            key={pageNumber}
+                            variant={pageNumber === page ? "default" : "outline"}
+                            size="sm"
+                            className="w-9 h-9 mx-1"
+                            onClick={() => setPage(pageNumber)}
+                            disabled={isPending}
+                          >
+                            {pageNumber}
+                          </Button>
+                        );
+                      }
+                    )}
+
+                    {templates.meta.total_pages > 5 && (
+                      <>
+                        <span className="mx-1">...</span>
                         <Button
-                          key={pageNumber}
-                          variant={pageNumber === page ? "default" : "outline"}
+                          variant="outline"
                           size="sm"
                           className="w-9 h-9 mx-1"
-                          onClick={() => setPage(pageNumber)}
+                          onClick={() => setPage(templates.meta.total_pages)}
                           disabled={isPending}
                         >
-                          {pageNumber}
+                          {templates.meta.total_pages}
                         </Button>
-                      );
-                    }
-                  )}
+                      </>
+                    )}
+                  </div>
 
-                  {templates.meta.total_pages > 5 && (
-                    <>
-                      <span className="mx-1">...</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-9 h-9 mx-1"
-                        onClick={() => setPage(templates.meta.total_pages)}
-                        disabled={isPending}
-                      >
-                        {templates.data.meta.total_pages}
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setPage((prev) =>
+                        Math.min(prev + 1, templates.meta.total_pages)
+                      )
+                    }
+                    disabled={page === templates.meta.total_pages || isPending}
+                  >
+                    Next
+                  </Button>
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setPage((prev) =>
-                      Math.min(prev + 1, templates.meta.total_pages)
-                    )
-                  }
-                  disabled={page === templates.meta.total_pages || isPending}
-                >
-                  Next
-                </Button>
-              </div>
-
+                <p className="text-sm text-muted-foreground">
+                  Page {page} of {templates.meta.total_pages} (
+                  {templates.meta.total_count} items)
+                </p>
+              </>
+            ) : (
               <p className="text-sm text-muted-foreground">
-                Page {page} of {templates.meta.total_pages}(
-                {templates.meta.total_count} items)
+                No pagination data available
               </p>
-            </div>
-          </nav>
-        </div>
-      )}
+            )}
+          </div>
+        </nav>
+      </div>
 
       {/* Tour guide component */}
       <TemplateTour isRunning={isTourRunning} setIsRunning={setIsTourRunning} />

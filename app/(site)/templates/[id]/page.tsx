@@ -92,7 +92,7 @@ export default function TemplatedById() {
                     Elements
                   </div>
                   {trade.elements?.map((element: ElementResponse) => (
-                    <div className="flex flex-col gap-2" key={element.id}>
+                    <div className="flex flex-col mt-1" key={element.id}>
                       <div className="flex items-center gap-3 p-4 rounded border bg-background">
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">{element.name}</div>

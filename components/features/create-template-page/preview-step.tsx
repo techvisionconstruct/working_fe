@@ -2,17 +2,12 @@
 
 import React from "react";
 import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent,
   Badge
 } from "@/components/shared";
 import { TemplateCreateRequest } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { Check, FileText, ListChecks } from "lucide-react";
 
 const replaceVariableIdsWithNames = (
   formula: string,
@@ -116,7 +111,7 @@ const PreviewStep: React.FC<PreviewStepProps> = ({
                       Elements
                     </div>
                     {trade.elements.map((element) => (
-                      <div className="flex flex-col gap-2" key={element.id}>
+                      <div className="flex flex-col mt-1" key={element.id}>
                         <div className="flex items-center gap-3 p-4 rounded border bg-background">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm">{element.name}</div>
@@ -152,13 +147,6 @@ const PreviewStep: React.FC<PreviewStepProps> = ({
           </div>
         </div>
       )}
-
-      <div className="mt-8 p-4 border border-primary/20 rounded-lg bg-primary/5">
-        <div className="flex items-center">
-          <Check className="h-5 w-5 mr-2 text-primary" />
-          <p>Your template is ready to be created. Review details above and click "Create Template" to proceed.</p>
-        </div>
-      </div>
     </div>
   );
 };
