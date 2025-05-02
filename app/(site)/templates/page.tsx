@@ -4,7 +4,6 @@ import { getTemplates } from "@/api/client/templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
 import { TemplateLoader } from "@/components/features/template-page/loader";
-import { Template } from "@/types/templates";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
@@ -18,44 +17,53 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { TemplateTour } from "@/components/features/tour-guide/template-tour";
+import { TemplateResponse, TemplateListResponse } from "@/types/templates/dto";
 
 export default function TemplatesPage() {
-  const templates = useQuery({
-    queryKey: ["template"],
-    queryFn: getTemplates,
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      if (page !== 1) setPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    data: templates,
+    isLoading,
+    isError,
+    isPending,
+  } = useQuery({
+    queryKey: ["template", page, pageSize, debouncedSearch],
+    queryFn: () => getTemplates(page, pageSize, debouncedSearch),
+    placeholderData: (previousData) => previousData,
   });
 
-  const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
   const [isTourRunning, setIsTourRunning] = useState(false);
 
   useEffect(() => {
-    // Check if the user has seen the tour
     const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour") === "true";
-    if (!hasSeenTour && templates.data && templates.data.length > 0) {
-      // Only show the tour automatically if there's data to display
+    if (!hasSeenTour && templates?.data && templates.data.length > 0) {
       setIsTourRunning(true);
     }
-  }, [templates.data]);
+  }, [templates]);
 
   const startTour = () => {
     setIsTourRunning(true);
   };
 
-  const filteredTemplates = (templates.data || []).filter(
-    (template: Template) => {
-      const searchMatch =
-        template.name.toLowerCase().includes(search.toLowerCase()) ||
-        template.description.toLowerCase().includes(search.toLowerCase());
-      return searchMatch;
-    }
-  );
-
-  if (templates.isLoading) {
+  if (isLoading) {
     return <TemplateLoader />;
   }
 
-  if (templates.isError) {
+  if (isError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-red-500">Error loading templates</div>
@@ -106,12 +114,88 @@ export default function TemplatesPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <TemplateGridView templates={filteredTemplates} />
+          <TemplateGridView templates={templates?.data} />
         </TabsContent>
         <TabsContent value="list">
-          <TemplateList templates={filteredTemplates} />
+          <TemplateList templates={templates?.data} />
         </TabsContent>
       </Tabs>
+
+      {templates?.meta && (
+        <div className="mt-6">
+          <nav
+            className="flex items-center justify-center mt-8"
+            aria-label="Pagination"
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={page === 1 || isPending}
+                >
+                  Previous
+                </Button>
+
+                <div className="flex items-center">
+                  {Array.from(
+                    { length: Math.min(5, templates.meta.total_pages) },
+                    (_, i) => {
+                      const pageNumber = i + 1;
+                      return (
+                        <Button
+                          key={pageNumber}
+                          variant={pageNumber === page ? "default" : "outline"}
+                          size="sm"
+                          className="w-9 h-9 mx-1"
+                          onClick={() => setPage(pageNumber)}
+                          disabled={isPending}
+                        >
+                          {pageNumber}
+                        </Button>
+                      );
+                    }
+                  )}
+
+                  {templates.meta.total_pages > 5 && (
+                    <>
+                      <span className="mx-1">...</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-9 h-9 mx-1"
+                        onClick={() => setPage(templates.meta.total_pages)}
+                        disabled={isPending}
+                      >
+                        {templates.data.meta.total_pages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((prev) =>
+                      Math.min(prev + 1, templates.meta.total_pages)
+                    )
+                  }
+                  disabled={page === templates.meta.total_pages || isPending}
+                >
+                  Next
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {templates.meta.total_pages}(
+                {templates.meta.total_count} items)
+              </p>
+            </div>
+          </nav>
+        </div>
+      )}
 
       {/* Tour guide component */}
       <TemplateTour isRunning={isTourRunning} setIsRunning={setIsTourRunning} />

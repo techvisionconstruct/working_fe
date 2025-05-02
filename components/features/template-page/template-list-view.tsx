@@ -2,13 +2,13 @@
 
 import React from "react";
 import { Input, Button, Card, Badge } from "@/components/shared";
-import { Template } from "@/types/templates";
+import { TemplateResponse } from "@/types/templates/dto";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 interface TemplateListProps {
-  templates: Template[];
+  templates: TemplateResponse[];
 }
 
 export function TemplateList({ templates }: TemplateListProps) {
@@ -26,7 +26,6 @@ export function TemplateList({ templates }: TemplateListProps) {
           >
             <Image
               src={
-                template.image ||
                 "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
               }
               alt={template.name}
@@ -40,30 +39,33 @@ export function TemplateList({ templates }: TemplateListProps) {
                 {template.description}
               </p>
               <div className="flex flex-wrap gap-2">
-                {template.modules.map((module) => (
+                {template.trades?.slice(0, 3).map((trade) => (
                   <Badge
-                    key={module.id}
+                    key={trade.id}
                     variant="secondary"
                     className="text-xs"
                   >
-                    {module.name}
+                    {trade.name}
                   </Badge>
                 ))}
+                {template.trades && template.trades.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{template.trades.length - 3} more
+                  </Badge>
+                )}
               </div>
-              {template.parameters.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {template.parameters.slice(0, 3).map((param) => (
-                    <Badge key={param.id} variant="outline" className="text-xs">
-                      {param.name}
-                    </Badge>
-                  ))}
-                  {template.parameters.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{template.parameters.length - 3} more
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mt-1">
+                {template.variables?.slice(0, 3).map((variable) => (
+                  <Badge key={variable.id} variant="outline" className="text-xs">
+                    {variable.name}
+                  </Badge>
+                ))}
+                {template.variables && template.variables.length > 3 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{template.variables.length - 3} more
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="text-sm text-muted-foreground whitespace-nowrap">
               {format(new Date(template.updated_at), "MMM d, yyyy")}

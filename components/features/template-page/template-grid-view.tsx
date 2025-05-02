@@ -1,11 +1,11 @@
 import { Card, Badge } from "@/components/shared";
 import { format } from "date-fns";
-import { Template } from "@/types/templates";
 import Image from "next/image";
 import Link from "next/link";
+import { TemplateResponse } from "@/types/templates/dto";
 
 interface TemplateGridViewProps {
-  templates: Template[];
+  templates: TemplateResponse[];
 }
 
 export function TemplateGridView({ templates }: TemplateGridViewProps) {
@@ -19,7 +19,6 @@ export function TemplateGridView({ templates }: TemplateGridViewProps) {
             <div className="flex gap-4">
               <Image
                 src={
-                  template.image ||
                   "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
                 }
                 width={64}
@@ -37,35 +36,37 @@ export function TemplateGridView({ templates }: TemplateGridViewProps) {
 
             <div className="space-y-2 mt-auto pt-4">
               <div className="flex flex-wrap gap-2">
-                {template.modules.slice(0, 3).map((module) => (
+                {template.trades?.slice(0, 3).map((trade) => (
                   <Badge
-                    key={module.id}
+                    key={trade.id}
                     variant="secondary"
                     className="text-xs"
                   >
-                    {module.name}
+                    {trade.name}
                   </Badge>
                 ))}
-                {template.modules.length > 3 && (
+                {template.trades && template.trades.length > 3 && (
                   <Badge variant="secondary" className="text-xs">
-                    +{template.modules.length - 3} more
+                    +{template.trades.length - 3} more
                   </Badge>
                 )}
               </div>
-              {template.parameters.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {template.parameters.slice(0, 3).map((param) => (
-                    <Badge key={param.id} variant="outline" className="text-xs">
-                      {param.name}
-                    </Badge>
-                  ))}
-                  {template.parameters.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{template.parameters.length - 3} more
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {template.variables?.slice(0, 3).map((variable) => (
+                  <Badge
+                    key={variable.id}
+                    variant="secondary"
+                    className="text-xs"
+                  >
+                    {variable.name}
+                  </Badge>
+                ))}
+                {template.variables && template.variables.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{template.variables.length - 3} more
+                  </Badge>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-2">
                 Updated: {format(new Date(template.updated_at), "MMM d, yyyy")}
               </div>
