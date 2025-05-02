@@ -46,17 +46,17 @@ const navItems = [
       { 
         icon: File, 
         label: "Templates", 
-        href: "/v1/templates" 
+        href: "/templates" 
       },
       { 
         icon: Layers, 
         label: "Proposals", 
-        href: "/v1/proposals" 
+        href: "/proposals" 
       },
       { 
         icon: FileText, 
         label: "Contracts", 
-        href: "/v1/contracts" 
+        href: "/contracts" 
       },
     ]
   },

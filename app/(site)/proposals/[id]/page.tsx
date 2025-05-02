@@ -23,9 +23,14 @@ export default function ProposalById() {
     }
   }, [pathname]);
 
-  const proposal = useQuery({
+  const {
+    data: proposal,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["proposal", id],
-    queryFn: () => getProposalById(Number(id)),
+    queryFn: () => getProposalById(String(id)),
+    select: (data) => data.data,
   });
 
   const handleTabChange = (value: string) => {
@@ -38,16 +43,27 @@ export default function ProposalById() {
     }
   };
 
-  if (proposal.isLoading) {
+  if (isLoading) {
     return <ProposalDetailedLoader />;
   }
 
-  if (proposal.isError) {
+  if (isError) {
     return (
       <div className="p-0 mx-auto">
         <div className="flex items-center justify-center p-8 rounded-lg border border-red-200 bg-red-50">
           <div className="text-red-500 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+            >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -58,7 +74,7 @@ export default function ProposalById() {
       </div>
     );
   }
-  
+
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="w-full mb-4">
@@ -70,10 +86,10 @@ export default function ProposalById() {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="proposal">
-        {proposal.data && <ProposalDetails proposal={proposal.data} />}
+        <ProposalDetails proposal={proposal} />
       </TabsContent>
       <TabsContent value="contract">
-        {proposal.data && <ContractDetails proposal={proposal.data} />}
+        <ContractDetails proposal={proposal} />
       </TabsContent>
     </Tabs>
   );

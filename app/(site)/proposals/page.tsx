@@ -3,7 +3,6 @@
 import { getProposals } from "@/api/client/proposals";
 import { ProposalList } from "@/components/features/proposal-page/proposal-list-view";
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
-import { Proposal } from "@/types/proposals";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
@@ -19,46 +18,47 @@ import Link from "next/link";
 import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
 
-declare global {
-  interface Window {
-    proposalTourEndCallback?: () => void;
-    proposalTourCreateCallback?: () => void;
-  }
-}
-
 export default function ProposalsPage() {
-  const proposals = useQuery({
-    queryKey: ["proposals"],
-    queryFn: getProposals,
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      if (page !== 1) setPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    data: proposals,
+    isLoading,
+    isError,
+    isPending,
+  } = useQuery({
+    queryKey: ["template", page, pageSize, debouncedSearch],
+    queryFn: () => getProposals(page, pageSize, debouncedSearch),
+    placeholderData: (previousData) => previousData,
   });
 
-  const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
   const [isTourRunning, setIsTourRunning] = useState(false);
 
   useEffect(() => {
-    // Check if the user has seen the tour
     const hasSeenTour = localStorage.getItem("hasSeenProposalsTour") === "true";
     if (!hasSeenTour && proposals.data && proposals.data.length > 0) {
-      // Only show the tour automatically if there's data to display
       setIsTourRunning(true);
     }
-  }, [proposals.data]);
+  }, [proposals]);
 
   const startTour = () => {
     setIsTourRunning(true);
   };
 
-  const filteredProposals = (proposals.data || []).filter(
-    (proposal: Proposal) => {
-      const searchMatch =
-        proposal.name.toLowerCase().includes(search.toLowerCase()) ||
-        proposal.description.toLowerCase().includes(search.toLowerCase());
-      return searchMatch;
-    }
-  );
-
-  if (proposals.isLoading) {
+  if (isLoading) {
     return <ProposalLoader />;
   }
 
@@ -105,10 +105,10 @@ export default function ProposalsPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <ProposalGridView proposals={filteredProposals} />
+          <ProposalGridView proposals={proposals?.data} />
         </TabsContent>
         <TabsContent value="list">
-          <ProposalList proposals={filteredProposals} />
+          <ProposalList proposals={proposals?.data} />
         </TabsContent>
       </Tabs>
 
