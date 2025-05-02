@@ -1,215 +1,165 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, Card, CardContent, Button } from "@/components/shared";
-import { TemplateDetailsTab } from "@/components/features/create-template-page/template-details-tab";
-import { ParametersTab } from "@/components/features/create-template-page/parameters-tab";
-import { ModulesTab } from "@/components/features/create-template-page/modules-tab";
-import { PreviewTab } from "@/components/features/create-template-page/preview-tab";
+import React, { useState } from "react";
 import {
-  ModuleForm,
-  ParameterForm,
-  TemplateDetailsForm,
-} from "@/components/features/create-template-page/zod-schema";
-import { Check, CircleDot, HelpCircle } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { postTemplate } from "@/api/server/templates";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { CreateTemplateTour } from "@/components/features/tour-guide/create-template-tour";
+  Card,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Button,
+} from "@/components/shared";
+import TemplateDetailsStep from "@/components/features/create-template-page/template-details-step";
+import TradesAndElementsStep from "@/components/features/create-template-page/template-and-elements-step";
+import PreviewStep from "@/components/features/create-template-page/preview-step";
+import StepIndicator from "@/components/features/create-template-page/step-indicator";
+import { TemplateCreateRequest } from "@/types/templates/dto";
+import { TradeResponse } from "@/types/trades/dto";
+import { VariableResponse } from "@/types/variables/dto";
+import { ElementResponse } from "@/types/elements/dto";
 
 export default function CreateTemplate() {
-  const router = useRouter();
-  const [tab, setTab] = useState("details");
-  const [templateDetails, setTemplateDetails] =
-    useState<TemplateDetailsForm>({
+  const [currentStep, setCurrentStep] = useState<string>("details");
+    const [formData, setFormData] = useState<TemplateCreateRequest>({
       name: "",
       description: "",
-      image: undefined,
+      status: "draft",
+      origin: "original",
+      source_id: "",
+      owner: "",
+      trades: [], 
+      variables: [], 
+      is_public: false,
     });
-  const [parameters, setParameters] = useState<ParameterForm>([]);
-  const [modules, setModules] = useState<ModuleForm>([]);
-  const [isTourRunning, setIsTourRunning] = useState(false);
-  const tabSteps = ["details", "modules", "parameters", "preview"];
-  const currentStepIndex = tabSteps.indexOf(tab);
   
-  // Check if the user has seen the tour
-  useEffect(() => {
-    const hasSeenTour = localStorage.getItem("hasSeenCreateTemplateTour") === "true";
-    if (!hasSeenTour) {
-      setIsTourRunning(true);
-    }
-  }, []);
-
-  const startTour = () => {
-    setIsTourRunning(true);
-  };
-
-  const { mutate: submitTemplate, isPending } = useMutation({
-    mutationFn: postTemplate,
-    onSuccess: (data) => {
-      toast.success("Template created successfully", {
-        position: "top-center",
-        duration: 3000,
-      });
-      router.push(`/templates/${data.id}`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to create template: ${error.message}`, {
-        position: "top-center",
-        duration: 5000,
-      });
-    }
-  });
-
-  const handleTabChange = (value: string) => {
-    setTab(value);
-  };
-
+    const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
+    const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
+      []
+    );
+  
+    const updateFormData = (field: string, data: any) => {
+      setFormData((prev) => ({
+        ...prev,
+        ...data,
+      }));
+    };
+  
+    const handleNext = () => {
+      if (currentStep === "details") {
+        setCurrentStep("trades");
+      } else if (currentStep === "trades") {
+        setCurrentStep("preview");
+      }
+    };
+  
+    const handleBack = () => {
+      if (currentStep === "trades") {
+        setCurrentStep("details");
+      } else if (currentStep === "preview") {
+        setCurrentStep("trades");
+      }
+    };
+  
+    const handleSubmit = async () => {
+      try {
+        const updatedFormData = {
+          ...formData,
+          trades: tradeObjects.map(trade => trade.id),
+          variables: variableObjects.map(variable => variable.id)
+        };
+        
+        const requestPayload = {
+          name: updatedFormData.name,
+          description: updatedFormData.description,
+          status: updatedFormData.status,
+          origin: updatedFormData.origin,
+          trades: updatedFormData.trades,
+          variables: updatedFormData.variables
+        };
+  
+        console.log("Submitting template:", requestPayload);
+        alert("Template created successfully!");
+      } catch (error) {
+        console.error("Error creating template:", error);
+      }
+    };
   return (
-    <div className="w-full px-4 relative">
-      <div className="flex flex-col space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create Template</h1>
-          <p className="text-muted-foreground mt-1">
-            Create a new template to standardize your project requirements
-          </p>
+    <div className="container py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Create New Template</h1>
+        <p className="text-muted-foreground mt-2">
+          Create a new template to standardize your proposals and contracts
+        </p>
+      </div>
+
+      <Card className="w-full">
+        <div className="p-6 border-b">
+          <StepIndicator
+            steps={["Template Details", "Trades & Elements", "Preview"]}
+            currentStep={
+              currentStep === "details" ? 0 : currentStep === "trades" ? 1 : 2
+            }
+          />
         </div>
 
-        <Card className="border shadow-sm">
-          <CardContent className="p-6">
-            <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
-              <div className="flex justify-between items-center w-full mb-8 relative max-w-5xl mx-auto">
-                <div className="absolute top-5 left-0 w-full h-0.5 bg-muted -z-10"></div>
-                {tabSteps.map((step, index) => (
-                  <div
-                    key={step}
-                    className={`flex flex-col items-center relative tab-trigger ${index === 0 ? 'details-tab-trigger' : ''} ${index === 1 ? 'modules-tab-trigger' : ''} ${index === 2 ? 'parameters-tab-trigger' : ''} ${index === 3 ? 'preview-tab-trigger' : ''}`}
-                    data-value={step}
-                    onClick={() => {
-                      if (index <= currentStepIndex + 1) {
-                        setTab(step);
-                      }
-                    }}
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 cursor-pointer 
-                        ${
-                          index <= currentStepIndex
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : index === currentStepIndex + 1
-                            ? "border-primary text-primary hover:bg-primary/10"
-                            : "border-muted-foreground text-muted-foreground"
-                        }
-                        transition-all duration-200 hover:scale-105
-                      `}
-                    >
-                      {index < currentStepIndex ? (
-                        <Check className="w-6 h-6" />
-                      ) : index === currentStepIndex ? (
-                        <CircleDot className="w-6 h-6" />
-                      ) : (
-                        <span className="text-lg">{index + 1}</span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm mt-2 font-medium ${
-                        index <= currentStepIndex
-                          ? "text-primary"
-                          : index === currentStepIndex + 1
-                          ? "text-primary"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {step.charAt(0).toUpperCase() + step.slice(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        <Tabs value={currentStep} className="w-full">
+          <TabsContent value="details" className="p-6">
+            <TemplateDetailsStep
+              data={{
+                name: formData.name,
+                description: formData.description || "",
+              }}
+              updateData={(data) => updateFormData("details", data)}
+            />
+            <div className="flex justify-end mt-6">
+              <Button onClick={handleNext}>Next: Trades & Elements</Button>
+            </div>
+          </TabsContent>
 
-              <TabsContent value="details" className="details-tab-content">
-                <TemplateDetailsTab
-                  value={templateDetails}
-                  onChange={setTemplateDetails}
-                  onNext={() => setTab("modules")}
-                />
-              </TabsContent>
+          <TabsContent value="trades" className="p-6">
+            <TradesAndElementsStep
+              data={{
+                trades: tradeObjects,
+                variables: variableObjects,
+              }}
+              updateTrades={(trades) => {
+                setTradeObjects(trades);
+                updateFormData(
+                  "trades",
+                  trades.map((trade) => trade.id)
+                );
+              }}
+              updateVariables={(variables) => {
+                setVariableObjects(variables);
+                updateFormData(
+                  "variables",
+                  variables.map((variable) => variable.id)
+                );
+              }}
+            />
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={handleBack}>
+                Back
+              </Button>
+              <Button onClick={handleNext}>Next: Preview</Button>
+            </div>
+          </TabsContent>
 
-              <TabsContent value="modules" className="modules-tab-content">
-                <ModulesTab
-                  value={modules}
-                  onChange={setModules}
-                  onPrev={() => setTab("details")}
-                  onNext={() => setTab("parameters")}
-                  parameterValue={parameters}
-                  onParameterChange={setParameters}
-                  openAddParamDialog={(name) => {
-                    // Store name in localStorage to use when parameter tab is active
-                    if (name) localStorage.setItem('pendingParamName', name);
-                    setTab("parameters");
-                  }}
-                  handleAddParamDialog={() => {
-                    // This would typically be handled in the parameters tab
-                    console.log("Add param dialog should be handled in parameters tab");
-                  }}
-                  handleAddParam={(param) => {
-                    // Add the parameter to the parameters array
-                    setParameters(prev => [...prev, param]);
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="parameters" className="parameters-tab-content">
-                <ParametersTab
-                  value={parameters}
-                  onChange={setParameters}
-                  onPrev={() => setTab("modules")}
-                  onNext={() => setTab("preview")}
-                />
-              </TabsContent>
-
-              <TabsContent value="preview" className="preview-tab-content">
-                <PreviewTab
-                  templateDetails={templateDetails}
-                  parameters={parameters}
-                  modules={modules}
-                  isSubmitting={isPending}
-                  onSubmit={() => {
-                    submitTemplate({
-                      name: templateDetails.name,
-                      description: templateDetails.description,
-                      image: templateDetails.image,
-                      modules: modules,
-                      parameters: parameters,
-                      // template_elements: [],
-                    });
-                  }}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tour guide component */}
-      <CreateTemplateTour 
-        isRunning={isTourRunning} 
-        setIsRunning={setIsTourRunning}
-        activeTab={tab}
-        setActiveTab={setTab}
-      />
-
-      {/* Floating help button */}
-      <div className="fixed bottom-6 right-6">
-        <Button
-          onClick={startTour}
-          variant="secondary"
-          className="rounded-full w-12 h-12 shadow-lg bg-white text-gray-800 hover:bg-gray-100 border border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 dark:text-gray-200"
-          aria-label="Start tour guide"
-        >
-          <HelpCircle size={24} />
-        </Button>
-      </div>
+          <TabsContent value="preview" className="p-6">
+            <PreviewStep
+              data={formData}
+              tradeObjects={tradeObjects}
+              variableObjects={variableObjects}
+            />
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={handleBack}>
+                Back
+              </Button>
+              <Button onClick={handleSubmit}>Create Template</Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </Card>
     </div>
   );
 }
