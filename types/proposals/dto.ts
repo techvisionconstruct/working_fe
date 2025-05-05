@@ -46,10 +46,6 @@ export interface ProposalCreateRequest {
   client_phone?: string;
   client_address?: string;
   valid_until?: Date;
-  total_material_cost?: number;
-  total_label_cost?: number;
-  total_cost?: number;
-  total_with_markup_cost?: number;
   is_public?: boolean;
 }
 
