@@ -34,4 +34,3 @@ export async function createVariable(variable: VariableCreateRequest) {
     throw error
   }
 }
-

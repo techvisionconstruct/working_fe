@@ -56,3 +56,7 @@ export interface TemplateUpdateRequest {
   trades?: string[];
   variables?: string[];
 }
+
+export interface TemplateViewProps {
+  templates: TemplateResponse[];
+}
