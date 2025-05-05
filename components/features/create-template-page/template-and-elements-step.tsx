@@ -26,14 +26,15 @@ import {
 import { toast } from "sonner";
 import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getVariables } from "@/api/client/variables";
-import { getVariables as getVariableTypes } from "@/api/client/variable_types";
-import { updateTrade } from "@/api/server/trades";
-import { getTrades } from "@/api/client/trades";
-import { getElements } from "@/api/client/elements";
-import { createVariable } from "@/api/server/variables";
-import { createTrade } from "@/api/server/trades";
-import { createElement, updateElement } from "@/api/server/elements";
+import { getAllVariables } from "@/api/variables/get-all-variables";
+import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
+import { updateTrade } from "@/api/trades/update-trade";
+import { getAllTrades } from "@/api/trades/get-all-trades";
+import { getAllElements } from "@/api/elements/get-all-elements";
+import { createVariable } from "@/api/variables/create-variable";
+import { createTrade } from "@/api/trades/create-trade";
+import { createElement } from "@/api/elements/create-element";
+import { updateElement } from "@/api/elements/update-element";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { TradeResponse } from "@/types/trades/dto";
@@ -147,7 +148,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     error: tradesError,
   } = useQuery({
     queryKey: ["trades"],
-    queryFn: getTrades,
+    queryFn: getAllTrades,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -157,7 +158,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     error: variableError,
   } = useQuery({
     queryKey: ["variables"],
-    queryFn: getVariables,
+    queryFn: getAllVariables,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -167,7 +168,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     error: variableTypesError,
   } = useQuery({
     queryKey: ["variable-types"],
-    queryFn: getVariableTypes,
+    queryFn: getAllVariableTypes,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -178,7 +179,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     error: elementsError,
   } = useQuery({
     queryKey: ["elements"],
-    queryFn: getElements,
+    queryFn: getAllElements,
     staleTime: 5 * 60 * 1000,
   });
 

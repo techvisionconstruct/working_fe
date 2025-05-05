@@ -5,11 +5,6 @@ import {
   Input, 
   Label, 
   Textarea, 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
 } from "@/components/shared";
 
 interface TemplateDetailsProps {
