@@ -42,7 +42,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
+  useEffect( () => {
     const fetchUser = async () => {
       if (!authToken) return;
 
@@ -56,7 +56,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
         });
 
-        if (!response.ok) {
+        if (!response.ok) { 
           // If unauthorized, clear cookie and redirect to /signin
           if (response.status === 401 || response.status === 403) {
             document.cookie = 'auth-token=; Max-Age=0; path=/; SameSite=Lax; Secure';

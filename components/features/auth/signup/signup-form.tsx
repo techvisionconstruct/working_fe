@@ -77,7 +77,6 @@ export function RegisterForm({
     error: verifyOtpError,
   } = useVerifyOtp();
 
-  // Form for Step 1: Personal Information
   const personalInfoForm = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
     defaultValues: {
