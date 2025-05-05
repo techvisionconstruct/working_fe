@@ -24,7 +24,6 @@ const replaceVariableIdsWithNames = (
       variable.name ||
       variable.id;
 
-    // Replace all occurrences of {id} with {name}
     const idPattern = new RegExp(`\\{${variable.id}\\}`, "g");
     displayFormula = displayFormula.replace(idPattern, `{${variableName}}`);
   });

@@ -13,7 +13,6 @@ export async function createTemplate(template: TemplateCreateRequest) {
     if (template.status) payload.status = template.status;
     if (template.origin) payload.origin = template.origin;
     if (template.source_id) payload.source_id = template.source_id;
-    if (template.owner) payload.owner = template.owner;
     if (template.trades) payload.trades = template.trades;
     if (template.variables) payload.variables = template.variables;
     if (template.is_public !== undefined) payload.is_public = template.is_public;

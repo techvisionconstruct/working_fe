@@ -39,7 +39,6 @@ export interface TemplateCreateRequest {
   status?: string;
   origin?: string;
   source_id?: string;
-  owner?: string;
   trades?: string[];
   variables?: string[];
   is_public?: boolean;
@@ -52,7 +51,6 @@ export interface TemplateUpdateRequest {
   origin?: string;
   is_public?: boolean;
   source_id?: string;
-  owner?: string;
   trades?: string[];
   variables?: string[];
 }

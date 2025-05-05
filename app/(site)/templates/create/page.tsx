@@ -27,7 +27,6 @@ export default function CreateTemplate() {
       status: "draft",
       origin: "original",
       source_id: "",
-      owner: "",
       trades: [], 
       variables: [], 
       is_public: false,
@@ -38,7 +37,6 @@ export default function CreateTemplate() {
       []
     );
     
-    // Define the mutation for template creation
     const createTemplateMutation = useMutation({
       mutationFn: createTemplate,
       onSuccess: () => {
