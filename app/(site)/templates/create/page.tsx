@@ -17,7 +17,7 @@ import { TemplateCreateRequest } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { createTemplateSchema, validateTradeElements } from "@/zod-schemas/templates/create-template-schema";
-import { createTemplate } from "@/api/server/templates";
+import { createTemplate } from "@/api/templates/create-template";
 
 export default function CreateTemplate() {
   const [currentStep, setCurrentStep] = useState<string>("details");

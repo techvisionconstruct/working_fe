@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getTemplateById } from "@/api/client/templates";
+import { getTemplateById } from "@/api/templates/get-template-by-id";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Image from "next/image";

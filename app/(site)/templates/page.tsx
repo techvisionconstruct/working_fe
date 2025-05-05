@@ -1,6 +1,6 @@
 "use client";
 
-import { getTemplates } from "@/api/client/templates";
+import { getAllTemplates } from "@/api/templates/get-all-templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
 import { TemplateLoader } from "@/components/features/template-page/loader";
@@ -17,7 +17,6 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { TemplateTour } from "@/components/features/tour-guide/template-tour";
-import { TemplateResponse, TemplateListResponse } from "@/types/templates/dto";
 
 export default function TemplatesPage() {
   const [page, setPage] = useState(1);
@@ -41,7 +40,7 @@ export default function TemplatesPage() {
     isPending,
   } = useQuery({
     queryKey: ["template", page, pageSize, debouncedSearch],
-    queryFn: () => getTemplates(page, pageSize, debouncedSearch),
+    queryFn: () => getAllTemplates(page, pageSize, debouncedSearch),
     placeholderData: (previousData) => previousData,
   });
 
@@ -114,10 +113,10 @@ export default function TemplatesPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <TemplateGridView templates={templates?.data} />
+          <TemplateGridView templates={templates.data} />
         </TabsContent>
         <TabsContent value="list">
-          <TemplateList templates={templates?.data} />
+          <TemplateList templates={templates.data} />
         </TabsContent>
       </Tabs>
 
