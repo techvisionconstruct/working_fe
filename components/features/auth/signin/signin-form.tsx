@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleButton } from "../google-login/google-button";
 import { signIn } from "@/api/server/auth";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -65,7 +66,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="text"
-                  placeholder="johndoe25"
+                  placeholder="johndoe@simpleprojex.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -75,17 +76,18 @@ export function LoginForm({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
+                  <Link
                     href="#"
                     className="ml-auto text-xs underline-offset-2 hover:underline"
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
                 <Input
                   id="password"
                   type="password"
                   required
+                  placeholder="********"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
