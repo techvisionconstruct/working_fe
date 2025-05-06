@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getProposalById } from "@/api/client/proposals";
+import { getProposalById } from "@/api/proposals/get-proposal-by-id";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/shared";
@@ -89,7 +89,7 @@ export default function ProposalById() {
         <ProposalDetails proposal={proposal} />
       </TabsContent>
       <TabsContent value="contract">
-        <ContractDetails proposal={proposal} />
+        {/* <ContractDetails proposal={proposal} /> */}
       </TabsContent>
     </Tabs>
   );

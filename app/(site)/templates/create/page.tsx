@@ -36,7 +36,7 @@ export default function CreateTemplate() {
     const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
       []
     );
-    
+
     const createTemplateMutation = useMutation({
       mutationFn: createTemplate,
       onSuccess: () => {

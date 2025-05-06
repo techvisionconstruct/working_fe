@@ -7,6 +7,7 @@ export interface VariableResponse {
   name: string;
   description?: string;
   value?: number;
+  origin?: string;
   is_global: boolean;
   variable_type?: VariableTypeResponse;
   created_at: string;

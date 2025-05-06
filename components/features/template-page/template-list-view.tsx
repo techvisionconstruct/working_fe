@@ -1,17 +1,14 @@
 "use client";
 
 import React from "react";
-import { Input, Button, Card, Badge } from "@/components/shared";
-import { TemplateResponse } from "@/types/templates/dto";
+import { Badge } from "@/components/shared";
+import { TemplateViewProps } from "@/types/templates/dto";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-interface TemplateListProps {
-  templates: TemplateResponse[];
-}
 
-export function TemplateList({ templates }: TemplateListProps) {
+export function TemplateList({ templates }: TemplateViewProps) {
   return (
     <div className="space-y-5">
       <div className="rounded-md border">

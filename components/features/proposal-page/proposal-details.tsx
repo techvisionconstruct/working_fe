@@ -55,28 +55,6 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 )}
             </div>
             <div className="w-full lg:w-[380px] flex-shrink-0">
-              {/* Action Buttons above Client Details */}
-              <div className="flex gap-2 mb-4 justify-end">
-                <Button variant="outline" onClick={() => window.print()}>
-                  Print
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    /* TODO: Implement email to client */
-                  }}
-                >
-                  Email to Client
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    /* TODO: Implement make contract */
-                  }}
-                >
-                  Make a Contract
-                </Button>
-              </div>
               <div className="my-0 p-4 rounded-lg border bg-muted/30">
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
                   Client Details
@@ -84,19 +62,19 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 <div className="grid grid-cols-1 gap-y-2 text-sm">
                   <div>
                     <span className="font-medium">Client Name:</span>{" "}
-                    {/* {proposal?.client_name} */}
+                    {proposal?.client_name}
                   </div>
                   <div>
                     <span className="font-medium">Client Email:</span>{" "}
-                    {/* {proposal?.client_email} */}
+                    {proposal?.client_email}
                   </div>
                   <div>
                     <span className="font-medium">Phone:</span>{" "}
-                    {/* {proposal?.phone_number} */}
+                    {proposal?.client_phone}
                   </div>
                   <div>
                     <span className="font-medium">Address:</span>{" "}
-                    {/* {proposal?.address} */}
+                    {proposal?.client_address}
                   </div>
                 </div>
               </div>

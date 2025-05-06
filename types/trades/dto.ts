@@ -6,6 +6,7 @@ export interface TradeResponse {
   id: string;
   name: string;
   description?: string;
+  origin: string;
   elements?: ElementResponse[];
   created_at: string;
   updated_at: string;

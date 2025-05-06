@@ -10,6 +10,11 @@ export interface ProposalResponse {
   owner?: string;
   image?: string;
   template?: TemplateResponse;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  client_address?: string;
+  valid_until?: Date;
   total_material_cost?: number;
   total_labor_cost?: number;
   total_cost?: number;

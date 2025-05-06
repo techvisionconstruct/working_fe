@@ -1,6 +1,6 @@
 "use client";
 
-import { getProposals } from "@/api/client/proposals";
+import { getAllProposals } from "@/api/proposals/get-all-proposals";
 import { ProposalList } from "@/components/features/proposal-page/proposal-list-view";
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
 import { useQuery } from "@tanstack/react-query";
@@ -40,7 +40,7 @@ export default function ProposalsPage() {
     isPending,
   } = useQuery({
     queryKey: ["template", page, pageSize, debouncedSearch],
-    queryFn: () => getProposals(page, pageSize, debouncedSearch),
+    queryFn: () => getAllProposals(page, pageSize, debouncedSearch),
     placeholderData: (previousData) => previousData,
   });
 

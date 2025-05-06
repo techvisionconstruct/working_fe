@@ -5,6 +5,7 @@ export interface ElementResponse {
   id: string;
   name: string;
   description?: string;
+  origin: string;
   material_cost_formula?: string;
   material_formula_variables?: Record<string, any>[];
   labor_cost_formula?: string;

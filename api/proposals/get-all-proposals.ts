@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const getAuthToken = () => Cookies.get("auth-token");
 
-export const getProposals = async (
+export const getAllProposals = async (
   page = 1,
   pageSize = 10,
   searchQuery?: string
