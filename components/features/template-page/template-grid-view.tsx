@@ -31,6 +31,8 @@ export function TemplateGridView({ templates }: TemplateViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const originalTemplates = templates.filter((template) => template.origin === "original");
   
   const { mutate: deleteTemplateMutation } = useMutation({
     mutationFn: (templateId: string) => deleteTemplate(templateId),
@@ -93,7 +95,7 @@ export function TemplateGridView({ templates }: TemplateViewProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {templates.map((template) => (
+      {originalTemplates.map((template) => (
         <div key={template.id} className="h-full relative">
           <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative ${deletingId === template.id ? 'opacity-70' : ''}`}>
             {deletingId === template.id && (

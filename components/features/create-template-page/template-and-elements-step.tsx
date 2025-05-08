@@ -159,7 +159,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["variables"],
     queryFn: getAllVariables,
-
   });
 
   const {
@@ -169,7 +168,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["variable-types"],
     queryFn: getAllVariableTypes,
-
   });
 
   // Get all elements
@@ -180,7 +178,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["elements"],
     queryFn: getAllElements,
-
   });
 
   const { mutate: createVariableMutation } = useMutation({
@@ -406,7 +403,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? (apiVariables.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !variables.some((v) => v.id === variable.id.toString())
+            !variables.some((v) => v.id === variable.id.toString()) &&
+            variable.origin === "original"
+            
         )
       : [];
 
@@ -418,7 +417,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? (apiTrades.data as TradeResponse[]).filter(
           (trade) =>
             trade.name.toLowerCase().includes(tradeSearchQuery.toLowerCase()) &&
-            !trades.some((t) => t.id === trade.id.toString())
+            !trades.some((t) => t.id === trade.id.toString()) &&
+            trade.origin === "original"
         )
       : [];
 
@@ -431,7 +431,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           // Check if the element matches the search query
           const matchesQuery = element.name
             .toLowerCase()
-            .includes(elementSearchQuery.toLowerCase());
+            .includes(elementSearchQuery.toLowerCase()) &&
+            element.origin === "original";
 
           // Find the current trade
           const currentTrade = trades.find((t) => t.id === currentTradeId);
@@ -730,8 +731,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state
+    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
+
+    // Update the backend through trade mutation
+    // Find the updated trade with the new element
+    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    if (updatedTrade && updatedTrade.elements) {
+      // Get all element IDs
+      const elementIds = updatedTrade.elements.map(elem => elem.id);
+      
+      // Call update trade mutation
+      updateTradeMutation({
+        tradeId: tradeId,
+        data: { elements: elementIds }
+      });
+    }
 
     // Reset search state
     setIsElementSearchOpen(false);
@@ -756,8 +771,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state
+    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
+    
+    // Update the backend through trade mutation
+    // Find the updated trade with the element removed
+    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    if (updatedTrade) {
+      // Get all remaining element IDs
+      const elementIds = updatedTrade.elements?.map(elem => elem.id) || [];
+      
+      // Call update trade mutation
+      updateTradeMutation({
+        tradeId: tradeId,
+        data: { elements: elementIds }
+      });
+    }
   };
 
   const handleAddElement = () => {
