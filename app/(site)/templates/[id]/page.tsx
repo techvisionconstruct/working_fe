@@ -64,7 +64,7 @@ export default function TemplatedById() {
                 key={variable.id}
                 className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
               >
-                {variable.name}
+                {variable.name}: {variable.value}
                 <span className="text-[10px] text-gray-400 ml-1">
                   ({variable.variable_type?.name})
                 </span>
@@ -102,10 +102,13 @@ export default function TemplatedById() {
                         </div>
                         <div className="flex gap-2">
                           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Material: {element.material_cost_formula}
+                            Material: {element.material_cost}
                           </span>
                           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Labor: {element.labor_cost_formula}
+                            Labor: {element.labor_cost}
+                          </span>
+                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                            Markup: {element.markup}%
                           </span>
                         </div>
                       </div>

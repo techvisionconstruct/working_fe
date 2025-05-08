@@ -9,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import TemplateSelectionStep from "@/components/features/create-proposal-page/template-selection-tab";
 import ProposalDetailsStep from "@/components/features/create-proposal-page/proposal-details-tab";
 import TradesAndElementsStep from "@/components/features/create-proposal-page/trades-and-elements-tab";
-// import PreviewStep from "@/components/features/create-proposal-page/preview-tab";
+import PreviewStep from "@/components/features/create-proposal-page/preview-tab";
 import StepIndicator from "@/components/features/create-proposal-page/step-indicator";
 
 import { createProposal } from "@/api/proposals/create-proposal";
@@ -17,6 +17,7 @@ import { updateTemplate } from "@/api/templates/update-template";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { ProposalCreateRequest } from "@/types/proposals/dto";
+import { TemplateCreateRequest } from "@/types/templates/dto";
 
 export default function CreateProposalPage() {
   const [currentStep, setCurrentStep] = useState<string>("template");
@@ -41,6 +42,8 @@ export default function CreateProposalPage() {
     []
   );
 
+  console.log("Trade Objects:", tradeObjects);
+  console.log("Variable Objects:", variableObjects);
   const createProposalMutation = useMutation({
     mutationFn: createProposal,
     onSuccess: () => {
@@ -59,13 +62,15 @@ export default function CreateProposalPage() {
 
   // Add updateTemplate mutation
   const updateTemplateMutation = useMutation({
-    mutationFn: (params: { id: string; data: any }) => updateTemplate(params.id, params.data),
+    mutationFn: (params: { id: string; data: any }) =>
+      updateTemplate(params.id, params.data),
     onSuccess: () => {
       toast.success("Template updated successfully!");
     },
     onError: (error) => {
       toast.error("Failed to update template", {
-        description: error instanceof Error ? error.message : "Please try again later",
+        description:
+          error instanceof Error ? error.message : "Please try again later",
       });
     },
   });
@@ -99,35 +104,33 @@ export default function CreateProposalPage() {
 
   const handleSubmit = async () => {
     try {
-      const templateId = (typeof formData.template === 'object' && formData.template !== null)
-        ? (formData.template as any).id
-        : formData.template;
+      const templateId =
+        typeof formData.template === "object" && formData.template !== null
+          ? (formData.template as any).id
+          : formData.template;
 
+      // Format the arrays with the desired spacing
+      const tradeIds = tradeObjects.map((t) => t.id);
+      const variableIds = variableObjects.map((v) => v.id);
+
+      console.log("Trade IDs:", tradeIds);
+      console.log("Variable IDs:", variableIds);
+      
       const payload: ProposalCreateRequest = {
         name: formData.proposalDetails.name,
         description: formData.proposalDetails.description,
         status: formData.status,
         template: templateId,
+        trades: tradeIds,
+        variables: variableIds,
         client_name: formData.proposalDetails.client_name,
         client_email: formData.proposalDetails.client_email,
         client_phone: formData.proposalDetails.client_phone,
         client_address: formData.proposalDetails.client_address,
       };
 
-      // Create proposal
       const result = await createProposalMutation.mutateAsync(payload);
-      console.log(result)
-      const createdTemplateId = result?.data?.template?.id
-      // Only update template if trades or variables exist
-      if (createdTemplateId && (tradeObjects.length > 0 || variableObjects.length > 0)) {
-        await updateTemplateMutation.mutateAsync({
-          id: createdTemplateId,
-          data: {
-            trades: tradeObjects.map((t) => t.id),
-            variables: variableObjects.map((v) => v.id),
-          },
-        });
-      }
+      
     } catch (error) {
       console.error("Error submitting proposal:", error);
     }
@@ -218,7 +221,7 @@ export default function CreateProposalPage() {
           </TabsContent>
 
           <TabsContent value="preview" className="p-6">
-            {/* <PreviewStep formData={formData} /> */}
+            <PreviewStep formData={formData} />
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back

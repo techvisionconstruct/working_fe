@@ -1,6 +1,6 @@
 import { ContractResponse } from '../contracts/dto';
 import { PaginationLinks, PaginationMeta } from '../pagination/dto';
-import { TemplateResponse } from '../templates/dto';
+import { TemplateCreateRequest, TemplateResponse } from '../templates/dto';
 import { UserResponse } from '../user/dto';
 
 export interface ProposalResponse {
@@ -46,6 +46,10 @@ export interface ProposalCreateRequest {
   description?: string;
   status?: string;
   template?: string;
+  // From Scratch
+  trades?: string[];
+  variables?: string[];
+  // From Scratch
   image?: string;
   owner?: string;
   client_name?: string;

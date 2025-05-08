@@ -7,7 +7,7 @@ const TOKEN = Cookies.get("auth-token");
 export async function createTemplate(template: TemplateCreateRequest) {
   try {
     const payload: Record<string, any> = {};
-    
+
     if (template.name) payload.name = template.name;
     if (template.description) payload.description = template.description;
     if (template.status) payload.status = template.status;
@@ -18,10 +18,10 @@ export async function createTemplate(template: TemplateCreateRequest) {
     if (template.is_public !== undefined) payload.is_public = template.is_public;
     
     const response = await fetch(`${API_URL}/v1/templates/create/`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${TOKEN}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload)
     })
@@ -37,4 +37,3 @@ export async function createTemplate(template: TemplateCreateRequest) {
     throw error
   }
 }
-
