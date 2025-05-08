@@ -88,8 +88,11 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
                 onClick={() => updateData(template)}
               >
                 <div className="flex gap-4">
-                  <Image
-                    src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+                <Image
+                    src={
+                      template.image ||
+                      "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+                    }
                     width={64}
                     height={64}
                     alt={template.name}

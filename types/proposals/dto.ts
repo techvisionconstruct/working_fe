@@ -1,3 +1,4 @@
+import { ContractResponse } from '../contracts/dto';
 import { PaginationLinks, PaginationMeta } from '../pagination/dto';
 import { TemplateResponse } from '../templates/dto';
 import { UserResponse } from '../user/dto';
@@ -10,6 +11,7 @@ export interface ProposalResponse {
   owner?: string;
   image?: string;
   template?: TemplateResponse;
+  contract?: ContractResponse;
   client_name?: string;
   client_email?: string;
   client_phone?: string;

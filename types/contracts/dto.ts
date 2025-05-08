@@ -19,7 +19,6 @@ export interface ContractResponse {
   contractor_signed_at?: string;
   
   // Relationships
-  proposal?: ProposalResponse;
   owner?: UserResponse;
   
   // Audit fields
@@ -47,8 +46,10 @@ export interface ContractCreateRequest {
   name: string;
   description?: string;
   status?: string;
+  contractor_initials?: string;
+  contractor_signature?: string;
   terms?: string;
-  proposal?: string;
+  proposal_id?: string;
 }
 
 export interface ContractUpdateRequest {

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { createContract } from "@/api/contracts/create-contract";
+import { updateContract } from "@/api/contracts/update-contract";
 import {
   Card,
   CardContent,
@@ -17,12 +19,15 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import {
-  postContract,
-  updateContract,
-  sendContract,
-} from "@/api/server/contracts";
+import { Alert } from "@/components/shared/alert/alert";
+import { AlertTitle } from "@/components/shared/alert/alert-title";
+import { AlertDescription } from "@/components/shared/alert/alert-description";
 import { toast } from "sonner";
+import { ProposalResponse } from "@/types/proposals/dto";
+import { TradeResponse } from "@/types/trades/dto";
+import { VariableResponse } from "@/types/variables/dto";
+import { AlertTriangle, Save, RefreshCcw } from "lucide-react";
+import { ContractCreateRequest } from "@/types/contracts/dto";
 
 interface TermSection {
   id: number;
@@ -37,7 +42,7 @@ interface Signature {
 }
 
 interface ContractDetailsProps {
-  proposal: any;
+  proposal: ProposalResponse;
 }
 
 export function ContractDetails({ proposal }: ContractDetailsProps) {
@@ -94,15 +99,6 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     }
   };
 
-  // State for client details
-  const [clientDetails, setClientDetails] = useState({
-    name: proposal?.contract?.clientName || proposal?.client_name || "",
-    email: proposal?.contract?.clientEmail || proposal?.client_email || "",
-    phone:
-      proposal?.contract?.clientPhoneNumber || proposal?.phone_number || "",
-    address: proposal?.contract?.clientAddress || proposal?.address || "",
-  });
-
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -111,194 +107,6 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
       reader.onerror = (error) => reject(error);
     });
   };
-
-  // React Query mutation for contract creation/update
-  const contractMutation = useMutation({
-    mutationFn: (data: any) => {
-      // Check if contract exists and has an ID
-      if (proposal?.contract) {
-        // Try to find the contract ID - check different possible properties
-        const contractId =
-          proposal.contract.id ||
-          proposal.contract.contract_id ||
-          proposal.contract.uuid;
-
-        if (!contractId) {
-          console.error("No contract ID found in the proposal object");
-          throw new Error("Contract ID is missing");
-        }
-        return updateContract(contractId, data);
-      } else {
-        return postContract(data);
-      }
-    },
-    onSuccess: (data) => {
-      const isUpdate = !!proposal?.contract;
-      toast.success(
-        isUpdate
-          ? "Contract updated successfully"
-          : "Contract created successfully",
-        {
-          position: "top-center",
-          duration: 3000,
-        }
-      );
-    },
-    onError: (error) => {
-      console.error("Error with contract operation:", error);
-      toast.error(
-        `Failed to ${proposal?.contract ? "update" : "create"} contract: ${
-          error.message
-        }`,
-        {
-          position: "top-center",
-          duration: 5000,
-        }
-      );
-    },
-  });
-
-  // React Query mutation for sending the contract
-  const sendContractMutation = useMutation({
-    mutationFn: (contractId: string) => {
-      return sendContract(contractId);
-    },
-    onSuccess: (data) => {
-      toast.success("Contract sent successfully!", {
-        position: "top-center",
-        duration: 3000,
-      });
-    },
-    onError: (error) => {
-      console.error("Error sending contract:", error);
-      toast.error(`Failed to send contract: ${error.message}`, {
-        position: "top-center",
-        duration: 5000,
-      });
-    },
-  });
-
-  const handleSendContract = () => {
-    if (!proposal?.contract) {
-      toast.error("Cannot send contract: No contract found", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Try to find the contract ID - check different possible properties
-    const contractId =
-      proposal.contract.id ||
-      proposal.contract.contract_id ||
-      proposal.contract.uuid;
-
-    if (!contractId) {
-      toast.error("Cannot send contract: No contract ID found", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return;
-    }
-
-    sendContractMutation.mutate(contractId);
-  };
-
-  const handleCreateContract = () => {
-    const contractData = {
-      proposal_id: proposal.id,
-      title: agreementTitle,
-      client: clientDetails,
-      terms: termsSections,
-      signatures: signatures,
-    };
-
-    contractMutation.mutate(contractData);
-  };
-
-  const [agreementTitle, setAgreementTitle] = useState(
-    proposal?.contract?.contractName || "SERVICE AGREEMENT"
-  );
-
-  // State for terms and conditions - parse from termsAndConditions string if available
-  const [termsSections, setTermsSections] = useState<TermSection[]>(() => {
-    if (proposal?.contract?.termsAndConditions) {
-      return parseTermsAndConditions(proposal.contract.termsAndConditions);
-    } else if (proposal?.contract?.terms) {
-      return proposal.contract.terms;
-    } else {
-      return [
-        {
-          id: 1,
-          title: "Payment Procedures",
-          description:
-            "The payment is due within 30 days of invoice receipt. Late payments are subject to a 1.5% monthly interest charge.",
-        },
-        {
-          id: 2,
-          title: "Agreement",
-          description:
-            "By signing this document, both parties agree to the terms and conditions outlined in this contract.",
-        },
-      ];
-    }
-  });
-
-  // State for signatures - use contract signature data if available
-  const [signatures, setSignatures] = useState<{
-    client: Signature;
-    contractor: Signature;
-  }>(() => {
-    if (
-      proposal?.contract?.clientInitials !== undefined ||
-      proposal?.contract?.clientImage !== undefined ||
-      proposal?.contract?.contractorInitials !== undefined ||
-      proposal?.contract?.contractorImage !== undefined
-    ) {
-      return {
-        client: getSignatureData(
-          proposal.contract.clientInitials,
-          proposal.contract.clientImage
-        ),
-        contractor: getSignatureData(
-          proposal.contract.contractorInitials,
-          proposal.contract.contractorImage
-        ),
-      };
-    } else if (proposal?.contract?.signatures) {
-      return proposal.contract.signatures;
-    } else {
-      return {
-        client: {
-          type: "text",
-          value: "",
-          file: null,
-        },
-        contractor: {
-          type: "text",
-          value: "",
-          file: null,
-        },
-      };
-    }
-  });
-
-  // Check if contract is already signed by client
-  const isContractSigned = !!(
-    proposal?.contract?.clientImage ||
-    (proposal?.contract?.clientInitials &&
-      proposal?.contract?.clientInitials.trim() !== "")
-  );
-
-  // State to track if editing mode is active - disabled if contract is signed
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Disable editing if contract is signed
-  React.useEffect(() => {
-    if (isContractSigned && isEditing) {
-      setIsEditing(false);
-    }
-  }, [isContractSigned]);
 
   // Handle input changes
   const handleInputChange = (
@@ -333,11 +141,12 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           value: value,
         },
       }));
-    } else {
-      setClientDetails((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+    }
+    // Agreement title (for demonstration, just log)
+    else if (name === "agreementTitle") {
+      // If you want to store agreementTitle in state, add a state for it
+      // For now, just log
+      console.log("Agreement Title changed:", value);
     }
   };
 
@@ -401,55 +210,154 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     setTermsSections((prev) => prev.filter((section) => section.id !== id));
   };
 
-  // Format date to a readable format
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const calculateTotalCost = () => {
-    if (!proposal.project_elements || proposal.project_elements.length === 0) {
-      return "N/A";
+  // State for terms and conditions - parse from termsAndConditions string if available
+  const [termsSections, setTermsSections] = useState<TermSection[]>(() => {
+    if (proposal?.contract?.terms) {
+      if (typeof proposal.contract.terms === "string") {
+        return parseTermsAndConditions(proposal.contract.terms);
+      } else {
+        return proposal.contract.terms as TermSection[];
+      }
+    } else {
+      return [
+        {
+          id: 1,
+          title: "Payment Procedures",
+          description:
+            "The payment is due within 30 days of invoice receipt. Late payments are subject to a 1.5% monthly interest charge.",
+        },
+        {
+          id: 2,
+          title: "Agreement",
+          description:
+            "By signing this document, both parties agree to the terms and conditions outlined in this contract.",
+        },
+      ];
     }
+  });
 
-    let total = 0;
-    proposal.project_elements.forEach((element: any) => {
-      const materialCost = parseFloat(element.material_cost || 0);
-      const laborCost = parseFloat(element.labor_cost || 0);
-      const markup = parseFloat(element.markup || 0) / 100;
+  // State for signatures - use contract signature data if available
+  const [signatures, setSignatures] = useState<{
+    client: Signature;
+    contractor: Signature;
+  }>(() => {
+    if (
+      proposal?.contract?.client_initials !== undefined ||
+      proposal?.contract?.client_signature !== undefined ||
+      proposal?.contract?.contractor_initials !== undefined ||
+      proposal?.contract?.contractor_signature !== undefined
+    ) {
+      return {
+        client: getSignatureData(
+          proposal.contract.client_initials ?? null,
+          proposal.contract.client_signature ?? null
+        ),
+        contractor: getSignatureData(
+          proposal.contract.contractor_initials ?? null,
+          proposal.contract.contractor_signature ?? null
+        ),
+      };
+    } else {
+      return {
+        client: {
+          type: "text",
+          value: "",
+          file: null,
+        },
+        contractor: {
+          type: "text",
+          value: "",
+          file: null,
+        },
+      };
+    }
+  });
 
-      total += (materialCost + laborCost) * (1 + markup);
-    });
+  // Check if contract is already signed by client
+  const isContractSigned = !!(
+    proposal?.contract?.client_signature ||
+    (proposal?.contract?.client_initials &&
+      proposal?.contract?.client_initials.trim() !== "")
+  );
 
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(total);
+  // State to track if editing mode is active - disabled if contract is signed
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Create contract mutation
+  const createContractMutation = useMutation({
+    mutationFn: (contractData: ContractCreateRequest) => createContract(contractData),
+    onSuccess: (data) => {
+      toast.success("Contract created successfully!");
+      setIsEditing(false);
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to create contract: ${error.message || "Unknown error"}`);
+    }
+  });
+
+  // Update contract mutation
+  const updateContractMutation = useMutation({
+    mutationFn: ({ id, contract }: { id: string; contract: Partial<ContractCreateRequest> }) => updateContract(id, contract),
+    onSuccess: (data) => {
+      toast.success("Contract updated successfully!");
+      setIsEditing(false);
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to update contract: ${error.message || "Unknown error"}`);
+    }
+  });
+
+  // Handle contract submit
+  const handleSubmit = () => {
+    const termsString = termsSections
+      .map(section => `${section.title}: ${section.description}`)
+      .join("\n");
+    const payload: ContractCreateRequest = {
+      name: proposal?.name || "",
+      description: proposal?.description || "",
+      status: proposal?.contract?.status || undefined,
+      contractor_initials: signatures.contractor.type === "text" ? signatures.contractor.value : undefined,
+      contractor_signature: signatures.contractor.type === "image" ? signatures.contractor.value : undefined,
+      terms: termsString,
+      proposal_id: proposal?.id || undefined,
+    };
+    if (proposal.contract && proposal.contract.id) {
+      updateContractMutation.mutate({ id: proposal.contract.id, contract: payload });
+    } else {
+      createContractMutation.mutate(payload);
+    }
   };
+
+  // Disable editing if contract is signed
+  React.useEffect(() => {
+    if (isContractSigned && isEditing) {
+      setIsEditing(false);
+    }
+  }, [isContractSigned]);
 
   return (
     <div className="w-full mx-auto">
+      {proposal.contract == null && (
+        <Alert className="mb-4 border-yellow-300 bg-yellow-50 text-yellow-900 flex items-center gap-3">
+          <AlertTriangle color="#f0b000" className="h-5 w-5 mt-1.5 mr-2 flex-shrink-0" />
+          <div className="mt-2">
+            <AlertTitle>Draft Mode</AlertTitle>
+            <AlertDescription>
+              Contract is not yet created. This is just a draft.
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
             <div className="mb-8">
-              {isEditing ? (
-                <div className="mb-4">
-                  <Input
-                    name="agreementTitle"
-                    value={agreementTitle}
-                    onChange={(e) => setAgreementTitle(e.target.value)}
-                    className="text-3xl font-bold text-center uppercase border-blue-500 shadow-sm ring-2 ring-blue-300 bg-blue-50/50 focus:border-blue-600 focus:ring-2 focus:ring-blue-400 transition-all"
-                  />
-                </div>
-              ) : (
+           
+                
                 <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
-                  {agreementTitle}
+                 Service Agreement
                 </h1>
-              )}
+         
               <div className="space-y-0 text-muted-foreground text-center">
                 <p className="text-md">
                   This Service Agreement is entered into as of April 25, 2025,
@@ -460,13 +368,9 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                   business at Irvine, California, and
                 </p>
                 <p className="text-md">
-                  Client:{" "}
-                  {clientDetails.name || proposal?.client_name || "test"}, with
-                  a primary address at{" "}
-                  {clientDetails.address ||
-                    proposal?.address ||
-                    "[Client Address]"}{" "}
-                  .
+                  Client: {proposal.client_name || "Client Name"}, with a
+                  primary address at{" "}
+                  {proposal.client_address || "[Client Address]"} .
                 </p>
               </div>
             </div>
@@ -487,13 +391,13 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     {proposal.description}
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {proposal.project_modules?.map((module: any) => (
+                    {proposal.template?.trades?.map((trade: TradeResponse) => (
                       <Badge
-                        key={module.id}
+                        key={trade.id}
                         variant="outline"
                         className="font-semibold uppercase text-xs"
                       >
-                        {module.module?.name || "Module"}
+                        {trade.name || "Trade Name"}
                       </Badge>
                     ))}
                   </div>
@@ -525,20 +429,16 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                           {proposal.client_email || "N/A"}
                         </p>
                       </div>
-                      {proposal.phone_number && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{proposal.phone_number}</p>
-                        </div>
-                      )}
-                      {proposal.address && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            Address
-                          </p>
-                          <p className="font-medium">{proposal.address}</p>
-                        </div>
-                      )}
+
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="font-medium">{proposal.client_phone}</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Address</p>
+                        <p className="font-medium">{proposal.client_address}</p>
+                      </div>
                     </CardContent>
                   </Card>
 
@@ -553,7 +453,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Total Project Cost</span>
                         <span className="font-bold text-xl">
-                          {calculateTotalCost()}
+                          {/* {calculateTotalCost()} */}
                         </span>
                       </div>
                       <Separator />
@@ -562,7 +462,13 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                           <span>Created</span>
                           <span>
                             {proposal.created_at
-                              ? formatDate(proposal.created_at)
+                              ? new Date(
+                                  proposal.created_at
+                                ).toLocaleDateString("en-US", {
+                                  month: "long",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
                               : "N/A"}
                           </span>
                         </div>
@@ -570,60 +476,72 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                           <span>Last Updated</span>
                           <span>
                             {proposal.updated_at
-                              ? formatDate(proposal.updated_at)
+                              ? new Date(
+                                  proposal.updated_at
+                                ).toLocaleDateString("en-US", {
+                                  month: "long",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
                               : "N/A"}
                           </span>
                         </div>
-                        {proposal.user && (
-                          <div className="flex justify-between text-sm">
-                            <span>Created By</span>
-                            <span>{proposal.user.username || "N/A"}</span>
-                          </div>
-                        )}
+
+                        <div className="flex justify-between text-sm">
+                          <span>Created By</span>
+                          <span>
+                            {proposal.created_by?.first_name ||
+                              "Contractor First Name"}{" "}
+                            {proposal.created_by?.last_name ||
+                              "Contractor Last Name"}
+                          </span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Project Parameters */}
-                {proposal.project_parameters &&
-                  proposal.project_parameters.length > 0 && (
+                {proposal.template?.variables &&
+                  proposal.template?.variables.length > 0 && (
                     <div className="space-y-4 mt-4">
                       <h3 className="text-lg font-semibold">
-                        Project Parameters
+                        Project Variables
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {proposal.project_parameters.map((param: any) => (
-                          <div
-                            key={param.id}
-                            className="p-3 bg-muted/50 rounded-xl flex justify-between items-center"
-                          >
-                            <span className="font-medium">
-                              {param.parameter?.name || "Parameter"}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span>{param.value}</span>
-                              <span className="text-muted-foreground text-sm">
-                                {param.parameter?.type || ""}
+                        {proposal.template?.variables.map(
+                          (variable: VariableResponse) => (
+                            <div
+                              key={variable.id}
+                              className="p-3 bg-muted/50 rounded-xl flex justify-between items-center"
+                            >
+                              <span className="font-medium">
+                                {variable.name || "Variable Name"}
                               </span>
+                              <div className="flex items-center gap-2">
+                                <span>{variable.value}</span>
+                                <span className="text-muted-foreground text-sm">
+                                  {variable.variable_type?.name ||
+                                    "Variable Type"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     </div>
                   )}
 
                 {/* Project Elements */}
-                {proposal.project_modules &&
-                  proposal.project_modules.length > 0 && (
+                {proposal.template?.trades &&
+                  proposal.template?.trades.length > 0 && (
                     <div className="space-y-4 mt-4">
                       <h3 className="text-lg font-semibold">Project Details</h3>
-                      {proposal.project_modules.map((moduleItem: any) => (
-                        <div key={moduleItem.id} className="space-y-4">
+                      {proposal.template?.trades.map((trade: TradeResponse) => (
+                        <div key={trade.id} className="space-y-4">
                           <h4 className="text-base font-semibold">
-                            {moduleItem.module?.name || "Module"}
+                            {trade.name || "Trade Name"}
                           </h4>
-                          {proposal.project_elements && (
+                          {trade.elements && (
                             <div className="rounded-lg border p-4 overflow-x-auto">
                               <Table>
                                 <TableHeader>
@@ -636,41 +554,36 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {proposal.project_elements
-                                    .filter(
-                                      (element: any) =>
-                                        element.project_module?.module?.id ===
-                                        moduleItem.module?.id
-                                    )
-                                    .map((element: any) => (
-                                      <TableRow key={element.id}>
-                                        <TableCell className="font-medium">
-                                          {element.element?.name || "Element"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {element.element?.description ||
-                                            "No description available"}
-                                        </TableCell>
-                                        <TableCell className="text-right font-semibold">
-                                          {new Intl.NumberFormat("en-US", {
-                                            style: "currency",
-                                            currency: "USD",
-                                          }).format(
-                                            (parseFloat(
-                                              element.material_cost || 0
-                                            ) +
-                                              parseFloat(
-                                                element.labor_cost || 0
-                                              )) *
-                                              (1 +
-                                                parseFloat(
-                                                  element.markup || 0
-                                                ) /
-                                                  100)
-                                          )}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
+                                  {trade.elements.map((element: any) => (
+                                    <TableRow key={element.id}>
+                                      <TableCell className="font-medium">
+                                        {element.name || "Element Name"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {element.description
+                                          ? element.description.length > 60
+                                            ? element.description.slice(0, 60) + "..."
+                                            : element.description
+                                          : "No description available"}
+                                      </TableCell>
+                                      <TableCell className="text-right font-semibold">
+                                        {new Intl.NumberFormat("en-US", {
+                                          style: "currency",
+                                          currency: "USD",
+                                        }).format(
+                                          (parseFloat(
+                                            element.material_cost || 0
+                                          ) +
+                                            parseFloat(
+                                              element.labor_cost || 0
+                                            )) *
+                                            (1 +
+                                              parseFloat(element.markup || 0) /
+                                                100)
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
                                 </TableBody>
                               </Table>
                             </div>
@@ -960,118 +873,30 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <Button
+            <Button
                 variant="default"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={handleSendContract}
-                disabled={sendContractMutation.isPending || !proposal?.contract}
+                className="w-full flex items-center justify-center gap-2 mt-2"
+                onClick={() => toast.info("Send to Client action coming soon!")}
               >
-                {sendContractMutation.isPending ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-mail"
-                    >
-                      <rect width="20" height="16" x="2" y="4" rx="2" />
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                    </svg>
-                    Send to Client
-                  </>
-                )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-send"
+                >
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+                Send to Client
               </Button>
               <Button
                 variant="outline"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={handleCreateContract}
-                disabled={contractMutation.isPending || isContractSigned}
-              >
-                {contractMutation.isPending ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {proposal?.contract ? "Updating..." : "Creating..."}
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-file-text"
-                    >
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" x2="8" y1="13" y2="13" />
-                      <line x1="16" x2="8" y1="17" y2="17" />
-                      <line x1="10" x2="8" y1="9" y2="9" />
-                    </svg>
-                    {proposal?.contract ? "Update Contract" : "Create Contract"}
-                  </>
-                )}
-              </Button>
-              {isContractSigned && proposal?.contract && (
-                <p className="text-xs text-amber-600 mt-1 text-center">
-                  Contract is signed and cannot be updated
-                </p>
-              )}
-              <Button
-                variant="secondary"
                 className="w-full flex items-center justify-center gap-2"
               >
                 <svg
@@ -1092,6 +917,27 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 </svg>
                 Print Contract
               </Button>
+              
+              {!proposal.contract && (
+                <Button
+                  variant="default"
+                  className="w-full mt-2 flex items-center justify-center gap-2"
+                  onClick={handleSubmit}
+                >
+                  <Save className="w-4 h-4" />
+                  Save Contract
+                </Button>
+              )}
+              {isEditing && proposal.contract && proposal.contract.id && (
+                <Button
+                  variant="default"
+                  className="w-full mt-2 flex items-center justify-center gap-2"
+                  onClick={handleSubmit}
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Update Contract
+                </Button>
+              )}
               <Separator className="my-2" />
               <div className="rounded-md border p-3">
                 <div className="flex justify-between items-center">
@@ -1131,16 +977,16 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     <div className="flex justify-between">
                       <span>Total Cost:</span>
                       <span className="font-semibold text-foreground">
-                        {calculateTotalCost()}
+                        {/* {calculateTotalCost()} */}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Parameters:</span>
-                      <span>{proposal?.project_parameters?.length || 0}</span>
+                      <span>Variables:</span>
+                      <span>{proposal?.template?.variables?.length || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Modules:</span>
-                      <span>{proposal?.project_modules?.length || 0}</span>
+                      <span>Trades:</span>
+                      <span>{proposal?.template?.trades?.length || 0}</span>
                     </div>
                   </div>
                 </CardContent>

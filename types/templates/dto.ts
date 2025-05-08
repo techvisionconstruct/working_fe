@@ -8,6 +8,7 @@ export interface TemplateResponse {
   name: string;
   description?: string;
   status: string;
+  image?: string;
   origin: string;
   is_public: boolean;
   owner?: string;

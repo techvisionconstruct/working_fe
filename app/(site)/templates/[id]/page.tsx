@@ -11,6 +11,8 @@ import Error from "@/components/features/template-page/error";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
 
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
+
 export default function TemplatedById() {
   const { id } = useParams();
 
@@ -38,7 +40,7 @@ export default function TemplatedById() {
     <div className="p-0 mx-auto">
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
         <Image
-          src={"https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
+          src={template?.image || DEFAULT_IMAGE}
           alt={template?.name || "Template Image"}
           fill
           className="w-full h-full object-cover object-center rounded-2xl shadow"
@@ -62,7 +64,7 @@ export default function TemplatedById() {
                 key={variable.id}
                 className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
               >
-                {variable.name}: {variable.value}
+                {variable.name}
                 <span className="text-[10px] text-gray-400 ml-1">
                   ({variable.variable_type?.name})
                 </span>
@@ -100,13 +102,10 @@ export default function TemplatedById() {
                         </div>
                         <div className="flex gap-2">
                           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Material: {element.material_cost}
+                            Material: {element.material_cost_formula}
                           </span>
                           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Labor: {element.labor_cost}
-                          </span>
-                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Markup: {element.markup}%
+                            Labor: {element.labor_cost_formula}
                           </span>
                         </div>
                       </div>

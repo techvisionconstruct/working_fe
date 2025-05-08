@@ -89,7 +89,7 @@ export default function ProposalById() {
         <ProposalDetails proposal={proposal} />
       </TabsContent>
       <TabsContent value="contract">
-        {/* <ContractDetails proposal={proposal} /> */}
+        <ContractDetails proposal={proposal} />
       </TabsContent>
     </Tabs>
   );
