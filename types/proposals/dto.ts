@@ -45,11 +45,7 @@ export interface ProposalCreateRequest {
   name: string;
   description?: string;
   status?: string;
-  template?: string;
-  // From Scratch
-  trades?: string[];
-  variables?: string[];
-  // From Scratch
+  template: string | null;
   image?: string;
   owner?: string;
   client_name?: string;

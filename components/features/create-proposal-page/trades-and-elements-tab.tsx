@@ -53,13 +53,12 @@ import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
 
-
 interface TradesAndElementsStepProps {
   data: {
     trades: TradeResponse[];
     variables: VariableResponse[];
   };
-  templateId: string;
+  templateId: string | null;
   template: TemplateResponse | null;
   updateTrades: (trades: TradeResponse[]) => void;
   updateVariables?: (variables: VariableResponse[]) => void;
@@ -74,7 +73,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 }) => {
   // Get query client for data refetching
   const queryClient = useQueryClient();
-  
+
   // =========== STATE MANAGEMENT ===========
 
   // Variable-related state
@@ -240,7 +239,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           position: "top-center",
           description: `"${createdVariable.name}" has been added to your proposal.`,
         });
-        
+
         setShowAddDialog(false);
         setNewVarName("");
         setNewVarDescription("");
@@ -326,7 +325,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
-    
+
   // Template update mutation for updating the template when variables or trades change
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
     useMutation({
@@ -335,12 +334,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         data,
       }: {
         templateId: string;
-        data: { variables?: string[], trades?: string[] };
+        data: { variables?: string[]; trades?: string[] };
       }) => updateProposalTemplate(templateId, data),
       onSuccess: () => {
         toast.success("Template updated successfully", {
           position: "top-center",
-          description: "Template has been updated with the latest variables and trades.",
+          description:
+            "Template has been updated with the latest variables and trades.",
         });
       },
       onError: (error) => {
@@ -459,7 +459,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
-console.log(apiVariables)
+
   const filteredVariables =
     searchQuery === ""
       ? []
@@ -467,7 +467,6 @@ console.log(apiVariables)
       ? (apiVariables.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          
             variable.origin === "original"
         )
       : [];
@@ -492,9 +491,10 @@ console.log(apiVariables)
       : Array.isArray(apiElements.data)
       ? (apiElements.data as ElementResponse[]).filter((element) => {
           // Check if the element matches the search query
-          const matchesQuery = element.name
-            .toLowerCase()
-            .includes(elementSearchQuery.toLowerCase()) &&
+          const matchesQuery =
+            element.name
+              .toLowerCase()
+              .includes(elementSearchQuery.toLowerCase()) &&
             element.origin === "original";
 
           // Find the current trade
@@ -531,7 +531,6 @@ console.log(apiVariables)
       variable.name.toLowerCase().includes(currentPartial.toLowerCase())
     );
   };
-
 
   const handleMaterialFormulaChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -754,13 +753,13 @@ console.log(apiVariables)
     if (!variables.some((v) => v.id === newVar.id)) {
       const updatedVariables = [...variables, newVar];
       updateVariables(updatedVariables);
-      
+
       // If template exists and we're adding a variable, update the template variables
       if (templateId) {
         // Update the template with the new variable
         updateTemplateMutation({
           templateId: templateId,
-          data: { variables: updatedVariables.map(v => v.id) }
+          data: { variables: updatedVariables.map((v) => v.id) },
         });
       }
     }
@@ -768,8 +767,6 @@ console.log(apiVariables)
     setIsSearchOpen(false);
     setSearchQuery("");
   };
-
-  console.log(templateId)
 
   const handleAddVariable = () => {
     if (!newVarName.trim()) return;
@@ -788,13 +785,13 @@ console.log(apiVariables)
   const handleRemoveVariable = (variableId: string) => {
     const updatedVariables = variables.filter((v) => v.id !== variableId);
     updateVariables(updatedVariables);
-    
+
     // If template exists, update the template's variables
     if (templateId) {
       // Update the template with the reduced variable list
       updateTemplateMutation({
         templateId: templateId,
-        data: { variables: updatedVariables.map(v => v.id) }
+        data: { variables: updatedVariables.map((v) => v.id) },
       });
     }
   };
@@ -864,15 +861,15 @@ console.log(apiVariables)
 
     // Update the backend through trade mutation
     // Find the updated trade with the new element
-    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade && updatedTrade.elements) {
       // Get all element IDs
-      const elementIds = updatedTrade.elements.map(elem => elem.id);
-      
+      const elementIds = updatedTrade.elements.map((elem) => elem.id);
+
       // Call update trade mutation
       updateTradeMutation({
         tradeId: tradeId,
-        data: { elements: elementIds }
+        data: { elements: elementIds },
       });
     }
 
@@ -901,18 +898,18 @@ console.log(apiVariables)
 
     // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
-    
+
     // Update the backend through trade mutation
     // Find the updated trade with the element removed
-    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade) {
       // Get all remaining element IDs
-      const elementIds = updatedTrade.elements?.map(elem => elem.id) || [];
-      
+      const elementIds = updatedTrade.elements?.map((elem) => elem.id) || [];
+
       // Call update trade mutation
       updateTradeMutation({
         tradeId: tradeId,
-        data: { elements: elementIds }
+        data: { elements: elementIds },
       });
     }
   };
@@ -962,7 +959,7 @@ console.log(apiVariables)
       description: newElementDescription.trim() || undefined,
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
-      markup: elementMarkup
+      markup: elementMarkup,
     };
 
     // Update the element
@@ -996,47 +993,57 @@ console.log(apiVariables)
     };
 
     // Find the selected variable type from the API data
-    const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data) 
-      ? (apiVariableTypes as any).data.find((type: any) => type.id.toString() === editVariableType)
+    const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data)
+      ? (apiVariableTypes as any).data.find(
+          (type: any) => type.id.toString() === editVariableType
+        )
       : null;
 
     // Update local state immediately to provide instant UI feedback
-    const updatedVariables = variables.map(variable => {
+    const updatedVariables = variables.map((variable) => {
       if (variable.id === currentVariableId) {
         return {
           ...variable,
           name: editVariableName.trim(),
           description: editVariableDescription.trim() || "",
           value: editVariableValue,
-          variable_type: selectedVariableType || variable.variable_type
+          variable_type: selectedVariableType || variable.variable_type,
         } as VariableResponse;
       }
       return variable;
     });
-    
+
     // Update the parent component's state
     updateVariables(updatedVariables);
 
     // Find and update all elements that use this variable in their formulas
     const elementsToUpdate: { elementId: string; data: any }[] = [];
-    
-    trades.forEach(trade => {
+
+    trades.forEach((trade) => {
       if (trade.elements) {
-        trade.elements.forEach(element => {
+        trade.elements.forEach((element) => {
           let needsUpdate = false;
-          
+
           // Check if this variable is used in material cost formula
-          if (element.material_formula_variables && 
-              element.material_formula_variables.some(v => v.id.toString() === currentVariableId)) {
+          if (
+            element.material_formula_variables &&
+            element.material_formula_variables.some(
+              (v) => v.id.toString() === currentVariableId
+            )
+          ) {
             needsUpdate = true;
           }
-          
+
           // Check if this variable is used in labor cost formula
-          if (element.labor_formula_variables && 
-              element.labor_formula_variables.some(v => v.id.toString() === currentVariableId)) {
+          if (
+            element.labor_formula_variables &&
+            element.labor_formula_variables.some(
+              (v) => v.id.toString() === currentVariableId
+            )
+          ) {
             needsUpdate = true;
           }
-          
+
           if (needsUpdate) {
             // Use the existing formulas to trigger a recalculation
             elementsToUpdate.push({
@@ -1044,17 +1051,16 @@ console.log(apiVariables)
               data: {
                 material_cost_formula: element.material_cost_formula,
                 labor_cost_formula: element.labor_cost_formula,
-              }
+              },
             });
           }
-          console.log(element.material_formula_variables, element.labor_formula_variables, currentVariableId);
         });
       }
     });
 
     // Store the elements to update in a variable that will be accessible in the onSuccess callback
     const variableElementsToUpdate = elementsToUpdate;
-    
+
     // Send variable update to server first
     updateVariableMutation({
       variableId: currentVariableId,
@@ -1073,12 +1079,12 @@ console.log(apiVariables)
             data,
           });
         });
-        
+
         // Add another timeout to refresh the data after all elements are updated
         setTimeout(() => {
           // Invalidate both elements and trades queries to refetch fresh data
-          queryClient.invalidateQueries({ queryKey: ['elements'] });
-          queryClient.invalidateQueries({ queryKey: ['trades'] });
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
           toast.success(`All elements updated with new variable value`);
           setIsUpdatingVariable(false);
         }, 2000); // Wait for element updates to complete
@@ -1749,9 +1755,13 @@ console.log(apiVariables)
                                                     )}
                                                   </code>
                                                 </div>
-                                                {element.material_cost !== undefined && (
+                                                {element.material_cost !==
+                                                  undefined && (
                                                   <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
-                                                    = ${Number(element.material_cost).toFixed(2)}
+                                                    = $
+                                                    {Number(
+                                                      element.material_cost
+                                                    ).toFixed(2)}
                                                   </div>
                                                 )}
                                               </div>
@@ -1774,15 +1784,19 @@ console.log(apiVariables)
                                                     )}
                                                   </code>
                                                 </div>
-                                                {element.labor_cost !== undefined && (
+                                                {element.labor_cost !==
+                                                  undefined && (
                                                   <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
-                                                    = ${Number(element.labor_cost).toFixed(2)}
+                                                    = $
+                                                    {Number(
+                                                      element.labor_cost
+                                                    ).toFixed(2)}
                                                   </div>
                                                 )}
                                               </div>
                                             </div>
                                           )}
-                                          
+
                                           {/* Display element markup */}
                                           {element.markup !== undefined && (
                                             <div className="mt-2 flex flex-col">

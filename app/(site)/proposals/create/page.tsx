@@ -58,8 +58,6 @@ export default function CreateProposalPage() {
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     []
   );
-  console.log("Trade Objects:", tradeObjects);
-  console.log("Variable Objects:", variableObjects);
 
   const updateFormData = (data: any) => {
     setFormData((prev) => ({
@@ -123,8 +121,9 @@ export default function CreateProposalPage() {
     },
   });
 
+  console.log("Form Data:", formData);
   const handleCreateProposal = async () => {
-    const templateId = formData.template ? formData.template.id : undefined;
+    const templateId = formData.template ? formData.template.id : null;
 
     const proposalDetails = {
       name: formData.name,
@@ -137,7 +136,7 @@ export default function CreateProposalPage() {
       client_address: formData.client_address,
       valid_until: formData.valid_until,
       location: formData.location,
-      template: templateId,
+      template: templateId || null,
     };
 
     return new Promise((resolve, reject) => {
@@ -175,42 +174,6 @@ export default function CreateProposalPage() {
 
     updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
   };
-
-  // const handleSubmit = async () => {
-  //   try {
-  //     const templateId =
-  //       typeof formData.template === "object" && formData.template !== null
-  //         ? (formData.template as any).id
-  //         : formData.template;
-
-  //     // Format the arrays with the desired spacing
-  //     const tradeIds = tradeObjects.map((t) => t.id);
-  //     const variableIds = variableObjects.map((v) => v.id);
-
-  //     console.log("Trade IDs:", tradeIds);
-  //     console.log("Variable IDs:", variableIds);
-
-  //     const payload: ProposalCreateRequest = {
-  //       name: formData.proposalDetails.name,
-  //       description: formData.proposalDetails.description,
-  //       status: formData.status,
-  //       template: templateId,
-  //       trades: tradeIds,
-  //       variables: variableIds,
-  //       client_name: formData.proposalDetails.client_name,
-  //       client_email: formData.proposalDetails.client_email,
-  //       client_phone: formData.proposalDetails.client_phone,
-  //       client_address: formData.proposalDetails.client_address,
-  //     };
-
-  //     const result = await createProposalMutation.mutateAsync(payload);
-
-  //   } catch (error) {
-  //     console.error("Error submitting proposal:", error);
-  //   }
-  // };
-
-  console.log(templateId)
 
   return (
     <div className="container">
