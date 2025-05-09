@@ -12,6 +12,7 @@ export async function updateTemplate(
     const payload: Record<string, any> = {};
     if (template.name !== undefined) payload.name = template.name;
     if (template.description !== undefined) payload.description = template.description;
+    if (template.image !== undefined) payload.image = template.image; // Include image field
     if (template.status !== undefined) payload.status = template.status;
     if (template.origin !== undefined) payload.origin = template.origin;
     if (template.is_public !== undefined) payload.is_public = template.is_public;

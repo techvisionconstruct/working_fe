@@ -27,6 +27,9 @@ import { useRouter } from "next/navigation";
 import { deleteTemplate } from "@/api/templates/delete-template";
 import { toast } from "sonner";
 
+// Consistent default image across the application
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
+
 export function TemplateGridView({ templates }: TemplateViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -162,12 +165,10 @@ export function TemplateGridView({ templates }: TemplateViewProps) {
             >
               <div className="flex gap-4">
                 <Image
-                  src={
-                    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-                  }
+                  src={template.image || DEFAULT_IMAGE}
                   width={64}
                   height={64}
-                  alt={template.name}
+                  alt={`${template.name} thumbnail`}
                   className="w-16 h-16 object-cover rounded-md flex-shrink-0"
                 />
                 <div className="flex-1">

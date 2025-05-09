@@ -11,6 +11,7 @@ import Error from "@/components/features/template-page/error";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
 
+// Consistent default image across the application
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
 export default function TemplatedById() {
@@ -26,8 +27,6 @@ export default function TemplatedById() {
     select: (data) => data.data,
   });
 
-  console.log(template);
-
   if (isLoading) {
     return <TemplateDetailedLoader />;
   }
@@ -36,11 +35,14 @@ export default function TemplatedById() {
     return <Error />;
   }
 
+  // Use template image if available, fall back to default
+  const imageUrl = template?.image || DEFAULT_IMAGE;
+
   return (
     <div className="p-0 mx-auto">
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
         <Image
-          src={template?.image || DEFAULT_IMAGE}
+          src={imageUrl}
           alt={template?.name || "Template Image"}
           fill
           className="w-full h-full object-cover object-center rounded-2xl shadow"

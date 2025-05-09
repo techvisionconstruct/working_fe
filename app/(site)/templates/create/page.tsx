@@ -14,16 +14,18 @@ import {
 } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-
 import { createTemplate } from "@/api/templates/create-template";
 import { updateTemplate } from "@/api/templates/update-template";
+import { useRouter } from "next/navigation";
 
 export default function CreateTemplate() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("details");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [formData, setFormData] = useState<TemplateCreateRequest>({
     name: "",
     description: "",
+    image: undefined,
   });
 
   const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
@@ -89,12 +91,47 @@ export default function CreateTemplate() {
     },
   });
 
+  const publishTemplateMutation = useMutation({
+    mutationFn: (data: {
+      templateId: string;
+      template: TemplateUpdateRequest;
+    }) => updateTemplate(data.templateId, data.template),
+    onSuccess: (data) => {
+      toast.success("Template published successfully!", {
+        description: "Your template is now available",
+      });
+
+      // After successful publish, redirect to template list or view page
+      setTimeout(() => {
+        router.push("/templates");
+      }, 1500);
+    },
+    onError: (error: any) => {
+      toast.error("Failed to publish template", {
+        description:
+          error instanceof Error ? error.message : "Please try again later",
+      });
+    },
+  });
+
   const handleCreateTemplate = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Template name is required");
+      return;
+    }
+
+    // Include all template details including image
     const templateDetails = {
       name: formData.name,
       description: formData.description,
+      image: formData.image, // Pass the image
       status: "draft",
     };
+
+    console.log(
+      "Creating template with image:",
+      templateDetails.image ? "Yes (base64)" : "No"
+    );
 
     return new Promise((resolve, reject) => {
       createTemplateMutation.mutate(templateDetails, {
@@ -104,7 +141,7 @@ export default function CreateTemplate() {
         },
         onError: (error) => {
           reject(error);
-          toast.error("Failed to create proposal", {
+          toast.error("Failed to create template", {
             description:
               error instanceof Error ? error.message : "Please try again later",
           });
@@ -133,7 +170,7 @@ export default function CreateTemplate() {
       return Promise.reject("Template ID is missing");
     }
 
-    updateTemplateMutation.mutate({
+    publishTemplateMutation.mutate({
       templateId,
       template: {
         status: "published",
@@ -166,6 +203,7 @@ export default function CreateTemplate() {
               data={{
                 name: formData.name,
                 description: formData.description || "",
+                image: formData.image, // Pass the image
               }}
               updateData={(data) => updateFormData("details", data)}
             />

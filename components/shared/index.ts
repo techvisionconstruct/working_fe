@@ -218,6 +218,7 @@ export { RadioGroupItem } from "./radio-group/radio-group-item";
  * Toaster
  */
 export { Toaster } from "./toaster/toaster";
+// Note: Don't use the toast export from here, use 'sonner' package directly instead
 /**
  * Progress
  */

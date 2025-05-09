@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+// Consistent default image across the application
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
 export function TemplateList({ templates }: TemplateViewProps) {
   return (
@@ -22,10 +24,8 @@ export function TemplateList({ templates }: TemplateViewProps) {
             )}
           >
             <Image
-              src={
-                "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
-              }
-              alt={template.name}
+              src={template.image || DEFAULT_IMAGE}
+              alt={`${template.name} thumbnail`}
               width={40}
               height={60}
               className="w-20 h-30 object-cover rounded flex-shrink-0"

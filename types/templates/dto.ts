@@ -37,6 +37,7 @@ export interface TemplateDetailResponse {
 export interface TemplateCreateRequest {
   name: string;
   description?: string;
+  image?: string; // Base64 encoded image string
   status?: string;
   origin?: string;
   source_id?: string;
@@ -48,6 +49,7 @@ export interface TemplateCreateRequest {
 export interface TemplateUpdateRequest {
   name?: string;
   description?: string;
+  image?: string; // Base64 encoded image string
   status?: string;
   origin?: string;
   is_public?: boolean;

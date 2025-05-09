@@ -10,6 +10,7 @@ export async function createTemplate(template: TemplateCreateRequest) {
 
     if (template.name) payload.name = template.name;
     if (template.description) payload.description = template.description;
+    if (template.image) payload.image = template.image; // Include image field
     if (template.status) payload.status = template.status;
     if (template.origin) payload.origin = template.origin;
     if (template.source_id) payload.source_id = template.source_id;
