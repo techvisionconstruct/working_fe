@@ -56,7 +56,7 @@ export interface ProposalCreateRequest {
   client_email?: string;
   client_phone?: string;
   client_address?: string;
-  valid_until?: Date;
+  valid_until?: string;
   is_public?: boolean;
 }
 

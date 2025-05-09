@@ -17,68 +17,54 @@ import { updateTemplate } from "@/api/templates/update-template";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { ProposalCreateRequest } from "@/types/proposals/dto";
-import { TemplateCreateRequest } from "@/types/templates/dto";
+import {
+  TemplateCreateRequest,
+  TemplateResponse,
+  TemplateUpdateRequest,
+} from "@/types/templates/dto";
+import { set } from "date-fns";
 
 export default function CreateProposalPage() {
   const [currentStep, setCurrentStep] = useState<string>("template");
-  const [formData, setFormData] = useState({
-    template: null,
-    proposalDetails: {
-      name: "",
-      description: "",
-      image: "",
-      client_name: "",
-      client_email: "",
-      client_phone: "",
-      client_address: "",
-      valid_until: "",
-      location: "",
-    },
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [template, setTemplate] = useState<TemplateResponse | null>(null);
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    image: string;
+    client_name: string;
+    client_email: string;
+    client_phone: string;
+    client_address: string;
+    valid_until: string;
+    location: string;
+    status: string;
+    template: TemplateResponse | null;
+  }>({
+    name: "",
+    description: "",
+    image: "",
+    client_name: "",
+    client_email: "",
+    client_phone: "",
+    client_address: "",
+    valid_until: "",
+    location: "",
     status: "draft",
+    template: null,
   });
 
   const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     []
   );
-
   console.log("Trade Objects:", tradeObjects);
   console.log("Variable Objects:", variableObjects);
-  const createProposalMutation = useMutation({
-    mutationFn: createProposal,
-    onSuccess: () => {
-      toast.success("Proposal created successfully!", {
-        description: "Your proposal has been saved",
-      });
-    },
-    onError: (error: any) => {
-      console.error("API error:", error);
-      toast.error("Failed to create proposal", {
-        description:
-          error instanceof Error ? error.message : "Please try again later",
-      });
-    },
-  });
 
-  // Add updateTemplate mutation
-  const updateTemplateMutation = useMutation({
-    mutationFn: (params: { id: string; data: any }) =>
-      updateTemplate(params.id, params.data),
-    onSuccess: () => {
-      toast.success("Template updated successfully!");
-    },
-    onError: (error) => {
-      toast.error("Failed to update template", {
-        description:
-          error instanceof Error ? error.message : "Please try again later",
-      });
-    },
-  });
-
-  const updateFormData = (field: string, data: any) => {
+  const updateFormData = (data: any) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: data,
+      ...data,
     }));
   };
 
@@ -102,39 +88,129 @@ export default function CreateProposalPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      const templateId =
-        typeof formData.template === "object" && formData.template !== null
-          ? (formData.template as any).id
-          : formData.template;
+  const createProposalMutation = useMutation({
+    mutationFn: createProposal,
+    onSuccess: () => {
+      toast.success("Proposal created successfully!", {
+        description: "Your proposal has been saved",
+      });
+      handleNext();
+    },
+    onError: (error: any) => {
+      toast.error("Failed to create proposal", {
+        description:
+          error instanceof Error ? error.message : "Please try again later",
+      });
+    },
+  });
 
-      // Format the arrays with the desired spacing
-      const tradeIds = tradeObjects.map((t) => t.id);
-      const variableIds = variableObjects.map((v) => v.id);
+  const updateTemplateMutation = useMutation({
+    mutationFn: (data: {
+      templateId: string;
+      template: TemplateUpdateRequest;
+    }) => updateTemplate(data.templateId, data.template),
+    onSuccess: () => {
+      toast.success("Template updated successfully!", {
+        description: "Your template has been saved",
+      });
+      handleNext();
+    },
+    onError: (error: any) => {
+      toast.error("Failed to update template", {
+        description:
+          error instanceof Error ? error.message : "Please try again later",
+      });
+    },
+  });
 
-      console.log("Trade IDs:", tradeIds);
-      console.log("Variable IDs:", variableIds);
-      
-      const payload: ProposalCreateRequest = {
-        name: formData.proposalDetails.name,
-        description: formData.proposalDetails.description,
-        status: formData.status,
-        template: templateId,
-        trades: tradeIds,
-        variables: variableIds,
-        client_name: formData.proposalDetails.client_name,
-        client_email: formData.proposalDetails.client_email,
-        client_phone: formData.proposalDetails.client_phone,
-        client_address: formData.proposalDetails.client_address,
-      };
+  const handleCreateProposal = async () => {
+    const templateId = formData.template ? formData.template.id : undefined;
 
-      const result = await createProposalMutation.mutateAsync(payload);
-      
-    } catch (error) {
-      console.error("Error submitting proposal:", error);
-    }
+    const proposalDetails = {
+      name: formData.name,
+      description: formData.description,
+      status: formData.status,
+      image: formData.image,
+      client_name: formData.client_name,
+      client_email: formData.client_email,
+      client_phone: formData.client_phone,
+      client_address: formData.client_address,
+      valid_until: formData.valid_until,
+      location: formData.location,
+      template: templateId,
+    };
+
+    return new Promise((resolve, reject) => {
+      createProposalMutation.mutate(proposalDetails, {
+        onSuccess: (data) => {
+          resolve(data);
+          toast.success("Proposal created successfully!");
+          console.log("Proposal created successfully:", data);
+          setTradeObjects(data.data.template.trades);
+          setVariableObjects(data.data.template.variables);
+          setTemplate(data.data.template);
+          setTemplateId(data.data.template.id);
+        },
+        onError: (error) => {
+          reject(error);
+          toast.error("Failed to create proposal", {
+            description:
+              error instanceof Error ? error.message : "Please try again later",
+          });
+        },
+      });
+    });
   };
+
+  const handleUpdateTemplate = async () => {
+    if (!templateId) {
+      toast.error("Template ID is missing");
+      return Promise.reject("Template ID is missing");
+    }
+
+    const tradesAndVariables = {
+      trades: tradeObjects.map((trade) => trade.id),
+      variables: variableObjects.map((variable) => variable.id),
+    };
+
+    updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
+  };
+
+  // const handleSubmit = async () => {
+  //   try {
+  //     const templateId =
+  //       typeof formData.template === "object" && formData.template !== null
+  //         ? (formData.template as any).id
+  //         : formData.template;
+
+  //     // Format the arrays with the desired spacing
+  //     const tradeIds = tradeObjects.map((t) => t.id);
+  //     const variableIds = variableObjects.map((v) => v.id);
+
+  //     console.log("Trade IDs:", tradeIds);
+  //     console.log("Variable IDs:", variableIds);
+
+  //     const payload: ProposalCreateRequest = {
+  //       name: formData.proposalDetails.name,
+  //       description: formData.proposalDetails.description,
+  //       status: formData.status,
+  //       template: templateId,
+  //       trades: tradeIds,
+  //       variables: variableIds,
+  //       client_name: formData.proposalDetails.client_name,
+  //       client_email: formData.proposalDetails.client_email,
+  //       client_phone: formData.proposalDetails.client_phone,
+  //       client_address: formData.proposalDetails.client_address,
+  //     };
+
+  //     const result = await createProposalMutation.mutateAsync(payload);
+
+  //   } catch (error) {
+  //     console.error("Error submitting proposal:", error);
+  //   }
+  // };
+
+  console.log(templateId)
 
   return (
     <div className="container">
@@ -170,7 +246,7 @@ export default function CreateProposalPage() {
           <TabsContent value="template" className="p-6">
             <TemplateSelectionStep
               data={formData.template}
-              updateData={(data) => updateFormData("template", data)}
+              updateData={(template) => updateFormData({ template })}
             />
             <div className="flex justify-end mt-6">
               <Button onClick={handleNext}>Next: Proposal Details</Button>
@@ -179,14 +255,26 @@ export default function CreateProposalPage() {
 
           <TabsContent value="details" className="p-6">
             <ProposalDetailsStep
-              data={formData.proposalDetails}
-              updateData={(data) => updateFormData("proposalDetails", data)}
+              data={{
+                name: formData.name,
+                description: formData.description,
+                image: formData.image,
+                client_name: formData.client_name,
+                client_email: formData.client_email,
+                client_phone: formData.client_phone,
+                client_address: formData.client_address,
+                valid_until: formData.valid_until,
+                location: formData.location,
+              }}
+              updateData={(data) => updateFormData(data)}
             />
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleNext}>Next: Trades & Elements</Button>
+              <Button onClick={handleCreateProposal}>
+                Next: Trades & Elements
+              </Button>
             </div>
           </TabsContent>
 
@@ -196,44 +284,43 @@ export default function CreateProposalPage() {
                 trades: tradeObjects,
                 variables: variableObjects,
               }}
+              templateId={templateId}
               template={formData.template}
               updateTrades={(trades) => {
                 setTradeObjects(trades);
-                updateFormData(
-                  "trades",
-                  trades.map((trade) => trade.id)
-                );
+                updateFormData({
+                  trades: trades.map((trade) => trade.id),
+                });
               }}
               updateVariables={(variables) => {
                 setVariableObjects(variables);
-                updateFormData(
-                  "variables",
-                  variables.map((variable) => variable.id)
-                );
+                updateFormData({
+                  variables: variables.map((variable) => variable.id),
+                });
               }}
             />
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleNext}>Next: Preview</Button>
+              <Button onClick={handleUpdateTemplate}>Next: Preview</Button>
             </div>
           </TabsContent>
 
           <TabsContent value="preview" className="p-6">
-            <PreviewStep formData={formData} />
+            {/* <PreviewStep formData={formData} /> */}
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button
+              {/* <Button
                 onClick={handleSubmit}
                 disabled={createProposalMutation.isPending}
               >
                 {createProposalMutation.isPending
                   ? "Submitting..."
                   : "Create Proposal"}
-              </Button>
+              </Button> */}
             </div>
           </TabsContent>
         </Tabs>

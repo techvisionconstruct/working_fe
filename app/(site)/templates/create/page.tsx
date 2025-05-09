@@ -1,125 +1,146 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Card,
-  Tabs,
-  TabsContent,
-  Button,
-} from "@/components/shared";
+import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import TemplateDetailsStep from "@/components/features/create-template-page/template-details-step";
 import TradesAndElementsStep from "@/components/features/create-template-page/template-and-elements-step";
 import PreviewStep from "@/components/features/create-template-page/preview-step";
 import StepIndicator from "@/components/features/create-template-page/step-indicator";
-import { TemplateCreateRequest } from "@/types/templates/dto";
+import {
+  TemplateCreateRequest,
+  TemplateUpdateRequest,
+} from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { createTemplateSchema, validateTradeElements } from "@/zod-schemas/templates/create-template-schema";
+
 import { createTemplate } from "@/api/templates/create-template";
+import { updateTemplate } from "@/api/templates/update-template";
 
 export default function CreateTemplate() {
   const [currentStep, setCurrentStep] = useState<string>("details");
-    const [formData, setFormData] = useState<TemplateCreateRequest>({
-      name: "",
-      description: "",
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<TemplateCreateRequest>({
+    name: "",
+    description: "",
+  });
+
+  const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
+  const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
+    []
+  );
+
+  const updateFormData = (field: string, data: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...data,
+    }));
+  };
+
+  const handleNext = () => {
+    if (currentStep === "details") {
+      setCurrentStep("trades");
+    } else if (currentStep === "trades") {
+      setCurrentStep("preview");
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === "trades") {
+      setCurrentStep("details");
+    } else if (currentStep === "preview") {
+      setCurrentStep("trades");
+    }
+  };
+
+  const createTemplateMutation = useMutation({
+    mutationFn: createTemplate,
+    onSuccess: () => {
+      toast.success("Template created successfully!", {
+        description: "Your template has been saved",
+      });
+      handleNext();
+    },
+    onError: (error: any) => {
+      toast.error("Failed to create template", {
+        description:
+          error instanceof Error ? error.message : "Please try again later",
+      });
+    },
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: (data: {
+      templateId: string;
+      template: TemplateUpdateRequest;
+    }) => updateTemplate(data.templateId, data.template),
+    onSuccess: () => {
+      toast.success("Template updated successfully!", {
+        description: "Your template has been saved",
+      });
+      handleNext();
+    },
+    onError: (error: any) => {
+      toast.error("Failed to update template", {
+        description:
+          error instanceof Error ? error.message : "Please try again later",
+      });
+    },
+  });
+
+  const handleCreateTemplate = async () => {
+    const templateDetails = {
+      name: formData.name,
+      description: formData.description,
       status: "draft",
-      origin: "original",
-      source_id: "",
-      trades: [], 
-      variables: [], 
-      is_public: false,
-    });
-  
-    const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
-    const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
-      []
-    );
+    };
 
-    const createTemplateMutation = useMutation({
-      mutationFn: createTemplate,
-      onSuccess: () => {
-        toast.success("Template created successfully!", {
-          description: "Your template has been saved"
-        });
+    return new Promise((resolve, reject) => {
+      createTemplateMutation.mutate(templateDetails, {
+        onSuccess: (data) => {
+          resolve(data);
+          setTemplateId(data.data.id);
+        },
+        onError: (error) => {
+          reject(error);
+          toast.error("Failed to create proposal", {
+            description:
+              error instanceof Error ? error.message : "Please try again later",
+          });
+        },
+      });
+    });
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!templateId) {
+      toast.error("Template ID is missing");
+      return Promise.reject("Template ID is missing");
+    }
+
+    const tradesAndVariables = {
+      trades: tradeObjects.map((trade) => trade.id),
+      variables: variableObjects.map((variable) => variable.id),
+    };
+
+    updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
+  };
+
+  const handlePublishTemplate = async () => {
+    if (!templateId) {
+      toast.error("Template ID is missing");
+      return Promise.reject("Template ID is missing");
+    }
+
+    updateTemplateMutation.mutate({
+      templateId,
+      template: {
+        status: "published",
       },
-      onError: (error: any) => {
-        console.error("API error:", error);
-        toast.error("Failed to create template", {
-          description: error instanceof Error ? error.message : "Please try again later"
-        });
-      }
     });
-  
-    const updateFormData = (field: string, data: any) => {
-      setFormData((prev) => ({
-        ...prev,
-        ...data,
-      }));
-    };
-  
-    const handleNext = () => {
-      if (currentStep === "details") {
-        setCurrentStep("trades");
-      } else if (currentStep === "trades") {
-        setCurrentStep("preview");
-      }
-    };
-  
-    const handleBack = () => {
-      if (currentStep === "trades") {
-        setCurrentStep("details");
-      } else if (currentStep === "preview") {
-        setCurrentStep("trades");
-      }
-    };
-  
-    const handleSubmit = async () => {
-      try {
-        const updatedFormData = {
-          ...formData,
-          trades: tradeObjects.map(trade => trade.id),
-          variables: variableObjects.map(variable => variable.id)
-        };
+  };
 
-        const validationResult = createTemplateSchema.safeParse(updatedFormData);
-        
-        if (!validationResult.success) {
-          const errorMessages = validationResult.error.errors.map(err => 
-            `${err.path.join('.')}: ${err.message}`
-          ).join(', ');
-          toast.error("Validation Error", {
-            description: errorMessages,
-          });
-          return;
-        }
-        
-        const hasTradesWithElements = validateTradeElements(tradeObjects);
-        if (!hasTradesWithElements) {
-          toast.error("Validation Error", {
-            description: "At least one trade must have elements",
-          });
-          return;
-        }
-        
-        const requestPayload = {
-          name: updatedFormData.name,
-          description: updatedFormData.description,
-          status: updatedFormData.status,
-          origin: updatedFormData.origin,
-          trades: updatedFormData.trades,
-          variables: updatedFormData.variables
-        };
-  
-        console.log("Submitting template:", requestPayload);
-        
-        createTemplateMutation.mutate(requestPayload);
-      } catch (error) {
-        console.error("Error creating template:", error);
-        toast.error("Failed to create template. Please try again.");
-      }
-    };
   return (
     <div className="container">
       <div className="mb-4">
@@ -149,7 +170,9 @@ export default function CreateTemplate() {
               updateData={(data) => updateFormData("details", data)}
             />
             <div className="flex justify-end mt-6">
-              <Button onClick={handleNext}>Next: Trades & Elements</Button>
+              <Button onClick={handleCreateTemplate}>
+                Next: Trades & Elements
+              </Button>
             </div>
           </TabsContent>
 
@@ -178,7 +201,7 @@ export default function CreateTemplate() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleNext}>Next: Preview</Button>
+              <Button onClick={handleUpdateTemplate}>Next: Preview</Button>
             </div>
           </TabsContent>
 
@@ -192,7 +215,7 @@ export default function CreateTemplate() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleSubmit}>Create Template</Button>
+              <Button onClick={handlePublishTemplate}>Create Template</Button>
             </div>
           </TabsContent>
         </Tabs>

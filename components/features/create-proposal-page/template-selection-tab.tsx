@@ -18,7 +18,7 @@ import { format } from "date-fns";
 
 interface TemplateSelectionTabProps {
   data: TemplateResponse | null;
-  updateData: (template: TemplateResponse) => void;
+  updateData: (template: TemplateResponse | null) => void;
 }
 
 const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
@@ -30,14 +30,12 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
   const { data: templatesData, isLoading } = useQuery({
     queryKey: ['templates', searchQuery],
     queryFn: () => getAllTemplates(1, 100, searchQuery),
-    staleTime: 5 * 60 * 1000, 
   });
   
   const templates = templatesData?.data || [];
   
   const filteredTemplates = templates.filter(
     (template: TemplateResponse) =>
-      // Only show templates with origin=original
       template.origin === "original" &&
       (template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
        template.description?.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -62,11 +60,11 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-        <Card 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">          <Card 
           className={`cursor-pointer border-2 hover:shadow-md transition-shadow ${
             data === null ? "border-primary" : ""
           }`}
+          onClick={() => updateData(null)}
         >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full">
             <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">

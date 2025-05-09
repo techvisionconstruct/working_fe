@@ -43,6 +43,7 @@ import { createTrade } from "@/api/trades/create-trade";
 import { updateTrade } from "@/api/trades/update-trade";
 import { createElement } from "@/api/elements/create-element";
 import { updateElement } from "@/api/elements/update-element";
+import { updateProposalTemplate } from "@/api/proposals/update-proposal-template";
 
 import { VariableResponse, VariableUpdateRequest } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
@@ -52,11 +53,13 @@ import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
 
+
 interface TradesAndElementsStepProps {
   data: {
     trades: TradeResponse[];
     variables: VariableResponse[];
   };
+  templateId: string;
   template: TemplateResponse | null;
   updateTrades: (trades: TradeResponse[]) => void;
   updateVariables?: (variables: VariableResponse[]) => void;
@@ -64,6 +67,7 @@ interface TradesAndElementsStepProps {
 
 const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
+  templateId,
   template,
   updateTrades,
   updateVariables = () => {},
@@ -106,44 +110,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     // Only process the template if it exists and hasn't been processed yet
     if (template && !templateProcessed) {
       setIsProcessingTemplate(true);
-
-      // If template has trades, add them to our trades state
-      if (template.trades && template.trades.length > 0) {
-        // Get only trades that aren't already added
-        const newTrades = template.trades.filter(
-          (templateTrade) =>
-            !trades.some((trade) => trade.id === templateTrade.id)
-        );
-
-        if (newTrades.length > 0) {
-          // Update trades state with new trades from template
-          updateTrades([...trades, ...newTrades]);
-          toast.success(`Added ${newTrades.length} trades from template`, {
-            position: "top-center",
-          });
-        }
-      }
-
-      // If template has variables, add them to our variables state
-      if (template.variables && template.variables.length > 0) {
-        // Get only variables that aren't already added
-        const newVariables = template.variables.filter(
-          (templateVar) =>
-            !variables.some((variable) => variable.id === templateVar.id)
-        );
-
-        if (newVariables.length > 0) {
-          // Update variables state with new variables from template
-          updateVariables([...variables, ...newVariables]);
-          toast.success(
-            `Added ${newVariables.length} variables from template`,
-            {
-              position: "top-center",
-            }
-          );
-        }
-      }
-
       setIsProcessingTemplate(false);
       setTemplateProcessed(true);
     }
@@ -205,7 +171,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["trades"],
     queryFn: getAllTrades,
-    staleTime: 5 * 60 * 1000,
   });
 
   const {
@@ -215,7 +180,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["variables"],
     queryFn: getAllVariables,
-    staleTime: 5 * 60 * 1000,
   });
 
   const {
@@ -225,7 +189,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["variable-types"],
     queryFn: getAllVariableTypes,
-    staleTime: 5 * 60 * 1000,
   });
 
   // Get all elements
@@ -236,7 +199,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   } = useQuery({
     queryKey: ["elements"],
     queryFn: getAllElements,
-    staleTime: 5 * 60 * 1000,
   });
 
   const { mutate: createVariableMutation } = useMutation({
@@ -364,6 +326,33 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
+    
+  // Template update mutation for updating the template when variables or trades change
+  const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
+    useMutation({
+      mutationFn: ({
+        templateId,
+        data,
+      }: {
+        templateId: string;
+        data: { variables?: string[], trades?: string[] };
+      }) => updateProposalTemplate(templateId, data),
+      onSuccess: () => {
+        toast.success("Template updated successfully", {
+          position: "top-center",
+          description: "Template has been updated with the latest variables and trades.",
+        });
+      },
+      onError: (error) => {
+        toast.error("Failed to update template", {
+          position: "top-center",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred",
+        });
+      },
+    });
 
   // Element update mutation
   const { mutate: updateElementMutation, isPending: isUpdatingElement } =
@@ -470,7 +459,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
-
+console.log(apiVariables)
   const filteredVariables =
     searchQuery === ""
       ? []
@@ -478,7 +467,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? (apiVariables.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !variables.some((v) => v.id === variable.id.toString())
+          
+            variable.origin === "original"
         )
       : [];
 
@@ -490,7 +480,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? (apiTrades.data as TradeResponse[]).filter(
           (trade) =>
             trade.name.toLowerCase().includes(tradeSearchQuery.toLowerCase()) &&
-            !trades.some((t) => t.id === trade.id.toString())
+            !trades.some((t) => t.id === trade.id.toString()) &&
+            trade.origin === "original"
         )
       : [];
 
@@ -503,7 +494,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           // Check if the element matches the search query
           const matchesQuery = element.name
             .toLowerCase()
-            .includes(elementSearchQuery.toLowerCase());
+            .includes(elementSearchQuery.toLowerCase()) &&
+            element.origin === "original";
 
           // Find the current trade
           const currentTrade = trades.find((t) => t.id === currentTradeId);
@@ -539,6 +531,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       variable.name.toLowerCase().includes(currentPartial.toLowerCase())
     );
   };
+
 
   const handleMaterialFormulaChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -759,18 +752,31 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     };
 
     if (!variables.some((v) => v.id === newVar.id)) {
-      updateVariables([...variables, newVar]);
+      const updatedVariables = [...variables, newVar];
+      updateVariables(updatedVariables);
+      
+      // If template exists and we're adding a variable, update the template variables
+      if (templateId) {
+        // Update the template with the new variable
+        updateTemplateMutation({
+          templateId: templateId,
+          data: { variables: updatedVariables.map(v => v.id) }
+        });
+      }
     }
 
     setIsSearchOpen(false);
     setSearchQuery("");
   };
 
+  console.log(templateId)
+
   const handleAddVariable = () => {
     if (!newVarName.trim()) return;
     const variableData = {
       name: newVarName.trim(),
       description: newVarDescription.trim() || undefined,
+      origin: "derived",
       value: newVarDefaultValue,
       is_global: false,
       variable_type: newVarDefaultVariableType,
@@ -780,7 +786,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const handleRemoveVariable = (variableId: string) => {
-    updateVariables(variables.filter((v) => v.id !== variableId));
+    const updatedVariables = variables.filter((v) => v.id !== variableId);
+    updateVariables(updatedVariables);
+    
+    // If template exists, update the template's variables
+    if (templateId) {
+      // Update the template with the reduced variable list
+      updateTemplateMutation({
+        templateId: templateId,
+        data: { variables: updatedVariables.map(v => v.id) }
+      });
+    }
   };
 
   // Trade handling functions
@@ -817,6 +833,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const tradeData = {
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
+      origin: "derived",
       // No elements included as requested
     };
 
@@ -842,8 +859,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state
+    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
+
+    // Update the backend through trade mutation
+    // Find the updated trade with the new element
+    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    if (updatedTrade && updatedTrade.elements) {
+      // Get all element IDs
+      const elementIds = updatedTrade.elements.map(elem => elem.id);
+      
+      // Call update trade mutation
+      updateTradeMutation({
+        tradeId: tradeId,
+        data: { elements: elementIds }
+      });
+    }
 
     // Reset search state
     setIsElementSearchOpen(false);
@@ -868,8 +899,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state
+    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
+    
+    // Update the backend through trade mutation
+    // Find the updated trade with the element removed
+    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    if (updatedTrade) {
+      // Get all remaining element IDs
+      const elementIds = updatedTrade.elements?.map(elem => elem.id) || [];
+      
+      // Call update trade mutation
+      updateTradeMutation({
+        tradeId: tradeId,
+        data: { elements: elementIds }
+      });
+    }
   };
 
   const handleAddElement = () => {
@@ -889,6 +934,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       name: newElementName.trim(),
       description: newElementDescription.trim() || undefined,
       material_cost_formula: materialFormula,
+      origin: "derived",
       labor_cost_formula: laborFormula,
     };
 
