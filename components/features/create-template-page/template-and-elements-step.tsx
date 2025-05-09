@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -61,8 +61,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newVarName, setNewVarName] = useState("");
   const [newVarDefaultValue, setNewVarDefaultValue] = useState(0);
   const [newVarDescription, setNewVarDescription] = useState("");
-  const [newVarDefaultVariableType, setNewVarDefaultVariableType] = useState("");
-  const [formulaFieldSource, setFormulaFieldSource] = useState<string | null>(null);
+  const [newVarDefaultVariableType, setNewVarDefaultVariableType] =
+    useState("");
+  const [formulaFieldSource, setFormulaFieldSource] = useState<string | null>(
+    null
+  );
   const [pendingVariableName, setPendingVariableName] = useState("");
   const variables = data.variables || [];
 
@@ -72,21 +75,26 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newTradeName, setNewTradeName] = useState("");
   const [newTradeDescription, setNewTradeDescription] = useState("");
   const trades = data.trades || [];
-  
+
   // Element-related state
   const [elementSearchQuery, setElementSearchQuery] = useState("");
   const [isElementSearchOpen, setIsElementSearchOpen] = useState(false);
-  const [elementSearchQueries, setElementSearchQueries] = useState<Record<string, string>>({});
+  const [elementSearchQueries, setElementSearchQueries] = useState<
+    Record<string, string>
+  >({});
   const [showAddElementDialog, setShowAddElementDialog] = useState(false);
   const [showEditElementDialog, setShowEditElementDialog] = useState(false);
   const [currentTradeId, setCurrentTradeId] = useState<string | null>(null);
   const [currentElementId, setCurrentElementId] = useState<string | null>(null);
-  const [elementToEdit, setElementToEdit] = useState<ElementResponse | null>(null);
+  const [elementToEdit, setElementToEdit] = useState<ElementResponse | null>(
+    null
+  );
   const [newElementName, setNewElementName] = useState("");
-  
+
   // Use our formula hook for formula management
-  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } = useFormula();
-  
+  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } =
+    useFormula();
+
   // UI state
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -95,34 +103,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // API Queries
-  const {
-    data: apiTrades = [],
-    isLoading: isLoadingTrades,
-  } = useQuery({
+  const { data: apiTrades = [], isLoading: isLoadingTrades } = useQuery({
     queryKey: ["trades"],
     queryFn: getAllTrades,
   });
 
-  const {
-    data: apiVariables = [],
-    isLoading: isLoadingVariables,
-  } = useQuery({
+  const { data: apiVariables = [], isLoading: isLoadingVariables } = useQuery({
     queryKey: ["variables"],
     queryFn: getAllVariables,
   });
 
-  const {
-    data: apiVariableTypes = [],
-    isLoading: isLoadingVariableTypes,
-  } = useQuery({
-    queryKey: ["variable-types"],
-    queryFn: getAllVariableTypes,
-  });
+  const { data: apiVariableTypes = [], isLoading: isLoadingVariableTypes } =
+    useQuery({
+      queryKey: ["variable-types"],
+      queryFn: getAllVariableTypes,
+    });
 
-  const {
-    data: apiElements = [],
-    isLoading: isLoadingElements,
-  } = useQuery({
+  const { data: apiElements = [], isLoading: isLoadingElements } = useQuery({
     queryKey: ["elements"],
     queryFn: getAllElements,
   });
@@ -136,7 +133,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       if (response && response.data) {
         const createdVariable = response.data;
         updateVariables([...variables, createdVariable]);
-        
+
         toast.success("Variable created successfully", {
           position: "top-center",
           description: `"${createdVariable.name}" has been added to your template.`,
@@ -191,61 +188,73 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   // Trade update mutation to connect elements to trades
   const { mutate: updateTradeMutation } = useMutation({
-    mutationFn: ({ tradeId, data }: { tradeId: string; data: { elements: string[] } }) => 
-      updateTrade(tradeId, data),
+    mutationFn: ({
+      tradeId,
+      data,
+    }: {
+      tradeId: string;
+      data: { elements: string[] };
+    }) => updateTrade(tradeId, data),
     onSuccess: () => {
       // No need to update UI state again since we already did it in createElementMutation
     },
     onError: (error) => {
       toast.error("Failed to connect element to trade", {
         position: "top-center",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
-    }
-  });
-
-  // Element update mutation
-  const { mutate: updateElementMutation, isPending: isUpdatingElement } = useMutation({
-    mutationFn: ({ elementId, data }: { elementId: string, data: any }) => 
-      updateElement(elementId, data),
-    onSuccess: (response) => {
-      if (response && response.data) {
-        const updatedElement = response.data;
-        
-        // Update the element in all trades where it exists
-        const updatedTrades = trades.map(trade => {
-          if (trade.elements && trade.elements.some(e => e.id === updatedElement.id)) {
-            return {
-              ...trade,
-              elements: trade.elements.map(element => 
-                element.id === updatedElement.id ? updatedElement : element
-              )
-            };
-          }
-          return trade;
-        });
-        
-        updateTrades(updatedTrades);
-        
-        toast.success("Element updated successfully", {
-          position: "top-center",
-          description: `"${updatedElement.name}" has been updated.`,
-        });
-        
-        setShowEditElementDialog(false);
-        setCurrentElementId(null);
-      }
-    },
-    onError: (error) => {
-      toast.error("Failed to update element", {
-        position: "top-center",
         description:
           error instanceof Error
             ? error.message
             : "An unexpected error occurred",
       });
-    }
+    },
   });
+
+  // Element update mutation
+  const { mutate: updateElementMutation, isPending: isUpdatingElement } =
+    useMutation({
+      mutationFn: ({ elementId, data }: { elementId: string; data: any }) =>
+        updateElement(elementId, data),
+      onSuccess: (response) => {
+        if (response && response.data) {
+          const updatedElement = response.data;
+
+          // Update the element in all trades where it exists
+          const updatedTrades = trades.map((trade) => {
+            if (
+              trade.elements &&
+              trade.elements.some((e) => e.id === updatedElement.id)
+            ) {
+              return {
+                ...trade,
+                elements: trade.elements.map((element) =>
+                  element.id === updatedElement.id ? updatedElement : element
+                ),
+              };
+            }
+            return trade;
+          });
+
+          updateTrades(updatedTrades);
+
+          toast.success("Element updated successfully", {
+            position: "top-center",
+            description: `"${updatedElement.name}" has been updated.`,
+          });
+
+          setShowEditElementDialog(false);
+          setCurrentElementId(null);
+        }
+      },
+      onError: (error) => {
+        toast.error("Failed to update element", {
+          position: "top-center",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred",
+        });
+      },
+    });
 
   // Element creation mutation
   const { mutate: createElementMutation, isPending: isCreatingElement } =
@@ -266,22 +275,27 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             }
             return trade;
           });
-          
+
           // Update the UI state first
           updateTrades(updatedTrades);
-          
+
           // Then update the backend to connect the element to the trade using React Query mutation
           if (currentTradeId) {
             // Find the current trade that we're adding the element to
-            const currentTrade = trades.find(trade => trade.id === currentTradeId);
+            const currentTrade = trades.find(
+              (trade) => trade.id === currentTradeId
+            );
             if (currentTrade) {
               // Get all elements including the new one
-              const updatedElements = [...(currentTrade.elements || []), createdElement].map(elem => elem.id);
-              
+              const updatedElements = [
+                ...(currentTrade.elements || []),
+                createdElement,
+              ].map((elem) => elem.id);
+
               // Use the updateTradeMutation to connect element to trade
               updateTradeMutation({
                 tradeId: currentTradeId,
-                data: { elements: updatedElements }
+                data: { elements: updatedElements },
               });
             }
           }
@@ -337,9 +351,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? []
       : Array.isArray(apiElements.data)
       ? (apiElements.data as ElementResponse[]).filter((element) => {
-          const matchesQuery = element.name
-            .toLowerCase()
-            .includes(elementSearchQuery.toLowerCase()) &&
+          const matchesQuery =
+            element.name
+              .toLowerCase()
+              .includes(elementSearchQuery.toLowerCase()) &&
             element.origin === "original";
 
           const currentTrade = trades.find((t) => t.id === currentTradeId);
@@ -376,7 +391,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const handleAddVariable = () => {
-    if (!newVarName.trim()) return;
+    if (!validateVariableForm()) return;
+
     const variableData = {
       name: newVarName.trim(),
       description: newVarDescription.trim() || undefined,
@@ -418,7 +434,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const handleAddTrade = () => {
-    if (!newTradeName.trim()) return;
+    if (!validateTradeForm()) return;
+
     const tradeData = {
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
@@ -441,13 +458,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     updateTrades(updatedTrades);
 
-    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+    const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade && updatedTrade.elements) {
-      const elementIds = updatedTrade.elements.map(elem => elem.id);
-      
+      const elementIds = updatedTrade.elements.map((elem) => elem.id);
+
       updateTradeMutation({
         tradeId: tradeId,
-        data: { elements: elementIds }
+        data: { elements: elementIds },
       });
     }
 
@@ -471,14 +488,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
 
     updateTrades(updatedTrades);
-    
-    const updatedTrade = updatedTrades.find(trade => trade.id === tradeId);
+
+    const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade) {
-      const elementIds = updatedTrade.elements?.map(elem => elem.id) || [];
-      
+      const elementIds = updatedTrade.elements?.map((elem) => elem.id) || [];
+
       updateTradeMutation({
         tradeId: tradeId,
-        data: { elements: elementIds }
+        data: { elements: elementIds },
       });
     }
   };
@@ -496,7 +513,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setShowEditElementDialog(true);
   };
 
-  const handleAddElement = (data: { name: string; description: string; materialFormula: string; laborFormula: string; }) => {
+  const handleAddElement = (data: {
+    name: string;
+    description: string;
+    materialFormula: string;
+    laborFormula: string;
+  }) => {
     if (!data.name.trim() || !currentTradeId) return;
 
     const materialFormula = data.materialFormula.trim()
@@ -517,7 +539,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     createElementMutation(elementData);
   };
 
-  const handleUpdateElement = (data: { name: string; description: string; materialFormula: string; laborFormula: string; }) => {
+  const handleUpdateElement = (data: {
+    name: string;
+    description: string;
+    materialFormula: string;
+    laborFormula: string;
+  }) => {
     if (!data.name.trim() || !currentElementId) return;
 
     const materialFormula = data.materialFormula.trim()
@@ -537,8 +564,74 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     updateElementMutation({
       elementId: currentElementId,
-      data: elementData
+      data: elementData,
     });
+  };
+
+  // =========== VALIDATION STATE/FORMS ===========
+  const [variableErrors, setVariableErrors] = useState({
+    name: "",
+    variable_type: "",
+  });
+
+  const [variableTouched, setVariableTouched] = useState({
+    name: false,
+    variable_type: false,
+  });
+
+  const [tradeErrors, setTradeErrors] = useState({
+    name: "",
+  });
+
+  const [tradeTouched, setTradeTouched] = useState({
+    name: false,
+  });
+
+  // Add validation functions
+  const validateVariableForm = () => {
+    const newErrors = { name: "", variable_type: "" };
+
+    if (!newVarName.trim()) {
+      newErrors.name = "Variable name is required";
+    } else if (newVarName.length > 50) {
+      newErrors.name = "Variable name must be less than 50 characters";
+    } else if (
+      variables.some((v) => v.name.toLowerCase() === newVarName.toLowerCase())
+    ) {
+      newErrors.name = "Variable with this name already exists";
+    }
+
+    if (!newVarDefaultVariableType) {
+      newErrors.variable_type = "Variable type is required";
+    }
+
+    setVariableErrors(newErrors);
+    return !newErrors.name && !newErrors.variable_type;
+  };
+
+  const handleVariableBlur = (field: any) => {
+    setVariableTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const validateTradeForm = () => {
+    const newErrors = { name: "" };
+
+    if (!newTradeName.trim()) {
+      newErrors.name = "Trade name is required";
+    } else if (newTradeName.length > 50) {
+      newErrors.name = "Trade name must be less than 50 characters";
+    } else if (
+      trades.some((t) => t.name.toLowerCase() === newTradeName.toLowerCase())
+    ) {
+      newErrors.name = "Trade with this name already exists";
+    }
+
+    setTradeErrors(newErrors);
+    return !newErrors.name;
+  };
+
+  const handleTradeBlur = (field: any) => {
+    setTradeTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   return (
@@ -563,6 +656,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             <CardContent>
               <div className="space-y-4">
                 <div className="relative">
+                  {/* Search */}
                   <div className="relative w-full mb-2">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -594,15 +688,26 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-4"
+                      className="w-full pl-8 pr-10"
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                        tabIndex={-1}
+                        aria-label="Clear variable search"
+                      >
+                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                    )}
                     {isLoadingVariables && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Variable search results dropdown */}
                   {searchQuery.trim() && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
@@ -611,26 +716,34 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           Variables
                         </p>
                         {filteredVariables.length > 0 ? (
-                          filteredVariables.filter(variable => variable.origin === 'original').map((variable) => (
-                            <div
-                              key={variable.id}
-                              className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                              onClick={() => handleSelectVariable(variable)}
-                            >
-                              <div className="flex items-center">
-                                <BracesIcon className="mr-2 h-4 w-4" />
-                                <span>{variable.name}</span>
+                          filteredVariables
+                            .filter(
+                              (variable) => variable.origin === "original"
+                            )
+                            .map((variable) => (
+                              <div
+                                key={variable.id}
+                                className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                                onClick={() => handleSelectVariable(variable)}
+                              >
+                                <div className="flex items-center">
+                                  <BracesIcon className="mr-2 h-4 w-4" />
+                                  <span>{variable.name}</span>
+                                </div>
+                                <Badge variant="outline" className="ml-2">
+                                  {variable.variable_type?.name || "Unknown"}
+                                </Badge>
                               </div>
-                              <Badge variant="outline" className="ml-2">
-                                {variable.variable_type?.name || "Unknown"}
-                              </Badge>
-                            </div>
-                          ))
+                            ))
                         ) : (
                           <div className="p-2 text-sm text-muted-foreground">
-                            {variables.some(v => v.name.toLowerCase().includes(searchQuery.toLowerCase())) ? 
-                              "Variable already added" : 
-                              "No matching variables found"}
+                            {variables.some((v) =>
+                              v.name
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase())
+                            )
+                              ? "Variable already added"
+                              : "No matching variables found"}
                           </div>
                         )}
                       </div>
@@ -648,16 +761,47 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="var-name">Variable Name</Label>
-                          <Input
-                            id="var-name"
-                            placeholder="Wall Length"
-                            value={newVarName}
-                            onChange={(e) => setNewVarName(e.target.value)}
-                          />
+                          <Label htmlFor="var-name">
+                            Variable Name{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="var-name"
+                              placeholder="Wall Length"
+                              value={newVarName}
+                              onChange={(e) => setNewVarName(e.target.value)}
+                              onBlur={() => handleVariableBlur("name")}
+                              className={
+                                variableErrors.name && variableTouched.name
+                                  ? "border-red-500 pr-10"
+                                  : "pr-10"
+                              }
+                            />
+                            {newVarName && (
+                              <button
+                                type="button"
+                                onClick={() => setNewVarName("")}
+                                className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                                tabIndex={-1}
+                                aria-label="Clear variable name"
+                              >
+                                <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                              </button>
+                            )}
+                          </div>
+                          {variableErrors.name && variableTouched.name && (
+                            <p className="text-xs text-red-500">
+                              {variableErrors.name}
+                            </p>
+                          )}
                         </div>
+
                         <div className="grid gap-2">
-                          <Label htmlFor="var-type">Variable Type</Label>
+                          <Label htmlFor="var-type">
+                            Variable Type{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
                           {isLoadingVariableTypes ? (
                             <div className="relative">
                               <Select disabled>
@@ -671,38 +815,59 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <Select
-                              value={newVarDefaultVariableType}
-                              onValueChange={setNewVarDefaultVariableType}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a variable type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Array.isArray(
-                                  (apiVariableTypes as any)?.data
-                                ) ? (
-                                  (apiVariableTypes as any).data.map(
-                                    (type: any) => (
-                                      <SelectItem
-                                        key={type.id}
-                                        value={type.id.toString()}
-                                      >
-                                        {type.name}
-                                      </SelectItem>
+                            <>
+                              <Select
+                                value={newVarDefaultVariableType}
+                                onValueChange={setNewVarDefaultVariableType}
+                              >
+                                <SelectTrigger
+                                  className={`w-full ${
+                                    variableErrors.variable_type &&
+                                    variableTouched.variable_type
+                                      ? "border-red-500"
+                                      : ""
+                                  }`}
+                                >
+                                  <SelectValue placeholder="Select a variable type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.isArray(
+                                    (apiVariableTypes as any)?.data
+                                  ) ? (
+                                    (apiVariableTypes as any).data.map(
+                                      (type: any) => (
+                                        <SelectItem
+                                          key={type.id}
+                                          value={type.id.toString()}
+                                        >
+                                          {type.name}
+                                        </SelectItem>
+                                      )
                                     )
-                                  )
-                                ) : (
-                                  <SelectItem value="default">
-                                    Default Type
-                                  </SelectItem>
+                                  ) : (
+                                    <SelectItem value="default">
+                                      Default Type
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {variableErrors.variable_type &&
+                                variableTouched.variable_type && (
+                                  <p className="text-xs text-red-500">
+                                    {variableErrors.variable_type}
+                                  </p>
                                 )}
-                              </SelectContent>
-                            </Select>
+                            </>
                           )}
                         </div>
+
                         <div className="grid gap-2">
-                          <Label htmlFor="var-description">Description</Label>
+                          <Label htmlFor="var-description">
+                            Description
+                            <span className="text-gray-500">
+                              &#40;Optional&#41;
+                            </span>
+                          </Label>
                           <Textarea
                             id="var-description"
                             placeholder="What this variable represents (optional)"
@@ -714,6 +879,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           />
                         </div>
                       </div>
+
                       <DialogFooter>
                         <Button
                           variant="outline"
@@ -723,8 +889,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         </Button>
                         <Button
                           onClick={() => {
-                            if (newVarName.trim()) {
+                            if (validateVariableForm()) {
                               handleAddVariable();
+                            } else {
+                              setVariableTouched({
+                                name: true,
+                                variable_type: true,
+                              });
                             }
                           }}
                           disabled={isSubmitting}
@@ -809,6 +980,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             <CardContent>
               <div className="space-y-4">
                 <div className="relative">
+                  {/* Search */}
                   <div className="relative w-full mb-2">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -840,8 +1012,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-4"
+                      className="w-full pl-8 pr-10"
                     />
+                    {tradeSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setTradeSearchQuery("")}
+                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                        tabIndex={-1}
+                        aria-label="Clear trade search"
+                      >
+                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                    )}
                     {isLoadingTrades && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -857,23 +1040,29 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           Trades
                         </p>
                         {filteredTrades.length > 0 ? (
-                          filteredTrades.filter(trade => trade.origin === 'original').map((trade) => (
-                            <div
-                              key={trade.id}
-                              className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                              onClick={() => handleSelectTrade(trade)}
-                            >
-                              <div className="flex items-center">
-                                <BracesIcon className="mr-2 h-4 w-4" />
-                                <span>{trade.name}</span>
+                          filteredTrades
+                            .filter((trade) => trade.origin === "original")
+                            .map((trade) => (
+                              <div
+                                key={trade.id}
+                                className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                                onClick={() => handleSelectTrade(trade)}
+                              >
+                                <div className="flex items-center">
+                                  <BracesIcon className="mr-2 h-4 w-4" />
+                                  <span>{trade.name}</span>
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            ))
                         ) : (
                           <div className="p-2 text-sm text-muted-foreground">
-                            {trades.some(t => t.name.toLowerCase().includes(tradeSearchQuery.toLowerCase())) ? 
-                              "Trade already added" : 
-                              "No matching trades found"}
+                            {trades.some((t) =>
+                              t.name
+                                .toLowerCase()
+                                .includes(tradeSearchQuery.toLowerCase())
+                            )
+                              ? "Trade already added"
+                              : "No matching trades found"}
                           </div>
                         )}
                       </div>
@@ -894,17 +1083,47 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="trade-name">Trade Name</Label>
-                          <Input
-                            id="trade-name"
-                            placeholder="Framing"
-                            value={newTradeName}
-                            onChange={(e) => setNewTradeName(e.target.value)}
-                          />
+                          <Label htmlFor="trade-name">
+                            Trade Name <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="trade-name"
+                              placeholder="Framing"
+                              value={newTradeName}
+                              onChange={(e) => setNewTradeName(e.target.value)}
+                              onBlur={() => handleTradeBlur("name")}
+                              className={
+                                tradeErrors.name && tradeTouched.name
+                                  ? "border-red-500 pr-10"
+                                  : "pr-10"
+                              }
+                            />
+                            {newTradeName && (
+                              <button
+                                type="button"
+                                onClick={() => setNewTradeName("")}
+                                className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                                tabIndex={-1}
+                                aria-label="Clear trade name"
+                              >
+                                <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                              </button>
+                            )}
+                          </div>
+                          {tradeErrors.name && tradeTouched.name && (
+                            <p className="text-xs text-red-500">
+                              {tradeErrors.name}
+                            </p>
+                          )}
                         </div>
+
                         <div className="grid gap-2">
                           <Label htmlFor="trade-description">
-                            Description (Optional)
+                            Description
+                            <span className="text-gray-500">
+                              &#40;Optional&#41;
+                            </span>
                           </Label>
                           <Textarea
                             id="trade-description"
@@ -926,8 +1145,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         </Button>
                         <Button
                           onClick={() => {
-                            if (newTradeName.trim()) {
+                            if (validateTradeForm()) {
                               handleAddTrade();
+                            } else {
+                              setTradeTouched({
+                                name: true,
+                              });
                             }
                           }}
                           disabled={isCreatingTrade}
@@ -1033,8 +1256,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                       }
                                     }
                                   }}
-                                  className="w-full pl-7 pr-4 h-8 text-xs"
+                                  className="w-full pl-7 pr-10 h-8 text-xs"
                                 />
+                                {elementSearchQueries[trade.id] && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setElementSearchQueries((prev) => ({
+                                        ...prev,
+                                        [trade.id]: "",
+                                      }));
+                                      setElementSearchQuery("");
+                                    }}
+                                    className="absolute right-2 top-2 flex items-center focus:outline-none"
+                                    tabIndex={-1}
+                                    aria-label="Clear element search"
+                                  >
+                                    <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
+                                  </button>
+                                )}
                                 {isLoadingElements && (
                                   <div className="absolute right-2 top-2">
                                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -1043,37 +1283,56 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
 
                               {/* Element search results */}
-                              {(elementSearchQueries[trade.id] || "").trim() && currentTradeId === trade.id && (
-                                <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
-                                  <div className="p-2">
-                                    <p className="text-xs text-muted-foreground mb-1 px-2">
-                                      Elements
-                                    </p>
-                                    {filteredElements.length > 0 ? (
-                                      filteredElements.filter(elements => elements.origin === 'original').map((element) => (
-                                        <div
-                                          key={element.id}
-                                          className="flex items-center justify-between w-full p-2 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                                          onClick={() => handleSelectElement(element, trade.id)}
-                                        >
-                                          <div className="flex items-center">
-                                            <BracesIcon className="mr-2 h-3 w-3" />
-                                            <span>{element.name}</span>
-                                          </div>
+                              {(elementSearchQueries[trade.id] || "").trim() &&
+                                currentTradeId === trade.id && (
+                                  <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
+                                    <div className="p-2">
+                                      <p className="text-xs text-muted-foreground mb-1 px-2">
+                                        Elements
+                                      </p>
+                                      {filteredElements.length > 0 ? (
+                                        filteredElements
+                                          .filter(
+                                            (elements) =>
+                                              elements.origin === "original"
+                                          )
+                                          .map((element) => (
+                                            <div
+                                              key={element.id}
+                                              className="flex items-center justify-between w-full p-2 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                                              onClick={() =>
+                                                handleSelectElement(
+                                                  element,
+                                                  trade.id
+                                                )
+                                              }
+                                            >
+                                              <div className="flex items-center">
+                                                <BracesIcon className="mr-2 h-3 w-3" />
+                                                <span>{element.name}</span>
+                                              </div>
+                                            </div>
+                                          ))
+                                      ) : (
+                                        <div className="p-2 text-xs text-muted-foreground">
+                                          {trade.elements?.some((e) =>
+                                            e.name
+                                              .toLowerCase()
+                                              .includes(
+                                                (
+                                                  elementSearchQueries[
+                                                    trade.id
+                                                  ] || ""
+                                                ).toLowerCase()
+                                              )
+                                          )
+                                            ? "Element already added to this trade"
+                                            : "No matching elements found"}
                                         </div>
-                                      ))
-                                    ) : (
-                                      <div className="p-2 text-xs text-muted-foreground">
-                                        {trade.elements?.some(e => e.name.toLowerCase().includes(
-                                          (elementSearchQueries[trade.id] || "").toLowerCase())
-                                        ) ? 
-                                          "Element already added to this trade" : 
-                                          "No matching elements found"}
-                                      </div>
-                                    )}
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                             </div>
 
                             {/* Elements in trade */}
@@ -1138,9 +1397,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                           variant="ghost"
                                           size="icon"
                                           className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
-                                          onClick={() => handleOpenEditDialog(element)}
+                                          onClick={() =>
+                                            handleOpenEditDialog(element)
+                                          }
                                         >
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="11"
+                                            height="11"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                          >
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                           </svg>
@@ -1196,7 +1467,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           </Card>
         </div>
       </div>
-      
+
       {/* Element Dialogs using the new components */}
       <ElementDialog
         isOpen={showAddElementDialog}
@@ -1209,7 +1480,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         dialogTitle="Add New Element"
         submitButtonText="Add Element"
       />
-      
+
       <ElementDialog
         isOpen={showEditElementDialog}
         onOpenChange={setShowEditElementDialog}

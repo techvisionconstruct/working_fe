@@ -121,8 +121,54 @@ export default function CreateProposalPage() {
     },
   });
 
+  const validateProposalDetails = () => {
+    const requiredFields = [
+      { key: "name", label: "Proposal Name" },
+      { key: "location", label: "Project Location" },
+      { key: "valid_until", label: "Valid Until" },
+      { key: "client_name", label: "Client Name" },
+      { key: "client_email", label: "Client Email" },
+      { key: "client_phone", label: "Client Phone" },
+      { key: "client_address", label: "Client Address" },
+    ];
+
+    const missingFields = requiredFields.filter(
+      (field) => !formData[field.key as keyof typeof formData]
+    );
+
+    if (missingFields.length > 0) {
+      toast.error("Missing required fields", {
+        description: `${missingFields
+          .map((f) => f.label)
+          .join(", ")} are required to proceed.`,
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validateTradesAndElements = () => {
+    if (tradeObjects.length === 0 || variableObjects.length === 0) {
+      toast.error("Add at least one Variables, Trades, and Elements.");
+      return false;
+    }
+    // Check if at least one trade has at least one element
+    const hasAnyElement = tradeObjects.some(
+      (trade) => Array.isArray(trade.elements) && trade.elements.length > 0
+    );
+    if (!hasAnyElement) {
+      toast.error("Add at least one Element to a Trade.");
+      return false;
+    }
+    return true;
+  };
+
   console.log("Form Data:", formData);
   const handleCreateProposal = async () => {
+    if (!validateProposalDetails()) {
+      return;
+    }
+
     const templateId = formData.template ? formData.template.id : null;
 
     const proposalDetails = {
@@ -162,6 +208,10 @@ export default function CreateProposalPage() {
   };
 
   const handleUpdateTemplate = async () => {
+    if (!validateTradesAndElements()) {
+      return;
+    }
+
     if (!templateId) {
       toast.error("Template ID is missing");
       return Promise.reject("Template ID is missing");

@@ -31,7 +31,9 @@ interface EditElementDialogProps {
   setElementMarkup: React.Dispatch<React.SetStateAction<number>>;
   handleMaterialFormulaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleLaborFormulaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleMaterialFormulaKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  handleMaterialFormulaKeyDown: (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => void;
   handleLaborFormulaKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   showMaterialSuggestions: boolean;
   setShowMaterialSuggestions: React.Dispatch<React.SetStateAction<boolean>>;
@@ -87,9 +89,7 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="edit-element-name">
-              Element Name
-            </Label>
+            <Label htmlFor="edit-element-name">Element Name</Label>
             <Input
               id="edit-element-name"
               placeholder="Wall Framing"
@@ -121,34 +121,28 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
                 onChange={handleMaterialFormulaChange}
                 onKeyDown={handleMaterialFormulaKeyDown}
               />
-              {showMaterialSuggestions &&
-                materialSuggestions.length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
-                    {materialSuggestions.map(
-                      (variable, index) => (
-                        <div
-                          key={variable.id}
-                          className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
-                            selectedMaterialSuggestion === index
-                              ? "bg-accent text-accent-foreground"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            setNewElementMaterialFormula((prev: string) =>
-                              insertVariableInFormula(
-                                prev,
-                                variable.name
-                              )
-                            );
-                            setShowMaterialSuggestions(false);
-                          }}
-                        >
-                          {variable.name}
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
+              {showMaterialSuggestions && materialSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                  {materialSuggestions.map((variable, index) => (
+                    <div
+                      key={variable.id}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                        selectedMaterialSuggestion === index
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setNewElementMaterialFormula((prev: string) =>
+                          insertVariableInFormula(prev, variable.name)
+                        );
+                        setShowMaterialSuggestions(false);
+                      }}
+                    >
+                      {variable.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -193,16 +187,16 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use curly braces to reference variables, e.g.,{" "}
-              {"{Wall Length}"} * {"{Wall Width}"} or type {"{"}{" "}
-              to see suggestions
+              Use curly braces to reference variables, e.g., {"{Wall Length}"} *{" "}
+              {"{Wall Width}"} or type {"{"} to see suggestions
             </div>
           </div>
-          
+
           {/* Markup Field */}
           <div className="grid gap-2">
             <Label htmlFor="edit-markup">
-              Markup Percentage (%)
+              Markup Percentage (%){" "}
+              <span className="text-gray-500">&#40;Optional&#41;</span>
             </Label>
             <Input
               id="edit-markup"
@@ -210,11 +204,14 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
               min="0"
               max="100"
               placeholder="15"
-              value={elementMarkup || ''}
-              onChange={(e) => setElementMarkup(parseFloat(e.target.value) || 0)}
+              value={elementMarkup || ""}
+              onChange={(e) =>
+                setElementMarkup(parseFloat(e.target.value) || 0)
+              }
             />
             <div className="text-xs text-muted-foreground mb-2">
-              Enter the percentage markup to apply to this element (e.g., 15 for 15%)
+              Enter the percentage markup to apply to this element (e.g., 15 for
+              15%)
             </div>
           </div>
 
@@ -230,32 +227,28 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
                 onChange={handleLaborFormulaChange}
                 onKeyDown={handleLaborFormulaKeyDown}
               />
-              {showLaborSuggestions &&
-                laborSuggestions.length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
-                    {laborSuggestions.map((variable, index) => (
-                      <div
-                        key={variable.id}
-                        className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
-                          selectedLaborSuggestion === index
-                            ? "bg-accent text-accent-foreground"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          setNewElementLaborFormula((prev: string) =>
-                            insertVariableInFormula(
-                              prev,
-                              variable.name
-                            )
-                          );
-                          setShowLaborSuggestions(false);
-                        }}
-                      >
-                        {variable.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {showLaborSuggestions && laborSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                  {laborSuggestions.map((variable, index) => (
+                    <div
+                      key={variable.id}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                        selectedLaborSuggestion === index
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setNewElementLaborFormula((prev: string) =>
+                          insertVariableInFormula(prev, variable.name)
+                        );
+                        setShowLaborSuggestions(false);
+                      }}
+                    >
+                      {variable.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -300,17 +293,13 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use curly braces to reference variables, e.g.,{" "}
-              {"{Wall Length}"} * {"{Wall Width}"} or type {"{"}{" "}
-              to see suggestions
+              Use curly braces to reference variables, e.g., {"{Wall Length}"} *{" "}
+              {"{Wall Width}"} or type {"{"} to see suggestions
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-          >
+          <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           <Button

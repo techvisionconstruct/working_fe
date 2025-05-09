@@ -1131,6 +1131,44 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     // Open the edit dialog
     setShowEditElementDialog(true);
   };
+
+  // =========== VALIDATION STATE/FORMS ===========
+  const [variableErrors, setVariableErrors] = useState({
+    name: "",
+    variable_type: "",
+  });
+
+  const [variableTouched, setVariableTouched] = useState({
+    name: false,
+    variable_type: false,
+  });
+
+  // Add validation functions
+  const validateVariableForm = () => {
+    const newErrors = { name: "", variable_type: "" };
+
+    if (!newVarName.trim()) {
+      newErrors.name = "Variable name is required";
+    } else if (newVarName.length > 50) {
+      newErrors.name = "Variable name must be less than 50 characters";
+    } else if (
+      variables.some((v) => v.name.toLowerCase() === newVarName.toLowerCase())
+    ) {
+      newErrors.name = "Variable with this name already exists";
+    }
+
+    if (!newVarDefaultVariableType) {
+      newErrors.variable_type = "Variable type is required";
+    }
+
+    setVariableErrors(newErrors);
+    return !newErrors.name && !newErrors.variable_type;
+  };
+
+  const handleVariableBlur = (field: any) => {
+    setVariableTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -1191,8 +1229,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-4"
+                      className="w-full pl-8 pr-10"
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                        tabIndex={-1}
+                        aria-label="Clear variable search"
+                      >
+                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                    )}
                     {isLoadingVariables && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1234,16 +1283,46 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="var-name">Variable Name</Label>
-                          <Input
-                            id="var-name"
-                            placeholder="Wall Length"
-                            value={newVarName}
-                            onChange={(e) => setNewVarName(e.target.value)}
-                          />
+                          <Label htmlFor="var-name">
+                            Variable Name<span className="text-red-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="var-name"
+                              placeholder="Wall Length"
+                              value={newVarName}
+                              onChange={(e) => setNewVarName(e.target.value)}
+                              onBlur={() => handleVariableBlur("name")}
+                              className={
+                                variableErrors.name && variableTouched.name
+                                  ? "border-red-500 pr-10"
+                                  : "pr-10"
+                              }
+                            />
+                            {newVarName && (
+                              <button
+                                type="button"
+                                onClick={() => setNewVarName("")}
+                                className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                                tabIndex={-1}
+                                aria-label="Clear variable name"
+                              >
+                                <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                              </button>
+                            )}
+                          </div>
+                          {variableErrors.name && variableTouched.name && (
+                            <p className="text-red-500 text-xs mt-1">
+                              {variableErrors.name}
+                            </p>
+                          )}
                         </div>
+
                         <div className="grid gap-2">
-                          <Label htmlFor="var-type">Variable Type</Label>
+                          <Label htmlFor="var-type">
+                            Variable Type{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
                           {isLoadingVariableTypes ? (
                             <div className="relative">
                               <Select disabled>
@@ -1257,38 +1336,58 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <Select
-                              value={newVarDefaultVariableType}
-                              onValueChange={setNewVarDefaultVariableType}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a variable type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Array.isArray(
-                                  (apiVariableTypes as any)?.data
-                                ) ? (
-                                  (apiVariableTypes as any).data.map(
-                                    (type: any) => (
-                                      <SelectItem
-                                        key={type.id}
-                                        value={type.id.toString()}
-                                      >
-                                        {type.name}
-                                      </SelectItem>
+                            <>
+                              <Select
+                                value={newVarDefaultVariableType}
+                                onValueChange={setNewVarDefaultVariableType}
+                              >
+                                <SelectTrigger
+                                  className={`w-full ${
+                                    variableErrors.variable_type &&
+                                    variableTouched.variable_type
+                                      ? "border-red-500"
+                                      : ""
+                                  }`}
+                                >
+                                  <SelectValue placeholder="Select a variable type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.isArray(
+                                    (apiVariableTypes as any)?.data
+                                  ) ? (
+                                    (apiVariableTypes as any).data.map(
+                                      (type: any) => (
+                                        <SelectItem
+                                          key={type.id}
+                                          value={type.id.toString()}
+                                        >
+                                          {type.name}
+                                        </SelectItem>
+                                      )
                                     )
-                                  )
-                                ) : (
-                                  <SelectItem value="default">
-                                    Default Type
-                                  </SelectItem>
+                                  ) : (
+                                    <SelectItem value="default">
+                                      Default Type
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {variableErrors.variable_type &&
+                                variableTouched.variable_type && (
+                                  <p className="text-xs text-red-500">
+                                    {variableErrors.variable_type}
+                                  </p>
                                 )}
-                              </SelectContent>
-                            </Select>
+                            </>
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="var-description">Description</Label>
+                          <Label htmlFor="var-description">
+                            Description{" "}
+                            <span className="text-gray-500">
+                              &#40;Optional&#41;
+                            </span>
+                          </Label>
                           <Textarea
                             id="var-description"
                             placeholder="What this variable represents (optional)"
@@ -1309,8 +1408,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         </Button>
                         <Button
                           onClick={() => {
-                            if (newVarName.trim()) {
+                            if (validateVariableForm()) {
                               handleAddVariable();
+                            } else {
+                              setVariableTouched({
+                                name: true,
+                                variable_type: true,
+                              });
                             }
                           }}
                           disabled={isSubmitting}
@@ -1463,8 +1567,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-4"
+                      className="w-full pl-8 pr-10"
                     />
+                    {tradeSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setTradeSearchQuery("")}
+                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                        tabIndex={-1}
+                        aria-label="Clear trade search"
+                      >
+                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                    )}
                     {isLoadingTrades && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1684,6 +1799,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     }}
                                     className="w-full pl-7 pr-4 h-8 text-xs"
                                   />
+                                  {elementSearchQueries[trade.id] && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setElementSearchQueries((prev) => ({
+                                          ...prev,
+                                          [trade.id]: "",
+                                        }))
+                                      }
+                                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                                      tabIndex={-1}
+                                      aria-label="Clear element search"
+                                    >
+                                      <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
+                                    </button>
+                                  )}
                                   {isLoadingElements && (
                                     <div className="absolute right-2 top-2">
                                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />

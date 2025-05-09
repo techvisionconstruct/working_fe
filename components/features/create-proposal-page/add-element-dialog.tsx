@@ -12,7 +12,7 @@ import {
   Input,
   Textarea,
 } from "@/components/shared";
-import { BracesIcon, Loader2 } from "lucide-react";
+import { BracesIcon, Loader2, X } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
 
 interface AddElementDialogProps {
@@ -29,7 +29,9 @@ interface AddElementDialogProps {
   setNewElementLaborFormula: React.Dispatch<React.SetStateAction<string>>;
   handleMaterialFormulaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleLaborFormulaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleMaterialFormulaKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  handleMaterialFormulaKeyDown: (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => void;
   handleLaborFormulaKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   showMaterialSuggestions: boolean;
   materialSuggestions: VariableResponse[];
@@ -66,6 +68,25 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
   isCreatingElement,
   insertVariableInFormula,
 }) => {
+  const [touched, setTouched] = useState({ name: false });
+  const [errors, setErrors] = useState<{ name?: string }>({});
+
+  const validate = () => {
+    const errs: { name?: string } = {};
+    if (!newElementName.trim()) {
+      errs.name = "Element name is required";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleAdd = () => {
+    setTouched({ name: true });
+    if (validate()) {
+      onAddElement();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -77,27 +98,57 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="element-name">Element Name</Label>
-            <Input
-              id="element-name"
-              placeholder="Wall Framing"
-              value={newElementName}
-              onChange={(e) => setNewElementName(e.target.value)}
-            />
+            <Label htmlFor="element-name">
+              Element Name <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="element-name"
+                placeholder="Wall Framing"
+                value={newElementName}
+                onChange={(e) => {
+                  setNewElementName(e.target.value);
+                  setTouched((prev) => ({ ...prev, name: true }));
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+                className={errors.name && touched.name ? "border-red-500" : ""}
+              />
+              {newElementName && (
+                <button
+                  type="button"
+                  onClick={() => setNewElementName("")}
+                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                  tabIndex={-1}
+                  aria-label="Clear element name"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              )}
+            </div>
+            {errors.name && touched.name && (
+              <p className="text-xs text-red-500">{errors.name}</p>
+            )}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="element-description">
-              Description (Optional)
-            </Label>
+            <Label htmlFor="element-description">Description (Optional)</Label>
             <Textarea
               id="element-description"
               placeholder="Description of this element"
               value={newElementDescription}
-              onChange={(e) =>
-                setNewElementDescription(e.target.value)
-              }
+              onChange={(e) => setNewElementDescription(e.target.value)}
               className="min-h-[60px]"
             />
+            {newElementDescription && (
+              <button
+                type="button"
+                onClick={() => setNewElementDescription("")}
+                className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                tabIndex={-1}
+                aria-label="Clear element description"
+              >
+                <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+              </button>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="material-formula">
@@ -111,33 +162,27 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
                 onChange={handleMaterialFormulaChange}
                 onKeyDown={handleMaterialFormulaKeyDown}
               />
-              {showMaterialSuggestions &&
-                materialSuggestions.length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
-                    {materialSuggestions.map(
-                      (variable, index) => (
-                        <div
-                          key={variable.id}
-                          className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
-                            selectedMaterialSuggestion === index
-                              ? "bg-accent text-accent-foreground"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            setNewElementMaterialFormula((prev: string) =>
-                              insertVariableInFormula(
-                                prev,
-                                variable.name
-                              )
-                            );
-                          }}
-                        >
-                          {variable.name}
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
+              {showMaterialSuggestions && materialSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                  {materialSuggestions.map((variable, index) => (
+                    <div
+                      key={variable.id}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                        selectedMaterialSuggestion === index
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setNewElementMaterialFormula((prev: string) =>
+                          insertVariableInFormula(prev, variable.name)
+                        );
+                      }}
+                    >
+                      {variable.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -182,16 +227,13 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use curly braces to reference variables, e.g.,{" "}
-              {"{Wall Length}"} * {"{Wall Width}"} or type {"{"}{" "}
-              to see suggestions
+              Use curly braces to reference variables, e.g., {"{Wall Length}"} *{" "}
+              {"{Wall Width}"} or type {"{"} to see suggestions
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="labor-formula">
-              Labor Cost Formula (Optional)
-            </Label>
+            <Label htmlFor="labor-formula">Labor Cost Formula (Optional)</Label>
             <div className="relative">
               <Input
                 id="labor-formula"
@@ -200,31 +242,27 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
                 onChange={handleLaborFormulaChange}
                 onKeyDown={handleLaborFormulaKeyDown}
               />
-              {showLaborSuggestions &&
-                laborSuggestions.length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
-                    {laborSuggestions.map((variable, index) => (
-                      <div
-                        key={variable.id}
-                        className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
-                          selectedLaborSuggestion === index
-                            ? "bg-accent text-accent-foreground"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          setNewElementLaborFormula((prev: string) =>
-                            insertVariableInFormula(
-                              prev,
-                              variable.name
-                            )
-                          );
-                        }}
-                      >
-                        {variable.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {showLaborSuggestions && laborSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-md max-h-[120px] overflow-y-auto">
+                  {laborSuggestions.map((variable, index) => (
+                    <div
+                      key={variable.id}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                        selectedLaborSuggestion === index
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setNewElementLaborFormula((prev: string) =>
+                          insertVariableInFormula(prev, variable.name)
+                        );
+                      }}
+                    >
+                      {variable.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -269,17 +307,13 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use curly braces to reference variables, e.g.,{" "}
-              {"{Wall Length}"} * {"{Wall Width}"} or type {"{"}{" "}
-              to see suggestions
+              Use curly braces to reference variables, e.g., {"{Wall Length}"} *{" "}
+              {"{Wall Width}"} or type {"{"} to see suggestions
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button

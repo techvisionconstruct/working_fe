@@ -14,6 +14,7 @@ import {
 } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
+import { ElementResponse } from "@/types/elements/dto";
 import { createTemplate } from "@/api/templates/create-template";
 import { updateTemplate } from "@/api/templates/update-template";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,7 @@ export default function CreateTemplate() {
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     []
   );
+  const [elementObjects, setElementObjects] = useState<ElementResponse[]>([]);
 
   const updateFormData = (field: string, data: any) => {
     setFormData((prev) => ({
@@ -114,9 +116,32 @@ export default function CreateTemplate() {
     },
   });
 
-  const handleCreateTemplate = async () => {
+  const validateTemplateDetails = () => {
     if (!formData.name.trim()) {
-      toast.error("Template name is required");
+      toast.error("Fill up the Template Name");
+      return false;
+    }
+    return true;
+  };
+
+  const validateTradesAndElements = () => {
+    if (tradeObjects.length === 0 || variableObjects.length === 0) {
+      toast.error("Add at least one Variables, Trades, and Elements.");
+      return false;
+    }
+    // Check if at least one trade has at least one element
+    const hasAnyElement = tradeObjects.some(
+      (trade) => Array.isArray(trade.elements) && trade.elements.length > 0
+    );
+    if (!hasAnyElement) {
+      toast.error("Add at least one Element to a Trade.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreateTemplate = async () => {
+    if (!validateTemplateDetails()) {
       return;
     }
 
@@ -154,6 +179,10 @@ export default function CreateTemplate() {
     if (!templateId) {
       toast.error("Template ID is missing");
       return Promise.reject("Template ID is missing");
+    }
+
+    if (!validateTradesAndElements()) {
+      return;
     }
 
     const tradesAndVariables = {
