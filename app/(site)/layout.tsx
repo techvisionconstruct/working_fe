@@ -1,6 +1,7 @@
 import { Sidenav } from "@/components/ui/sidebar/sidebar";
 import { MobileHeader } from "@/components/ui/sidebar/mobile-header";
 import { MobileSidebar } from "@/components/ui/sidebar/mobile-sidebar";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanstackProvider } from "@/providers/tanstack-provider";
 
 export default function SiteLayout({
@@ -11,6 +12,7 @@ export default function SiteLayout({
   return (
     <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
       <TanstackProvider>
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
         <div className="hidden md:block w-auto shrink-0">
           <Sidenav />
         </div>
