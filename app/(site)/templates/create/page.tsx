@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ export default function CreateTemplate() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("details");
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<TemplateCreateRequest>({
     name: "",
     description: "",
@@ -34,6 +35,9 @@ export default function CreateTemplate() {
     []
   );
   const [elementObjects, setElementObjects] = useState<ElementResponse[]>([]);
+  const [missingVariable, setMissingVariable] = useState<string | null>(null);
+  const [showMissingVariableDialog, setShowMissingVariableDialog] =
+    useState(false);
 
   const updateFormData = (field: string, data: any) => {
     setFormData((prev) => ({
@@ -145,27 +149,25 @@ export default function CreateTemplate() {
       return;
     }
 
-    // Include all template details including image
+    setIsLoading(true); // Start loader
+
     const templateDetails = {
       name: formData.name,
       description: formData.description,
-      image: formData.image, // Pass the image
+      image: formData.image,
       status: "draft",
     };
-
-    console.log(
-      "Creating template with image:",
-      templateDetails.image ? "Yes (base64)" : "No"
-    );
 
     return new Promise((resolve, reject) => {
       createTemplateMutation.mutate(templateDetails, {
         onSuccess: (data) => {
           resolve(data);
           setTemplateId(data.data.id);
+          setIsLoading(false); // Stop loader
         },
         onError: (error) => {
           reject(error);
+          setIsLoading(false); // Stop loader
           toast.error("Failed to create template", {
             description:
               error instanceof Error ? error.message : "Please try again later",
@@ -175,6 +177,7 @@ export default function CreateTemplate() {
     });
   };
 
+  // --- Update handleUpdateTemplate to check for missing variables ---
   const handleUpdateTemplate = async () => {
     if (!templateId) {
       toast.error("Template ID is missing");
@@ -185,12 +188,25 @@ export default function CreateTemplate() {
       return;
     }
 
+    if (!checkForMissingVariables()) {
+      return;
+    }
+
+    setIsLoading(true); // Start loader
+
     const tradesAndVariables = {
       trades: tradeObjects.map((trade) => trade.id),
       variables: variableObjects.map((variable) => variable.id),
     };
 
-    updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
+    updateTemplateMutation.mutate(
+      { templateId, template: tradesAndVariables },
+      {
+        onSettled: () => {
+          setIsLoading(false); // Stop loader after success or error
+        },
+      }
+    );
   };
 
   const handlePublishTemplate = async () => {
@@ -199,13 +215,95 @@ export default function CreateTemplate() {
       return Promise.reject("Template ID is missing");
     }
 
-    publishTemplateMutation.mutate({
-      templateId,
-      template: {
-        status: "published",
+    setIsLoading(true); // Start loader
+
+    publishTemplateMutation.mutate(
+      {
+        templateId,
+        template: {
+          status: "published",
+        },
       },
-    });
+      {
+        onSettled: () => {
+          setIsLoading(false); // Stop loader after success or error
+        },
+      }
+    );
   };
+
+  // Helper: Check for variables used in elements but missing from variableObjects
+  const checkForMissingVariables = () => {
+    // Gather all variable names used in elements' formulas
+    const usedVariableNames = new Set<string>();
+    tradeObjects.forEach((trade) => {
+      (trade.elements || []).forEach((element) => {
+        (element.material_formula_variables || []).forEach((v) =>
+          usedVariableNames.add(v.name)
+        );
+        (element.labor_formula_variables || []).forEach((v) =>
+          usedVariableNames.add(v.name)
+        );
+      });
+    });
+    // Gather all variable names in the variable list
+    const variableNames = new Set(variableObjects.map((v) => v.name));
+    // Find missing
+    for (const name of usedVariableNames) {
+      if (!variableNames.has(name)) {
+        setMissingVariable(name);
+        setShowMissingVariableDialog(true);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const [pendingVariableToAdd, setPendingVariableToAdd] = useState<
+    string | null
+  >(null);
+  const [showAddVariableDialog, setShowAddVariableDialog] = useState(false);
+
+  function ensureVariablesExistInList(element: ElementResponse) {
+    const usedVars = [
+      ...(element.material_formula_variables || []),
+      ...(element.labor_formula_variables || []),
+    ];
+    const missingVars = usedVars.filter(
+      (v) => !variableObjects.some((obj) => obj.name === v.name)
+    );
+    if (missingVars.length > 0) {
+      setVariableObjects((prev) => [
+        ...prev,
+        ...missingVars.map((v) => ({
+          id: Date.now().toString() + Math.random(),
+          name: v.name,
+          description: "",
+          value: 0,
+          is_global: false,
+          variable_type: undefined,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })),
+      ]);
+    }
+  }
+
+  function checkAndPromptForMissingVariables(element: ElementResponse) {
+    const usedVars = [
+      ...(element.material_formula_variables || []),
+      ...(element.labor_formula_variables || []),
+    ];
+    const missingVar = usedVars.find(
+      (v) => !variableObjects.some((obj) => obj.name === v.name)
+    );
+    if (missingVar) {
+      setPendingVariableToAdd(missingVar.name);
+      setShowAddVariableDialog(true);
+      return false; // Prevent add until user decides
+    }
+    return true;
+  }
 
   return (
     <div className="container">
@@ -287,6 +385,218 @@ export default function CreateTemplate() {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {showMissingVariableDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-2">
+              Variable Missing from List
+            </h2>
+            <p>
+              The variable <b>{missingVariable}</b> is currently being used in
+              an element but is not in the Variable List.
+            </p>
+            <p className="mt-2">
+              Would you like to create it or delete the variable from the
+              element?
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowMissingVariableDialog(false);
+                  // Create the variable
+                  if (missingVariable) {
+                    setVariableObjects([
+                      ...variableObjects,
+                      {
+                        id: Date.now().toString(),
+                        name: missingVariable,
+                        description: "",
+                        value: 0,
+                        is_global: false,
+                        variable_type: undefined,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      },
+                    ]);
+                  }
+                }}
+              >
+                Create Variable
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setShowMissingVariableDialog(false);
+                  if (missingVariable) {
+                    // Try to find the variable object by name
+                    const missingVarObj = variableObjects.find(
+                      (v) => v.name === missingVariable
+                    );
+                    // Always build both patterns
+                    const variableNamePattern = new RegExp(
+                      `\\{\\s*${missingVariable}\\s*\\}`,
+                      "g"
+                    );
+                    // If we have an ID, remove by ID too, otherwise try to match any {alphanumeric} that matches the missing variable's pattern
+                    const variableIdPattern = missingVarObj
+                      ? new RegExp(`\\{\\s*${missingVarObj.id}\\s*\\}`, "g")
+                      : null;
+
+                    // Remove both {name} and {id} from the formula string
+                    const cleanFormula = (formula: string | undefined) => {
+                      if (!formula) return "";
+                      let cleaned = formula.replace(variableNamePattern, "");
+                      // Remove any {id} pattern if possible
+                      if (variableIdPattern) {
+                        cleaned = cleaned.replace(variableIdPattern, "");
+                      } else {
+                        // Try to remove any orphaned {alphanumeric} that matches an id-like pattern
+                        cleaned = cleaned.replace(
+                          /\{\s*[a-zA-Z0-9\-_]+\s*\}/g,
+                          ""
+                        );
+                      }
+                      // Remove any double operators or leftover operators at the ends
+                      cleaned = cleaned.replace(
+                        /([+\-*/^])\s*([+\-*/^])/g,
+                        "$1"
+                      );
+                      cleaned = cleaned.replace(
+                        /^\s*([+\-*/^])\s*|\s*([+\-*/^])\s*$/g,
+                        ""
+                      );
+                      // Remove extra spaces
+                      cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+                      return cleaned;
+                    };
+
+                    // Update all trades/elements
+                    const updatedTrades = tradeObjects.map((trade) => ({
+                      ...trade,
+                      elements: (trade.elements || []).map((element) => ({
+                        ...element,
+                        material_formula_variables: (
+                          element.material_formula_variables || []
+                        ).filter(
+                          (v) =>
+                            v.name !== missingVariable &&
+                            v.id !== missingVarObj?.id
+                        ),
+                        labor_formula_variables: (
+                          element.labor_formula_variables || []
+                        ).filter(
+                          (v) =>
+                            v.name !== missingVariable &&
+                            v.id !== missingVarObj?.id
+                        ),
+                        material_cost_formula: cleanFormula(
+                          element.material_cost_formula
+                        ),
+                        labor_cost_formula: cleanFormula(
+                          element.labor_cost_formula
+                        ),
+                      })),
+                    }));
+
+                    setTradeObjects(updatedTrades);
+
+                    setElementObjects((prev) =>
+                      prev.map((element) => ({
+                        ...element,
+                        material_formula_variables: (
+                          element.material_formula_variables || []
+                        ).filter(
+                          (v) =>
+                            v.name !== missingVariable &&
+                            v.id !== missingVarObj?.id
+                        ),
+                        labor_formula_variables: (
+                          element.labor_formula_variables || []
+                        ).filter(
+                          (v) =>
+                            v.name !== missingVariable &&
+                            v.id !== missingVarObj?.id
+                        ),
+                        material_cost_formula: cleanFormula(
+                          element.material_cost_formula
+                        ),
+                        labor_cost_formula: cleanFormula(
+                          element.labor_cost_formula
+                        ),
+                      }))
+                    );
+
+                    toast.success(
+                      `Removed "${missingVariable}" from all element formulas.`
+                    );
+                  }
+                }}
+              >
+                Delete Variable from Element
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddVariableDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-2">
+              Add Variable to List?
+            </h2>
+            <p>
+              The variable <b>{pendingVariableToAdd}</b> is used in an element
+              but is not in the variable list.
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddVariableDialog(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!pendingVariableToAdd) return;
+                  setVariableObjects((prev) => [
+                    ...prev,
+                    {
+                      id: Date.now().toString(),
+                      name: pendingVariableToAdd,
+                      description: "",
+                      value: 0,
+                      is_global: false,
+                      variable_type: undefined,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    },
+                  ]);
+                  setShowAddVariableDialog(false);
+                  setPendingVariableToAdd(null);
+                }}
+              >
+                Add Variable
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="flex flex-col items-center">
+            <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></span>
+            <span className="text-lg font-semibold text-white drop-shadow">
+              Processing...
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardHeader,
@@ -40,6 +40,13 @@ import { ElementResponse } from "@/types/elements/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { useFormula } from "./hooks/use-formula";
 import { ElementDialog } from "./components/element-dialog";
+import {
+  Dialog as ConfirmDialog,
+  DialogContent as ConfirmDialogContent,
+  DialogHeader as ConfirmDialogHeader,
+  DialogTitle as ConfirmDialogTitle,
+  DialogFooter as ConfirmDialogFooter,
+} from "@/components/shared";
 
 interface TradesAndElementsStepProps {
   data: {
@@ -144,6 +151,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         setNewVarDefaultValue(0);
         setNewVarDefaultVariableType("");
         setIsSubmitting(false);
+        setSearchQuery("");
       }
     },
     onError: (error) => {
@@ -173,6 +181,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setShowAddTradeDialog(false);
           setNewTradeName("");
           setNewTradeDescription("");
+          setTradeSearchQuery("");
         }
       },
       onError: (error) => {
@@ -307,6 +316,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
           // Reset form and close dialog
           setShowAddElementDialog(false);
+          setElementSearchQuery("");
         }
       },
       onError: (error) => {
@@ -405,7 +415,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const handleRemoveVariable = (variableId: string) => {
-    updateVariables(variables.filter((v) => v.id !== variableId));
+    const usedInElements = findElementsUsingVariable(variableId);
+    if (usedInElements.length > 0) {
+      setVariableToRemove(variables.find((v) => v.id === variableId) || null);
+      setElementsUsingVariable(usedInElements);
+      setShowRemoveVariableConfirm(true);
+    } else {
+      updateVariables(variables.filter((v) => v.id !== variableId));
+    }
   };
 
   const handleSelectTrade = (trade: TradeResponse) => {
@@ -537,6 +554,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     };
 
     createElementMutation(elementData);
+
+    setElementSearchQueries((prev) => ({
+      ...prev,
+      [currentTradeId]: "",
+    }));
+    setElementSearchQuery("");
   };
 
   const handleUpdateElement = (data: {
@@ -568,6 +591,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
   };
 
+  // Confirm remove
+  const confirmRemoveVariable = () => {
+    if (variableToRemove) {
+      updateVariables(variables.filter((v) => v.id !== variableToRemove.id));
+      setShowRemoveVariableConfirm(false);
+      setVariableToRemove(null);
+      setElementsUsingVariable([]);
+    }
+  };
+
+  // Cancel remove
+  const cancelRemoveVariable = () => {
+    setShowRemoveVariableConfirm(false);
+    setVariableToRemove(null);
+    setElementsUsingVariable([]);
+  };
+
   // =========== VALIDATION STATE/FORMS ===========
   const [variableErrors, setVariableErrors] = useState({
     name: "",
@@ -586,6 +626,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [tradeTouched, setTradeTouched] = useState({
     name: false,
   });
+
+  const [showRemoveVariableConfirm, setShowRemoveVariableConfirm] =
+    useState(false);
+  const [variableToRemove, setVariableToRemove] =
+    useState<VariableResponse | null>(null);
+  const [elementsUsingVariable, setElementsUsingVariable] = useState<
+    ElementResponse[]
+  >([]);
+  const [showMissingVariableDialog, setShowMissingVariableDialog] =
+    useState(false);
+  const [missingVariable, setMissingVariable] = useState<string | null>(null);
 
   // Add validation functions
   const validateVariableForm = () => {
@@ -632,6 +683,53 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const handleTradeBlur = (field: any) => {
     setTradeTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  // Helper: Find elements using a variable
+  const findElementsUsingVariable = (variableId: string) => {
+    const usedIn: ElementResponse[] = [];
+    trades.forEach((trade) => {
+      (trade.elements || []).forEach((element) => {
+        // Check both material and labor formulas for variable usage
+        const materialVars = element.material_formula_variables || [];
+        const laborVars = element.labor_formula_variables || [];
+        if (
+          materialVars.some((v) => v.id === variableId) ||
+          laborVars.some((v) => v.id === variableId)
+        ) {
+          usedIn.push(element);
+        }
+      });
+    });
+    return usedIn;
+  };
+
+  // --- Validation before creating template ---
+  // Add this function to check for missing variables in elements
+  const checkForMissingVariables = () => {
+    // Gather all variable names used in elements' formulas
+    const usedVariableNames = new Set<string>();
+    trades.forEach((trade) => {
+      (trade.elements || []).forEach((element) => {
+        (element.material_formula_variables || []).forEach((v) =>
+          usedVariableNames.add(v.name)
+        );
+        (element.labor_formula_variables || []).forEach((v) =>
+          usedVariableNames.add(v.name)
+        );
+      });
+    });
+    // Gather all variable names in the variable list
+    const variableNames = new Set(variables.map((v) => v.name));
+    // Find missing
+    for (const name of usedVariableNames) {
+      if (!variableNames.has(name)) {
+        setMissingVariable(name);
+        setShowMissingVariableDialog(true);
+        return false;
+      }
+    }
+    return true;
   };
 
   return (
@@ -920,7 +1018,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                   <h3 className="text-sm font-medium">
                     Variables ({variables.length})
                   </h3>
-
                   <ScrollArea className="h-[300px] pr-4 -mr-4">
                     {variables.length > 0 ? (
                       <div className="space-y-2">
@@ -1212,7 +1309,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                       ...prev,
                                       [trade.id]: e.target.value,
                                     }));
-                                    // Also update the global query for filter function compatibility
                                     setElementSearchQuery(e.target.value);
                                   }}
                                   onFocus={() => {
@@ -1492,6 +1588,101 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         dialogTitle="Edit Element"
         submitButtonText="Update Element"
       />
+
+      {/* Confirm Remove Variable Dialog */}
+      <ConfirmDialog
+        open={showRemoveVariableConfirm}
+        onOpenChange={setShowRemoveVariableConfirm}
+      >
+        <ConfirmDialogContent>
+          <ConfirmDialogHeader>
+            <ConfirmDialogTitle>
+              This variable is being used in an element
+            </ConfirmDialogTitle>
+          </ConfirmDialogHeader>
+          <div className="py-2">
+            <p>
+              <b>{variableToRemove?.name}</b> is being used in the following
+              elements:
+            </p>
+            <ul className="list-disc pl-6 mt-2 text-sm">
+              {elementsUsingVariable.map((el) => (
+                <li key={el.id}>{el.name}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-destructive">
+              Deleting it might affect these elements. Would you still like to
+              proceed?
+            </p>
+          </div>
+          <ConfirmDialogFooter>
+            <Button variant="outline" onClick={cancelRemoveVariable}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmRemoveVariable}>
+              Yes, Remove
+            </Button>
+          </ConfirmDialogFooter>
+        </ConfirmDialogContent>
+      </ConfirmDialog>
+
+      {/* Missing Variable Dialog */}
+      <ConfirmDialog
+        open={showMissingVariableDialog}
+        onOpenChange={setShowMissingVariableDialog}
+      >
+        <ConfirmDialogContent>
+          <ConfirmDialogHeader>
+            <ConfirmDialogTitle>Variable Missing from List</ConfirmDialogTitle>
+          </ConfirmDialogHeader>
+          <div className="py-2">
+            <p>
+              The variable <b>{missingVariable}</b> is currently being used in
+              an element but is not in the Variable List.
+            </p>
+            <p className="mt-2">
+              Would you like to create it or delete the variable from the
+              element?
+            </p>
+          </div>
+          <ConfirmDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowMissingVariableDialog(false);
+                // Optionally, trigger logic to create the variable
+                if (updateVariables && missingVariable) {
+                  updateVariables([
+                    ...variables,
+                    {
+                      id: Date.now().toString(),
+                      name: missingVariable,
+                      description: "",
+                      value: 0,
+                      is_global: false,
+                      variable_type: undefined,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    },
+                  ]);
+                }
+              }}
+            >
+              Create Variable
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowMissingVariableDialog(false);
+                // Optionally, trigger logic to remove the variable from all elements
+                // (You may want to implement this logic as needed)
+              }}
+            >
+              Delete Variable from Element
+            </Button>
+          </ConfirmDialogFooter>
+        </ConfirmDialogContent>
+      </ConfirmDialog>
     </div>
   );
 };
