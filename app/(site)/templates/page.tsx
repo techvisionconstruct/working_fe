@@ -1,12 +1,10 @@
 "use client";
 
-import { getAllTemplates } from "@/api/templates/get-all-templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
 import { TemplateLoader } from "@/components/features/template-page/loader";
 import {
   useMutation,
-  useMutationState,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";

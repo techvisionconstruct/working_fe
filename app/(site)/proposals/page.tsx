@@ -1,8 +1,8 @@
 "use client";
 
-import { getAllProposals } from "@/api/proposals/get-all-proposals";
 import { ProposalList } from "@/components/features/proposal-page/proposal-list-view";
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
+import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
@@ -15,37 +15,20 @@ import {
 } from "@/components/shared";
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
-import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
+import { getProposals } from "@/queryOptions/proposals";
+import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function ProposalsPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
+  const [tab, setTab] = useState("grid");
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      if (page !== 1) setPage(1);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [search]);
+  const [isTourRunning, setIsTourRunning] = useState(false);
 
   const {
     data: proposals,
-    isLoading,
     isError,
     isPending,
-  } = useQuery({
-    queryKey: ["template", page, pageSize, debouncedSearch],
-    queryFn: () => getAllProposals(page, pageSize, debouncedSearch),
-    placeholderData: (previousData) => previousData,
-  });
-
-  const [tab, setTab] = useState("grid");
-  const [isTourRunning, setIsTourRunning] = useState(false);
+  } = useQuery(getProposals());
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem("hasSeenProposalsTour") === "true";
@@ -58,8 +41,12 @@ export default function ProposalsPage() {
     setIsTourRunning(true);
   };
 
-  if (isLoading) {
+  if (isPending) {
     return <ProposalLoader />;
+  }
+
+  if (isError) {
+    return <AlertError resource="proposals" />;
   }
 
   return (
