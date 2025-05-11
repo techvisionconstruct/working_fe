@@ -82,6 +82,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newTradeName, setNewTradeName] = useState("");
   const [newTradeDescription, setNewTradeDescription] = useState("");
   const trades = data.trades || [];
+  const [tradeSkeletons, setTradeSkeletons] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Element-related state
   const [elementSearchQuery, setElementSearchQuery] = useState("");
@@ -440,6 +443,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     if (!trades.some((t) => t.id === newTrade.id)) {
       updateTrades([...trades, newTrade]);
+      // If the trade has elements, show skeleton
+      if (newTrade.elements && newTrade.elements.length > 0) {
+        setTradeSkeletons((prev) => ({ ...prev, [newTrade.id]: true }));
+        setTimeout(() => {
+          setTradeSkeletons((prev) => ({ ...prev, [newTrade.id]: false }));
+        }, 1000); // 1 second
+      }
     }
 
     setIsTradeSearchOpen(false);
@@ -594,6 +604,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   // Confirm remove
   const confirmRemoveVariable = () => {
     if (variableToRemove) {
+      // Only remove from the variable list, do NOT touch elements or formulas
       updateVariables(variables.filter((v) => v.id !== variableToRemove.id));
       setShowRemoveVariableConfirm(false);
       setVariableToRemove(null);
@@ -702,34 +713,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       });
     });
     return usedIn;
-  };
-
-  // --- Validation before creating template ---
-  // Add this function to check for missing variables in elements
-  const checkForMissingVariables = () => {
-    // Gather all variable names used in elements' formulas
-    const usedVariableNames = new Set<string>();
-    trades.forEach((trade) => {
-      (trade.elements || []).forEach((element) => {
-        (element.material_formula_variables || []).forEach((v) =>
-          usedVariableNames.add(v.name)
-        );
-        (element.labor_formula_variables || []).forEach((v) =>
-          usedVariableNames.add(v.name)
-        );
-      });
-    });
-    // Gather all variable names in the variable list
-    const variableNames = new Set(variables.map((v) => v.name));
-    // Find missing
-    for (const name of usedVariableNames) {
-      if (!variableNames.has(name)) {
-        setMissingVariable(name);
-        setShowMissingVariableDialog(true);
-        return false;
-      }
-    }
-    return true;
   };
 
   return (
@@ -1279,273 +1262,293 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           key={trade.id}
                           className="border rounded-md p-3 bg-muted/30 relative group"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-sm flex items-center">
-                              {trade.name}
+                          {tradeSkeletons[trade.id] ? (
+                            // Skeleton UI
+                            <div className="animate-pulse space-y-2">
+                              <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+                              <div className="h-3 bg-muted rounded w-1/2 mb-2" />
+                              <div className="h-3 bg-muted rounded w-1/4 mb-2" />
+                              <div className="h-8 bg-muted rounded w-full" />
                             </div>
-                          </div>
-                          {trade.description && (
-                            <div className="text-xs mt-1 mb-2 line-clamp-1">
-                              {trade.description}
-                            </div>
-                          )}
-
-                          <div className="mt-3 border-t pt-2">
-                            <div className="flex items-center justify-between">
-                              <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                                Elements
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-sm flex items-center">
+                                  {trade.name}
+                                </div>
                               </div>
-                            </div>
+                              {trade.description && (
+                                <div className="text-xs mt-1 mb-2 line-clamp-1">
+                                  {trade.description}
+                                </div>
+                              )}
 
-                            <div className="relative mb-2">
-                              <div className="relative w-full mb-1">
-                                <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                <Input
-                                  placeholder="Search elements..."
-                                  value={elementSearchQueries[trade.id] || ""}
-                                  onChange={(e) => {
-                                    setCurrentTradeId(trade.id);
-                                    setElementSearchQueries((prev) => ({
-                                      ...prev,
-                                      [trade.id]: e.target.value,
-                                    }));
-                                    setElementSearchQuery(e.target.value);
-                                  }}
-                                  onFocus={() => {
-                                    setCurrentTradeId(trade.id);
-                                    const tradeQuery =
-                                      elementSearchQueries[trade.id] || "";
-                                    setElementSearchQuery(tradeQuery);
-                                    if (
-                                      tradeQuery.trim() &&
-                                      filteredElements.length > 0
-                                    ) {
-                                      setIsElementSearchOpen(true);
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (
-                                      e.key === "Tab" &&
-                                      filteredElements.length > 0
-                                    ) {
-                                      e.preventDefault();
-                                      handleSelectElement(
-                                        filteredElements[0],
-                                        trade.id
-                                      );
-                                    } else if (e.key === "Enter") {
-                                      const tradeQuery =
-                                        elementSearchQueries[trade.id] || "";
-                                      if (
-                                        filteredElements.length === 0 ||
-                                        !tradeQuery.trim()
-                                      ) {
-                                        setIsElementSearchOpen(false);
-                                        handleOpenAddElementDialog(trade.id);
-                                      } else if (
-                                        filteredElements.length === 1
-                                      ) {
-                                        handleSelectElement(
-                                          filteredElements[0],
-                                          trade.id
-                                        );
-                                      }
-                                    }
-                                  }}
-                                  className="w-full pl-7 pr-10 h-8 text-xs"
-                                />
-                                {elementSearchQueries[trade.id] && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setElementSearchQueries((prev) => ({
-                                        ...prev,
-                                        [trade.id]: "",
-                                      }));
-                                      setElementSearchQuery("");
-                                    }}
-                                    className="absolute right-2 top-2 flex items-center focus:outline-none"
-                                    tabIndex={-1}
-                                    aria-label="Clear element search"
-                                  >
-                                    <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
-                                  </button>
-                                )}
-                                {isLoadingElements && (
-                                  <div className="absolute right-2 top-2">
-                                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              <div className="mt-3 border-t pt-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
+                                    Elements
                                   </div>
-                                )}
-                              </div>
+                                </div>
 
-                              {/* Element search results */}
-                              {(elementSearchQueries[trade.id] || "").trim() &&
-                                currentTradeId === trade.id && (
-                                  <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
-                                    <div className="p-2">
-                                      <p className="text-xs text-muted-foreground mb-1 px-2">
-                                        Elements
-                                      </p>
-                                      {filteredElements.length > 0 ? (
-                                        filteredElements
-                                          .filter(
-                                            (elements) =>
-                                              elements.origin === "original"
-                                          )
-                                          .map((element) => (
-                                            <div
-                                              key={element.id}
-                                              className="flex items-center justify-between w-full p-2 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                                <div className="relative mb-2">
+                                  <div className="relative w-full mb-1">
+                                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                                    <Input
+                                      placeholder="Search elements..."
+                                      value={
+                                        elementSearchQueries[trade.id] || ""
+                                      }
+                                      onChange={(e) => {
+                                        setCurrentTradeId(trade.id);
+                                        setElementSearchQueries((prev) => ({
+                                          ...prev,
+                                          [trade.id]: e.target.value,
+                                        }));
+                                        setElementSearchQuery(e.target.value);
+                                      }}
+                                      onFocus={() => {
+                                        setCurrentTradeId(trade.id);
+                                        const tradeQuery =
+                                          elementSearchQueries[trade.id] || "";
+                                        setElementSearchQuery(tradeQuery);
+                                        if (
+                                          tradeQuery.trim() &&
+                                          filteredElements.length > 0
+                                        ) {
+                                          setIsElementSearchOpen(true);
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Tab" &&
+                                          filteredElements.length > 0
+                                        ) {
+                                          e.preventDefault();
+                                          handleSelectElement(
+                                            filteredElements[0],
+                                            trade.id
+                                          );
+                                        } else if (e.key === "Enter") {
+                                          const tradeQuery =
+                                            elementSearchQueries[trade.id] ||
+                                            "";
+                                          if (
+                                            filteredElements.length === 0 ||
+                                            !tradeQuery.trim()
+                                          ) {
+                                            setIsElementSearchOpen(false);
+                                            handleOpenAddElementDialog(
+                                              trade.id
+                                            );
+                                          } else if (
+                                            filteredElements.length === 1
+                                          ) {
+                                            handleSelectElement(
+                                              filteredElements[0],
+                                              trade.id
+                                            );
+                                          }
+                                        }
+                                      }}
+                                      className="w-full pl-7 pr-10 h-8 text-xs"
+                                    />
+                                    {elementSearchQueries[trade.id] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setElementSearchQueries((prev) => ({
+                                            ...prev,
+                                            [trade.id]: "",
+                                          }));
+                                          setElementSearchQuery("");
+                                        }}
+                                        className="absolute right-2 top-2 flex items-center focus:outline-none"
+                                        tabIndex={-1}
+                                        aria-label="Clear element search"
+                                      >
+                                        <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
+                                      </button>
+                                    )}
+                                    {isLoadingElements && (
+                                      <div className="absolute right-2 top-2">
+                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Element search results */}
+                                  {(
+                                    elementSearchQueries[trade.id] || ""
+                                  ).trim() &&
+                                    currentTradeId === trade.id && (
+                                      <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
+                                        <div className="p-2">
+                                          <p className="text-xs text-muted-foreground mb-1 px-2">
+                                            Elements
+                                          </p>
+                                          {filteredElements.length > 0 ? (
+                                            filteredElements
+                                              .filter(
+                                                (elements) =>
+                                                  elements.origin === "original"
+                                              )
+                                              .map((element) => (
+                                                <div
+                                                  key={element.id}
+                                                  className="flex items-center justify-between w-full p-2 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                                                  onClick={() =>
+                                                    handleSelectElement(
+                                                      element,
+                                                      trade.id
+                                                    )
+                                                  }
+                                                >
+                                                  <div className="flex items-center">
+                                                    <BracesIcon className="mr-2 h-3 w-3" />
+                                                    <span>{element.name}</span>
+                                                  </div>
+                                                </div>
+                                              ))
+                                          ) : (
+                                            <div className="p-2 text-xs text-muted-foreground">
+                                              {trade.elements?.some((e) =>
+                                                e.name
+                                                  .toLowerCase()
+                                                  .includes(
+                                                    (
+                                                      elementSearchQueries[
+                                                        trade.id
+                                                      ] || ""
+                                                    ).toLowerCase()
+                                                  )
+                                              )
+                                                ? "Element already added to this trade"
+                                                : "No matching elements found"}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                </div>
+
+                                {/* Elements in trade */}
+                                <div className="space-y-2">
+                                  {trade.elements &&
+                                  trade.elements.length > 0 ? (
+                                    trade.elements.map((element) => (
+                                      <div
+                                        key={element.id}
+                                        className="flex flex-col gap-2"
+                                      >
+                                        <div className="flex items-center gap-3 p-4 rounded border bg-background relative group">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm">
+                                              {element.name}
+                                            </div>
+                                            {element.description && (
+                                              <div className="text-xs text-muted-foreground line-clamp-1">
+                                                {element.description}
+                                              </div>
+                                            )}
+                                            <div className="mt-2 pt-2 border-t border-dashed">
+                                              {element.material_cost_formula && (
+                                                <div className="mt-1 flex flex-col">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold">
+                                                      Material:
+                                                    </span>
+                                                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                                      {replaceVariableIdsWithNames(
+                                                        element.material_cost_formula,
+                                                        variables,
+                                                        element.material_formula_variables ||
+                                                          []
+                                                      )}
+                                                    </code>
+                                                  </div>
+                                                </div>
+                                              )}
+                                              {element.labor_cost_formula && (
+                                                <div className="mt-2 flex flex-col">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold">
+                                                      Labor:
+                                                    </span>
+                                                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                                      {replaceVariableIdsWithNames(
+                                                        element.labor_cost_formula,
+                                                        variables,
+                                                        element.labor_formula_variables ||
+                                                          []
+                                                      )}
+                                                    </code>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="absolute -top-2 -right-2 flex gap-1">
+                                            {/* Edit element button */}
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
                                               onClick={() =>
-                                                handleSelectElement(
-                                                  element,
+                                                handleOpenEditDialog(element)
+                                              }
+                                            >
+                                              <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="11"
+                                                height="11"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                              >
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                              </svg>
+                                            </Button>
+                                            {/* Remove element button */}
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
+                                              onClick={() =>
+                                                handleRemoveElement(
+                                                  element.id,
                                                   trade.id
                                                 )
                                               }
                                             >
-                                              <div className="flex items-center">
-                                                <BracesIcon className="mr-2 h-3 w-3" />
-                                                <span>{element.name}</span>
-                                              </div>
-                                            </div>
-                                          ))
-                                      ) : (
-                                        <div className="p-2 text-xs text-muted-foreground">
-                                          {trade.elements?.some((e) =>
-                                            e.name
-                                              .toLowerCase()
-                                              .includes(
-                                                (
-                                                  elementSearchQueries[
-                                                    trade.id
-                                                  ] || ""
-                                                ).toLowerCase()
-                                              )
-                                          )
-                                            ? "Element already added to this trade"
-                                            : "No matching elements found"}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                            </div>
-
-                            {/* Elements in trade */}
-                            <div className="space-y-2">
-                              {trade.elements && trade.elements.length > 0 ? (
-                                trade.elements.map((element) => (
-                                  <div
-                                    key={element.id}
-                                    className="flex flex-col gap-2"
-                                  >
-                                    <div className="flex items-center gap-3 p-4 rounded border bg-background relative group">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-sm">
-                                          {element.name}
-                                        </div>
-                                        {element.description && (
-                                          <div className="text-xs text-muted-foreground line-clamp-1">
-                                            {element.description}
+                                              <X className="h-2.5 w-2.5" />
+                                            </Button>
                                           </div>
-                                        )}
-                                        <div className="mt-2 pt-2 border-t border-dashed">
-                                          {element.material_cost_formula && (
-                                            <div className="mt-1 flex flex-col">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-xs font-semibold">
-                                                  Material:
-                                                </span>
-                                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                                  {replaceVariableIdsWithNames(
-                                                    element.material_cost_formula,
-                                                    variables,
-                                                    element.material_formula_variables ||
-                                                      []
-                                                  )}
-                                                </code>
-                                              </div>
-                                            </div>
-                                          )}
-                                          {element.labor_cost_formula && (
-                                            <div className="mt-2 flex flex-col">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-xs font-semibold">
-                                                  Labor:
-                                                </span>
-                                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                                  {replaceVariableIdsWithNames(
-                                                    element.labor_cost_formula,
-                                                    variables,
-                                                    element.labor_formula_variables ||
-                                                      []
-                                                  )}
-                                                </code>
-                                              </div>
-                                            </div>
-                                          )}
                                         </div>
                                       </div>
-
-                                      <div className="absolute -top-2 -right-2 flex gap-1">
-                                        {/* Edit element button */}
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
-                                          onClick={() =>
-                                            handleOpenEditDialog(element)
-                                          }
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="11"
-                                            height="11"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                          >
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                          </svg>
-                                        </Button>
-                                        {/* Remove element button */}
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                                          onClick={() =>
-                                            handleRemoveElement(
-                                              element.id,
-                                              trade.id
-                                            )
-                                          }
-                                        >
-                                          <X className="h-2.5 w-2.5" />
-                                        </Button>
-                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
+                                      No elements in this trade
                                     </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
-                                  No elements in this trade
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                              </div>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                            onClick={() => handleRemoveTrade(trade.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
+                                onClick={() => handleRemoveTrade(trade.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
