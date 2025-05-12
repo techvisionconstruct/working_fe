@@ -128,10 +128,7 @@ export default function CreateTemplate() {
       status: "draft",
     };
 
-    console.log(
-      "Creating template with image:",
-      templateDetails.image ? "Yes (base64)" : "No"
-    );
+
 
     return new Promise((resolve, reject) => {
       createTemplateMutation.mutate(templateDetails, {

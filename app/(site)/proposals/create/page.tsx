@@ -121,7 +121,6 @@ export default function CreateProposalPage() {
     },
   });
 
-  console.log("Form Data:", formData);
   const handleCreateProposal = async () => {
     const templateId = formData.template ? formData.template.id : null;
 
@@ -144,7 +143,6 @@ export default function CreateProposalPage() {
         onSuccess: (data) => {
           resolve(data);
           toast.success("Proposal created successfully!");
-          console.log("Proposal created successfully:", data);
           setTradeObjects(data.data.template.trades);
           setVariableObjects(data.data.template.variables);
           setTemplate(data.data.template);
