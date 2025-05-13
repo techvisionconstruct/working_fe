@@ -71,12 +71,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   updateTrades,
   updateVariables = () => {},
 }) => {
-  // Get query client for data refetching
   const queryClient = useQueryClient();
 
-  // =========== STATE MANAGEMENT ===========
-
-  // Variable-related state
   const [showEditVariableDialog, setShowEditVariableDialog] = useState(false);
   const [currentVariableId, setCurrentVariableId] = useState<string | null>(
     null
@@ -86,6 +82,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [editVariableValue, setEditVariableValue] = useState(0);
   const [editVariableType, setEditVariableType] = useState("");
   const [isUpdatingVariable, setIsUpdatingVariable] = useState(false);
+
+  const [inlineEditingVariableId, setInlineEditingVariableId] = useState<string | null>(null);
+  const [inlineEditValue, setInlineEditValue] = useState<number>(0);
+
   const [newVarName, setNewVarName] = useState("");
   const [newVarDefaultValue, setNewVarDefaultValue] = useState(0);
   const [newVarDescription, setNewVarDescription] = useState("");
@@ -93,20 +93,16 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     useState("");
   const variables = data.variables || [];
 
-  // Trade-related state
   const [tradeSearchQuery, setTradeSearchQuery] = useState("");
   const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);
   const [newTradeName, setNewTradeName] = useState("");
   const [newTradeDescription, setNewTradeDescription] = useState("");
   const trades = data.trades || [];
 
-  // Template processing state
   const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
   const [templateProcessed, setTemplateProcessed] = useState(false);
 
-  // Effect to load template trades and variables
   useEffect(() => {
-    // Only process the template if it exists and hasn't been processed yet
     if (template && !templateProcessed) {
       setIsProcessingTemplate(true);
       setIsProcessingTemplate(false);
@@ -121,7 +117,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     updateVariables,
   ]);
 
-  // Element-related state
   const [elementSearchQuery, setElementSearchQuery] = useState("");
   const [isElementSearchOpen, setIsElementSearchOpen] = useState(false);
   const [elementSearchQueries, setElementSearchQueries] = useState<
@@ -138,7 +133,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newElementLaborFormula, setNewElementLaborFormula] = useState("");
   const [elementMarkup, setElementMarkup] = useState<number>(0);
 
-  // Formula autocomplete states
   const [materialSuggestions, setMaterialSuggestions] = useState<
     VariableResponse[]
   >([]);
@@ -156,7 +150,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   >(null);
   const [pendingVariableName, setPendingVariableName] = useState<string>("");
 
-  // UI state
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -190,7 +183,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     queryFn: getAllVariableTypes,
   });
 
-  // Get all elements
   const {
     data: apiElements = [],
     isLoading: isLoadingElements,
@@ -326,7 +318,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       },
     });
 
-  // Template update mutation for updating the template when variables or trades change
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
     useMutation({
       mutationFn: ({
@@ -354,7 +345,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       },
     });
 
-  // Element update mutation
   const { mutate: updateElementMutation, isPending: isUpdatingElement } =
     useMutation({
       mutationFn: ({ elementId, data }: { elementId: string; data: any }) =>
@@ -363,7 +353,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         if (response && response.data) {
           const updatedElement = response.data;
 
-          // Update the element in all trades where it exists
           const updatedTrades = trades.map((trade) => {
             if (
               trade.elements &&
@@ -381,7 +370,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
           updateTrades(updatedTrades);
 
-          // Reset form and close dialog
           setShowEditElementDialog(false);
           setCurrentElementId(null);
           setNewElementName("");
@@ -471,7 +459,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         )
       : [];
 
-  // Filtered trades for search results
   const filteredTrades =
     tradeSearchQuery === ""
       ? []
@@ -484,23 +471,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         )
       : [];
 
-  // Filtered elements for search results
   const filteredElements =
     elementSearchQuery === ""
       ? []
       : Array.isArray(apiElements.data)
       ? (apiElements.data as ElementResponse[]).filter((element) => {
-          // Check if the element matches the search query
           const matchesQuery =
             element.name
               .toLowerCase()
               .includes(elementSearchQuery.toLowerCase()) &&
             element.origin === "original";
 
-          // Find the current trade
           const currentTrade = trades.find((t) => t.id === currentTradeId);
 
-          // Check if the element is already in the trade
           const isAlreadyInTrade = currentTrade?.elements?.some(
             (e) => e.id === element.id.toString()
           );
@@ -509,24 +492,20 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         })
       : [];
 
-  // Helper functions for formula autocomplete
   const filterVariableSuggestions = (
     input: string,
     prefix: string = ""
   ): VariableResponse[] => {
     if (!input || !prefix) return [];
 
-    // Find the current word being typed after the last space
     const lastSpaceIndex = input.lastIndexOf(prefix);
     if (lastSpaceIndex === -1) return [];
 
-    // Get current partial variable name being typed
     const currentPartial = input
       .substring(lastSpaceIndex + prefix.length)
       .trim();
     if (!currentPartial) return [];
 
-    // Filter variables that match the partial input
     return variables.filter((variable) =>
       variable.name.toLowerCase().includes(currentPartial.toLowerCase())
     );
@@ -538,7 +517,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const value = e.target.value;
     setNewElementMaterialFormula(value);
 
-    // Check if we're typing a variable reference
     if (value.includes("{") && !value.endsWith("}")) {
       const suggestions = filterVariableSuggestions(value, "{");
       setMaterialSuggestions(suggestions);
@@ -553,32 +531,27 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const value = e.target.value;
     setNewElementLaborFormula(value);
 
-    // Check if we're typing a variable reference
     if (value.includes("{") && !value.endsWith("}")) {
       const suggestions = filterVariableSuggestions(value, "{");
       setLaborSuggestions(suggestions);
       setShowLaborSuggestions(suggestions.length > 0);
       setSelectedLaborSuggestion(0);
 
-      // Extract what the user is typing as a potential variable name
       const lastBraceIndex = value.lastIndexOf("{");
       if (lastBraceIndex !== -1) {
         const partialVarName = value.substring(lastBraceIndex + 1).trim();
 
-        // If user has typed something meaningful and pressed Enter with no matches
         if (
           partialVarName &&
           (e.nativeEvent as InputEvent).inputType === "insertLineBreak" &&
           suggestions.length === 0
         ) {
-          // Open the add variable dialog with the partial variable name
           setPendingVariableName(partialVarName);
           setFormulaFieldSource("labor");
           setNewVarName(partialVarName);
           setShowAddDialog(true);
           setShowLaborSuggestions(false);
 
-          // Prevent adding the newline character to the formula
           setNewElementLaborFormula(value.replace(/\n/g, ""));
         }
       }
@@ -591,7 +564,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     formula: string,
     variableName: string
   ): string => {
-    // Find the last opening brace to replace everything from there to cursor with the variable name
     const lastOpenBrace = formula.lastIndexOf("{");
     if (lastOpenBrace === -1) return formula;
 
@@ -601,7 +573,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleMaterialFormulaKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
-    // If we have suggestions, handle keyboard navigation
     if (showMaterialSuggestions && materialSuggestions.length > 0) {
       switch (e.key) {
         case "ArrowDown":
@@ -630,10 +601,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setShowMaterialSuggestions(false);
           break;
       }
-      return; // Exit early if we're handling suggestions
+      return;
     }
 
-    // Handle creating a new variable when Enter is pressed while typing in braces
     if (
       e.key === "Enter" &&
       newElementMaterialFormula.includes("{") &&
@@ -641,26 +611,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     ) {
       e.preventDefault();
 
-      // Extract variable name being typed
       const lastBraceIndex = newElementMaterialFormula.lastIndexOf("{");
       if (lastBraceIndex !== -1) {
         const partialVarName = newElementMaterialFormula
           .substring(lastBraceIndex + 1)
           .trim();
 
-        // If there's a name typed and it doesn't match existing variables
         if (
           partialVarName &&
           !variables.some(
             (v) => v.name.toLowerCase() === partialVarName.toLowerCase()
           )
         ) {
-          // Set the variable name in the add dialog
           setNewVarName(partialVarName);
-          // Track which formula field triggered the dialog
           setFormulaFieldSource("material");
           setPendingVariableName(partialVarName);
-          // Open the dialog
           setShowAddDialog(true);
         }
       }
@@ -670,7 +635,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleLaborFormulaKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
-    // If we have suggestions, handle keyboard navigation
     if (showLaborSuggestions && laborSuggestions.length > 0) {
       switch (e.key) {
         case "ArrowDown":
@@ -699,10 +663,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setShowLaborSuggestions(false);
           break;
       }
-      return; // Exit early if we're handling suggestions
+      return;
     }
 
-    // Handle creating a new variable when Enter is pressed while typing in braces
     if (
       e.key === "Enter" &&
       newElementLaborFormula.includes("{") &&
@@ -710,26 +673,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     ) {
       e.preventDefault();
 
-      // Extract variable name being typed
       const lastBraceIndex = newElementLaborFormula.lastIndexOf("{");
       if (lastBraceIndex !== -1) {
         const partialVarName = newElementLaborFormula
           .substring(lastBraceIndex + 1)
           .trim();
 
-        // If there's a name typed and it doesn't match existing variables
         if (
           partialVarName &&
           !variables.some(
             (v) => v.name.toLowerCase() === partialVarName.toLowerCase()
           )
         ) {
-          // Set the variable name in the add dialog
           setNewVarName(partialVarName);
-          // Track which formula field triggered the dialog
           setFormulaFieldSource("labor");
           setPendingVariableName(partialVarName);
-          // Open the dialog
           setShowAddDialog(true);
         }
       }
@@ -754,9 +712,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       const updatedVariables = [...variables, newVar];
       updateVariables(updatedVariables);
 
-      // If template exists and we're adding a variable, update the template variables
       if (templateId) {
-        // Update the template with the new variable
         updateTemplateMutation({
           templateId: templateId,
           data: { variables: updatedVariables.map((v) => v.id) },
@@ -786,9 +742,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const updatedVariables = variables.filter((v) => v.id !== variableId);
     updateVariables(updatedVariables);
 
-    // If template exists, update the template's variables
     if (templateId) {
-      // Update the template with the reduced variable list
       updateTemplateMutation({
         templateId: templateId,
         data: { variables: updatedVariables.map((v) => v.id) },
@@ -796,7 +750,135 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     }
   };
 
-  // Trade handling functions
+  const isZeroOrEmpty = (value: any): boolean => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'number') {
+      return Math.abs(value) < 0.0001; // Handle potential floating point issues
+    }
+    if (typeof value === 'string') {
+      const numValue = parseFloat(value);
+      return !isNaN(numValue) && Math.abs(numValue) < 0.0001;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    const zeroValueVariables = variables.filter(v => isZeroOrEmpty(v.value));
+    if (zeroValueVariables.length > 0 && inlineEditingVariableId === null) {
+      setInlineEditingVariableId("zero-values-ready");
+    }
+  }, [variables]);
+
+  const startInlineValueEdit = (variable: VariableResponse) => {
+    setInlineEditingVariableId(variable.id);
+    setInlineEditValue(variable.value || 0);
+  };
+
+  const saveInlineValueEdit = (variableId: string, newValue: number) => {
+    if (inlineEditingVariableId === "zero-values-ready") {
+      if (variableId !== "zero-values-ready") {
+        setInlineEditingVariableId(variableId);
+      }
+      return;
+    }
+
+    const variableToUpdate = variables.find(v => v.id === variableId);
+    if (!variableToUpdate) return;
+
+    setIsUpdatingVariable(true);
+
+    const variableData = {
+      name: variableToUpdate.name,
+      description: variableToUpdate.description || undefined,
+      value: newValue,
+      variable_type: variableToUpdate.variable_type?.id || "",
+    };
+
+    const updatedVariables = variables.map((variable) => {
+      if (variable.id === variableId) {
+        return {
+          ...variable,
+          value: newValue
+        };
+      }
+      return variable;
+    });
+    updateVariables(updatedVariables);
+
+    const elementsToUpdate: { elementId: string; data: any }[] = [];
+    trades.forEach((trade) => {
+      if (trade.elements) {
+        trade.elements.forEach((element) => {
+          let needsUpdate = false;
+
+          if (
+            element.material_formula_variables &&
+            element.material_formula_variables.some(
+              (v) => v.id.toString() === variableId
+            )
+          ) {
+            needsUpdate = true;
+          }
+
+          if (
+            element.labor_formula_variables &&
+            element.labor_formula_variables.some(
+              (v) => v.id.toString() === variableId
+            )
+          ) {
+            needsUpdate = true;
+          }
+
+          if (needsUpdate) {
+            elementsToUpdate.push({
+              elementId: element.id,
+              data: {
+                material_cost_formula: element.material_cost_formula,
+                labor_cost_formula: element.labor_cost_formula,
+              },
+            });
+          }
+        });
+      }
+    });
+
+    const variableElementsToUpdate = elementsToUpdate;
+
+    updateVariableMutation({
+      variableId: variableId,
+      data: variableData,
+    });
+
+    setTimeout(() => {
+      if (variableElementsToUpdate.length > 0) {
+        variableElementsToUpdate.forEach(({ elementId, data }) => {
+          updateElementMutation({
+            elementId,
+            data,
+          });
+        });
+
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
+          setIsUpdatingVariable(false);
+        }, 2000);
+      } else {
+        setIsUpdatingVariable(false);
+      }
+    }, 1000);
+
+    if (isZeroOrEmpty(newValue)) {
+      setInlineEditingVariableId("zero-values-ready");
+    } else {
+      setInlineEditingVariableId(null);
+    }
+  };
+
+  const cancelInlineValueEdit = () => {
+    setInlineEditingVariableId(null);
+  };
+
   const handleSelectTrade = (trade: TradeResponse) => {
     const newTrade: TradeResponse = {
       id: trade.id.toString(),
@@ -822,30 +904,81 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     updateTrades(trades.filter((t) => t.id !== tradeId));
   };
 
-  // Function to handle adding a new trade manually
   const handleAddTrade = () => {
     if (!newTradeName.trim()) return;
 
-    // Create trade data according to TradeCreateRequest format
     const tradeData = {
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
       origin: "derived",
-      // No elements included as requested
     };
 
-    // Call the mutation to create the trade in the backend
     createTradeMutation(tradeData);
-
-    // Success handling is done in the mutation's onSuccess callback
   };
 
-  // Element handling functions
+  const handleAddElement = (data: {
+    name: string;
+    description: string;
+    materialFormula: string;
+    laborFormula: string;
+    markup: number;
+  }) => {
+    if (!data.name.trim() || !currentTradeId) return;
+
+    const materialFormula = data.materialFormula.trim()
+      ? replaceVariableNamesWithIds(data.materialFormula.trim(), variables)
+      : undefined;
+
+    const laborFormula = data.laborFormula.trim()
+      ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
+      : undefined;
+
+    const elementData = {
+      name: data.name.trim(),
+      description: data.description.trim() || undefined,
+      material_cost_formula: materialFormula,
+      origin: "derived",
+      labor_cost_formula: laborFormula,
+      markup: data.markup,
+    };
+
+    createElementMutation(elementData);
+  };
+
+  const handleEditElement = (data: {
+    name: string;
+    description: string;
+    materialFormula: string;
+    laborFormula: string;
+    markup: number;
+  }) => {
+    if (!data.name.trim() || !currentElementId) return;
+
+    const materialFormula = data.materialFormula.trim()
+      ? replaceVariableNamesWithIds(data.materialFormula.trim(), variables)
+      : undefined;
+
+    const laborFormula = data.laborFormula.trim()
+      ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
+      : undefined;
+
+    const elementData = {
+      name: data.name.trim(),
+      description: data.description.trim() || undefined,
+      material_cost_formula: materialFormula,
+      labor_cost_formula: laborFormula,
+      markup: data.markup,
+    };
+
+    updateElementMutation({
+      elementId: currentElementId,
+      data: elementData,
+    });
+  };
+
   const handleSelectElement = (element: ElementResponse, tradeId: string) => {
-    // Find the trade to add this element to
     const updatedTrades = trades.map((trade) => {
       if (trade.id === tradeId) {
-        // Add the element to this trade if not already present
         if (!trade.elements?.some((e) => e.id === element.id.toString())) {
           return {
             ...trade,
@@ -856,27 +989,20 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
 
-    // Update the backend through trade mutation
-    // Find the updated trade with the new element
     const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade && updatedTrade.elements) {
-      // Get all element IDs
       const elementIds = updatedTrade.elements.map((elem) => elem.id);
 
-      // Call update trade mutation
       updateTradeMutation({
         tradeId: tradeId,
         data: { elements: elementIds },
       });
     }
 
-    // Reset search state
     setIsElementSearchOpen(false);
 
-    // Clear both the global search query and the trade-specific search query
     setElementSearchQuery("");
     setElementSearchQueries((prev) => ({
       ...prev,
@@ -885,7 +1011,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const handleRemoveElement = (elementId: string, tradeId: string) => {
-    // Find the trade and remove the element from it
     const updatedTrades = trades.map((trade) => {
       if (trade.id === tradeId) {
         return {
@@ -896,79 +1021,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return trade;
     });
 
-    // Update trades state for immediate UI feedback
     updateTrades(updatedTrades);
 
-    // Update the backend through trade mutation
-    // Find the updated trade with the element removed
     const updatedTrade = updatedTrades.find((trade) => trade.id === tradeId);
     if (updatedTrade) {
-      // Get all remaining element IDs
       const elementIds = updatedTrade.elements?.map((elem) => elem.id) || [];
 
-      // Call update trade mutation
       updateTradeMutation({
         tradeId: tradeId,
         data: { elements: elementIds },
       });
     }
-  };
-
-  const handleAddElement = () => {
-    if (!newElementName.trim() || !currentTradeId) return;
-
-    // Convert formula variable names to IDs for backend submission
-    const materialFormula = newElementMaterialFormula.trim()
-      ? replaceVariableNamesWithIds(newElementMaterialFormula.trim(), variables)
-      : undefined;
-
-    const laborFormula = newElementLaborFormula.trim()
-      ? replaceVariableNamesWithIds(newElementLaborFormula.trim(), variables)
-      : undefined;
-
-    // Prepare element data with ID-based formulas
-    const elementData = {
-      name: newElementName.trim(),
-      description: newElementDescription.trim() || undefined,
-      material_cost_formula: materialFormula,
-      origin: "derived",
-      labor_cost_formula: laborFormula,
-    };
-
-    // Create the element
-    createElementMutation(elementData);
-
-    // Success handling is done in the mutation's onSuccess callback
-  };
-
-  const handleEditElement = () => {
-    if (!newElementName.trim() || !currentElementId) return;
-
-    // Convert formula variable names to IDs for backend submission
-    const materialFormula = newElementMaterialFormula.trim()
-      ? replaceVariableNamesWithIds(newElementMaterialFormula.trim(), variables)
-      : undefined;
-
-    const laborFormula = newElementLaborFormula.trim()
-      ? replaceVariableNamesWithIds(newElementLaborFormula.trim(), variables)
-      : undefined;
-
-    // Prepare element data with ID-based formulas
-    const elementData = {
-      name: newElementName.trim(),
-      description: newElementDescription.trim() || undefined,
-      material_cost_formula: materialFormula,
-      labor_cost_formula: laborFormula,
-      markup: elementMarkup,
-    };
-
-    // Update the element
-    updateElementMutation({
-      elementId: currentElementId,
-      data: elementData,
-    });
-
-    // Success handling is done in the mutation's onSuccess callback
   };
 
   const handleOpenEditVariableDialog = (variable: VariableResponse) => {
@@ -992,14 +1055,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       variable_type: editVariableType,
     };
 
-    // Find the selected variable type from the API data
     const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data)
       ? (apiVariableTypes as any).data.find(
           (type: any) => type.id.toString() === editVariableType
         )
       : null;
 
-    // Update local state immediately to provide instant UI feedback
     const updatedVariables = variables.map((variable) => {
       if (variable.id === currentVariableId) {
         return {
@@ -1013,10 +1074,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return variable;
     });
 
-    // Update the parent component's state
     updateVariables(updatedVariables);
 
-    // Find and update all elements that use this variable in their formulas
     const elementsToUpdate: { elementId: string; data: any }[] = [];
 
     trades.forEach((trade) => {
@@ -1024,7 +1083,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         trade.elements.forEach((element) => {
           let needsUpdate = false;
 
-          // Check if this variable is used in material cost formula
           if (
             element.material_formula_variables &&
             element.material_formula_variables.some(
@@ -1034,7 +1092,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             needsUpdate = true;
           }
 
-          // Check if this variable is used in labor cost formula
           if (
             element.labor_formula_variables &&
             element.labor_formula_variables.some(
@@ -1045,7 +1102,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           }
 
           if (needsUpdate) {
-            // Use the existing formulas to trigger a recalculation
             elementsToUpdate.push({
               elementId: element.id,
               data: {
@@ -1058,21 +1114,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }
     });
 
-    // Store the elements to update in a variable that will be accessible in the onSuccess callback
     const variableElementsToUpdate = elementsToUpdate;
 
-    // Send variable update to server first
     updateVariableMutation({
       variableId: currentVariableId,
       data: variableData,
     });
 
-    // We'll use a setTimeout to ensure the variable update completes before updating elements
-    // This ensures proper ordering of updates without needing to modify the mutation function
     setTimeout(() => {
-      // Update all affected elements after the variable update is processed
       if (variableElementsToUpdate.length > 0) {
-        // Update each element one by one
         variableElementsToUpdate.forEach(({ elementId, data }) => {
           updateElementMutation({
             elementId,
@@ -1080,30 +1130,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           });
         });
 
-        // Add another timeout to refresh the data after all elements are updated
         setTimeout(() => {
-          // Invalidate both elements and trades queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: ["elements"] });
           queryClient.invalidateQueries({ queryKey: ["trades"] });
           toast.success(`All elements updated with new variable value`);
           setIsUpdatingVariable(false);
-        }, 2000); // Wait for element updates to complete
+        }, 2000);
       } else {
         setIsUpdatingVariable(false);
       }
-    }, 1000); // 1 second delay to ensure variable update completes first
+    }, 1000);
   };
 
   const handleOpenEditDialog = (element: ElementResponse) => {
-    // Set the current element ID
     setCurrentElementId(element.id);
 
-    // Pre-fill the form with the element's data
     setNewElementName(element.name);
     setNewElementDescription(element.description || "");
     setElementMarkup(element.markup || 0);
 
-    // Convert formula IDs back to names for display
     if (element.material_cost_formula) {
       setNewElementMaterialFormula(
         replaceVariableIdsWithNames(
@@ -1128,45 +1173,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       setNewElementLaborFormula("");
     }
 
-    // Open the edit dialog
     setShowEditElementDialog(true);
-  };
-
-  // =========== VALIDATION STATE/FORMS ===========
-  const [variableErrors, setVariableErrors] = useState({
-    name: "",
-    variable_type: "",
-  });
-
-  const [variableTouched, setVariableTouched] = useState({
-    name: false,
-    variable_type: false,
-  });
-
-  // Add validation functions
-  const validateVariableForm = () => {
-    const newErrors = { name: "", variable_type: "" };
-
-    if (!newVarName.trim()) {
-      newErrors.name = "Variable name is required";
-    } else if (newVarName.length > 50) {
-      newErrors.name = "Variable name must be less than 50 characters";
-    } else if (
-      variables.some((v) => v.name.toLowerCase() === newVarName.toLowerCase())
-    ) {
-      newErrors.name = "Variable with this name already exists";
-    }
-
-    if (!newVarDefaultVariableType) {
-      newErrors.variable_type = "Variable type is required";
-    }
-
-    setVariableErrors(newErrors);
-    return !newErrors.name && !newErrors.variable_type;
-  };
-
-  const handleVariableBlur = (field: any) => {
-    setVariableTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   return (
@@ -1177,7 +1184,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           Define variables for your proposal and organize elements by trade.
         </p>
 
-        {/* Template loading indicator */}
         {isProcessingTemplate && (
           <div className="flex items-center gap-2 p-3 mb-4 bg-muted rounded-md text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1229,19 +1235,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-10"
+                      className="w-full pl-8 pr-4"
                     />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                        tabIndex={-1}
-                        aria-label="Clear variable search"
-                      >
-                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                      </button>
-                    )}
                     {isLoadingVariables && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1283,46 +1278,16 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="var-name">
-                            Variable Name<span className="text-red-500">*</span>
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              id="var-name"
-                              placeholder="Wall Length"
-                              value={newVarName}
-                              onChange={(e) => setNewVarName(e.target.value)}
-                              onBlur={() => handleVariableBlur("name")}
-                              className={
-                                variableErrors.name && variableTouched.name
-                                  ? "border-red-500 pr-10"
-                                  : "pr-10"
-                              }
-                            />
-                            {newVarName && (
-                              <button
-                                type="button"
-                                onClick={() => setNewVarName("")}
-                                className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                                tabIndex={-1}
-                                aria-label="Clear variable name"
-                              >
-                                <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                              </button>
-                            )}
-                          </div>
-                          {variableErrors.name && variableTouched.name && (
-                            <p className="text-red-500 text-xs mt-1">
-                              {variableErrors.name}
-                            </p>
-                          )}
+                          <Label htmlFor="var-name">Variable Name</Label>
+                          <Input
+                            id="var-name"
+                            placeholder="Wall Length"
+                            value={newVarName}
+                            onChange={(e) => setNewVarName(e.target.value)}
+                          />
                         </div>
-
                         <div className="grid gap-2">
-                          <Label htmlFor="var-type">
-                            Variable Type{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
+                          <Label htmlFor="var-type">Variable Type</Label>
                           {isLoadingVariableTypes ? (
                             <div className="relative">
                               <Select disabled>
@@ -1336,58 +1301,38 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <>
-                              <Select
-                                value={newVarDefaultVariableType}
-                                onValueChange={setNewVarDefaultVariableType}
-                              >
-                                <SelectTrigger
-                                  className={`w-full ${
-                                    variableErrors.variable_type &&
-                                    variableTouched.variable_type
-                                      ? "border-red-500"
-                                      : ""
-                                  }`}
-                                >
-                                  <SelectValue placeholder="Select a variable type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.isArray(
-                                    (apiVariableTypes as any)?.data
-                                  ) ? (
-                                    (apiVariableTypes as any).data.map(
-                                      (type: any) => (
-                                        <SelectItem
-                                          key={type.id}
-                                          value={type.id.toString()}
-                                        >
-                                          {type.name}
-                                        </SelectItem>
-                                      )
+                            <Select
+                              value={newVarDefaultVariableType}
+                              onValueChange={setNewVarDefaultVariableType}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a variable type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.isArray(
+                                  (apiVariableTypes as any)?.data
+                                ) ? (
+                                  (apiVariableTypes as any).data.map(
+                                    (type: any) => (
+                                      <SelectItem
+                                        key={type.id}
+                                        value={type.id.toString()}
+                                      >
+                                        {type.name}
+                                      </SelectItem>
                                     )
-                                  ) : (
-                                    <SelectItem value="default">
-                                      Default Type
-                                    </SelectItem>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              {variableErrors.variable_type &&
-                                variableTouched.variable_type && (
-                                  <p className="text-xs text-red-500">
-                                    {variableErrors.variable_type}
-                                  </p>
+                                  )
+                                ) : (
+                                  <SelectItem value="default">
+                                    Default Type
+                                  </SelectItem>
                                 )}
-                            </>
+                              </SelectContent>
+                            </Select>
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="var-description">
-                            Description{" "}
-                            <span className="text-gray-500">
-                              &#40;Optional&#41;
-                            </span>
-                          </Label>
+                          <Label htmlFor="var-description">Description</Label>
                           <Textarea
                             id="var-description"
                             placeholder="What this variable represents (optional)"
@@ -1408,13 +1353,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         </Button>
                         <Button
                           onClick={() => {
-                            if (validateVariableForm()) {
+                            if (newVarName.trim()) {
                               handleAddVariable();
-                            } else {
-                              setVariableTouched({
-                                name: true,
-                                variable_type: true,
-                              });
                             }
                           }}
                           disabled={isSubmitting}
@@ -1465,12 +1405,60 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               <span className="text-xs font-medium mr-1">
                                 Value:
                               </span>
-                              <span className="text-xs">
-                                {variable.value} {variable.variable_type?.unit}
-                              </span>
+                              {inlineEditingVariableId === variable.id || 
+                               (isZeroOrEmpty(variable.value) && inlineEditingVariableId === "zero-values-ready") ? (
+                                <div className="flex">
+                                  <Input 
+                                    type="number"
+                                    value={inlineEditingVariableId === variable.id ? inlineEditValue : (variable.value || 0)}
+                                    onChange={(e) => {
+                                      if (inlineEditingVariableId === "zero-values-ready") {
+                                        setInlineEditingVariableId(variable.id);
+                                        setInlineEditValue(Number(e.target.value));
+                                      } else {
+                                        setInlineEditValue(Number(e.target.value));
+                                      }
+                                    }}
+                                    onFocus={(e) => {
+                                      if (inlineEditingVariableId === "zero-values-ready") {
+                                        setInlineEditingVariableId(variable.id);
+                                        setInlineEditValue(variable.value || 0);
+                                      }
+                                      // Auto-select all text for easy value replacement
+                                      e.target.select();
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        saveInlineValueEdit(variable.id, inlineEditValue);
+                                      } else if (e.key === 'Escape') {
+                                        cancelInlineValueEdit();
+                                      }
+                                    }}
+                                    onBlur={() => {
+                                      if (inlineEditingVariableId === variable.id) {
+                                        saveInlineValueEdit(variable.id, inlineEditValue);
+                                      }
+                                    }}
+                                    placeholder="0"
+                                    className="h-6 text-xs py-0 w-20"
+                                    autoFocus={inlineEditingVariableId === variable.id}
+                                  />
+                                  <span className="text-xs ml-1 flex items-center">
+                                    {variable.variable_type?.unit}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span 
+                                  className="text-xs cursor-pointer hover:bg-muted rounded px-1"
+                                  onClick={() => {
+                                    startInlineValueEdit(variable);
+                                  }}
+                                >
+                                  {variable.value === null || variable.value === undefined ? "0" : variable.value} {variable.variable_type?.unit}
+                                </span>
+                              )}
                             </div>
                             <div className="absolute -top-2 -right-2 flex gap-1">
-                              {/* Edit variable button */}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1494,7 +1482,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                 </svg>
                               </Button>
-                              {/* Remove variable button */}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1524,7 +1511,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           </Card>
         </div>
 
-        {/* Right Column: Trades (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="pb-3">
@@ -1567,19 +1553,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           }
                         }
                       }}
-                      className="w-full pl-8 pr-10"
+                      className="w-full pl-8 pr-4"
                     />
-                    {tradeSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setTradeSearchQuery("")}
-                        className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                        tabIndex={-1}
-                        aria-label="Clear trade search"
-                      >
-                        <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                      </button>
-                    )}
                     {isLoadingTrades && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1587,7 +1562,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     )}
                   </div>
 
-                  {/* Trade search results dropdown */}
                   {tradeSearchQuery.trim() && filteredTrades.length > 0 && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                       <div className="p-2">
@@ -1634,7 +1608,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       setCurrentVariableId(null);
                     }}
                   />
-                  {/* Dialog for adding a new trade */}
                   <AddTradeDialog
                     open={showAddTradeDialog}
                     onOpenChange={setShowAddTradeDialog}
@@ -1646,62 +1619,32 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     isCreatingTrade={isCreatingTrade}
                   />
 
-                  {/* Dialog for adding a new element */}
                   <AddElementDialog
                     open={showAddElementDialog}
                     onOpenChange={setShowAddElementDialog}
                     onAddElement={handleAddElement}
                     newElementName={newElementName}
-                    setNewElementName={setNewElementName}
-                    newElementDescription={newElementDescription}
-                    setNewElementDescription={setNewElementDescription}
-                    newElementMaterialFormula={newElementMaterialFormula}
-                    setNewElementMaterialFormula={setNewElementMaterialFormula}
-                    newElementLaborFormula={newElementLaborFormula}
-                    setNewElementLaborFormula={setNewElementLaborFormula}
-                    handleMaterialFormulaChange={handleMaterialFormulaChange}
-                    handleLaborFormulaChange={handleLaborFormulaChange}
-                    handleMaterialFormulaKeyDown={handleMaterialFormulaKeyDown}
-                    handleLaborFormulaKeyDown={handleLaborFormulaKeyDown}
-                    showMaterialSuggestions={showMaterialSuggestions}
-                    materialSuggestions={materialSuggestions}
-                    selectedMaterialSuggestion={selectedMaterialSuggestion}
-                    showLaborSuggestions={showLaborSuggestions}
-                    laborSuggestions={laborSuggestions}
-                    selectedLaborSuggestion={selectedLaborSuggestion}
+                    variables={variables}
+                    updateVariables={updateVariables}
                     isCreatingElement={isCreatingElement}
-                    insertVariableInFormula={insertVariableInFormula}
                   />
 
-                  {/* Dialog for editing an element */}
                   <EditElementDialog
                     open={showEditElementDialog}
                     onOpenChange={setShowEditElementDialog}
                     onEditElement={handleEditElement}
-                    newElementName={newElementName}
-                    setNewElementName={setNewElementName}
-                    newElementDescription={newElementDescription}
-                    setNewElementDescription={setNewElementDescription}
-                    newElementMaterialFormula={newElementMaterialFormula}
-                    setNewElementMaterialFormula={setNewElementMaterialFormula}
-                    newElementLaborFormula={newElementLaborFormula}
-                    setNewElementLaborFormula={setNewElementLaborFormula}
-                    elementMarkup={elementMarkup}
-                    setElementMarkup={setElementMarkup}
-                    handleMaterialFormulaChange={handleMaterialFormulaChange}
-                    handleLaborFormulaChange={handleLaborFormulaChange}
-                    handleMaterialFormulaKeyDown={handleMaterialFormulaKeyDown}
-                    handleLaborFormulaKeyDown={handleLaborFormulaKeyDown}
-                    showMaterialSuggestions={showMaterialSuggestions}
-                    setShowMaterialSuggestions={setShowMaterialSuggestions}
-                    materialSuggestions={materialSuggestions}
-                    selectedMaterialSuggestion={selectedMaterialSuggestion}
-                    showLaborSuggestions={showLaborSuggestions}
-                    setShowLaborSuggestions={setShowLaborSuggestions}
-                    laborSuggestions={laborSuggestions}
-                    selectedLaborSuggestion={selectedLaborSuggestion}
+                    elementToEdit={
+                      currentElementId
+                        ? trades
+                            .flatMap((trade) => trade.elements || [])
+                            .find((element) => element.id === currentElementId) ||
+                          null
+                        : null
+                    }
+                    variables={variables}
+                    updateVariables={updateVariables}
                     isUpdatingElement={isUpdatingElement}
-                    insertVariableInFormula={insertVariableInFormula}
+                    elementMarkup={elementMarkup}
                     onCancel={() => {
                       setShowEditElementDialog(false);
                       setCurrentElementId(null);
@@ -1751,7 +1694,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         ...prev,
                                         [trade.id]: e.target.value,
                                       }));
-                                      // Also update the global query for filter function compatibility
                                       setElementSearchQuery(e.target.value);
                                     }}
                                     onFocus={() => {
@@ -1799,22 +1741,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     }}
                                     className="w-full pl-7 pr-4 h-8 text-xs"
                                   />
-                                  {elementSearchQueries[trade.id] && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setElementSearchQueries((prev) => ({
-                                          ...prev,
-                                          [trade.id]: "",
-                                        }))
-                                      }
-                                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                                      tabIndex={-1}
-                                      aria-label="Clear element search"
-                                    >
-                                      <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
-                                    </button>
-                                  )}
                                   {isLoadingElements && (
                                     <div className="absolute right-2 top-2">
                                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -1928,7 +1854,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                             </div>
                                           )}
 
-                                          {/* Display element markup */}
                                           {element.markup !== undefined && (
                                             <div className="mt-2 flex flex-col">
                                               <div className="flex items-center justify-between">
@@ -1947,7 +1872,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                       </div>
 
                                       <div className="absolute -top-2 -right-2 flex gap-1">
-                                        {/* Edit element button */}
                                         <Button
                                           variant="ghost"
                                           size="icon"
@@ -1971,7 +1895,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                           </svg>
                                         </Button>
-                                        {/* Remove element button */}
                                         <Button
                                           variant="ghost"
                                           size="icon"

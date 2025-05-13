@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 // Import our step components
 import TemplateSelectionStep from "@/components/features/create-proposal-page/template-selection-tab";
@@ -25,6 +26,7 @@ import {
 import { set } from "date-fns";
 
 export default function CreateProposalPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("template");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
@@ -102,73 +104,28 @@ export default function CreateProposalPage() {
     },
   });
 
-  const updateTemplateMutation = useMutation({
-    mutationFn: (data: {
-      templateId: string;
-      template: TemplateUpdateRequest;
-    }) => updateTemplate(data.templateId, data.template),
-    onSuccess: () => {
-      toast.success("Template updated successfully!", {
-        description: "Your template has been saved",
-      });
-      handleNext();
-    },
-    onError: (error: any) => {
-      toast.error("Failed to update template", {
-        description:
-          error instanceof Error ? error.message : "Please try again later",
-      });
-    },
-  });
+  const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
+    useMutation({
+      mutationFn: (data: {
+        templateId: string;
+        template: TemplateUpdateRequest;
+      }) => updateTemplate(data.templateId, data.template),
+      onSuccess: () => {
+        toast.success("Template updated successfully!", {
+          description: "Your proposal has been saved",
+        });
+        // Navigate to proposals list after successful save
+        router.push("/proposals");
+      },
+      onError: (error: any) => {
+        toast.error("Failed to update template", {
+          description:
+            error instanceof Error ? error.message : "Please try again later",
+        });
+      },
+    });
 
-  const validateProposalDetails = () => {
-    const requiredFields = [
-      { key: "name", label: "Proposal Name" },
-      { key: "location", label: "Project Location" },
-      { key: "valid_until", label: "Valid Until" },
-      { key: "client_name", label: "Client Name" },
-      { key: "client_email", label: "Client Email" },
-      { key: "client_phone", label: "Client Phone" },
-      { key: "client_address", label: "Client Address" },
-    ];
-
-    const missingFields = requiredFields.filter(
-      (field) => !formData[field.key as keyof typeof formData]
-    );
-
-    if (missingFields.length > 0) {
-      toast.error("Missing required fields", {
-        description: `${missingFields
-          .map((f) => f.label)
-          .join(", ")} are required to proceed.`,
-      });
-      return false;
-    }
-    return true;
-  };
-
-  const validateTradesAndElements = () => {
-    if (tradeObjects.length === 0 || variableObjects.length === 0) {
-      toast.error("Add at least one Variables, Trades, and Elements.");
-      return false;
-    }
-    // Check if at least one trade has at least one element
-    const hasAnyElement = tradeObjects.some(
-      (trade) => Array.isArray(trade.elements) && trade.elements.length > 0
-    );
-    if (!hasAnyElement) {
-      toast.error("Add at least one Element to a Trade.");
-      return false;
-    }
-    return true;
-  };
-
-  console.log("Form Data:", formData);
   const handleCreateProposal = async () => {
-    if (!validateProposalDetails()) {
-      return;
-    }
-
     const templateId = formData.template ? formData.template.id : null;
 
     const proposalDetails = {
@@ -190,7 +147,6 @@ export default function CreateProposalPage() {
         onSuccess: (data) => {
           resolve(data);
           toast.success("Proposal created successfully!");
-          console.log("Proposal created successfully:", data);
           setTradeObjects(data.data.template.trades);
           setVariableObjects(data.data.template.variables);
           setTemplate(data.data.template);
@@ -208,10 +164,6 @@ export default function CreateProposalPage() {
   };
 
   const handleUpdateTemplate = async () => {
-    if (!validateTradesAndElements()) {
-      return;
-    }
-
     if (!templateId) {
       toast.error("Template ID is missing");
       return Promise.reject("Template ID is missing");
@@ -222,7 +174,7 @@ export default function CreateProposalPage() {
       variables: variableObjects.map((variable) => variable.id),
     };
 
-    updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
+    updateTemplateMutation({ templateId, template: tradesAndVariables });
   };
 
   return (
@@ -241,16 +193,13 @@ export default function CreateProposalPage() {
               "Template Selection",
               "Proposal Details",
               "Trades & Elements",
-              "Preview",
             ]}
             currentStep={
               currentStep === "template"
                 ? 0
                 : currentStep === "details"
                 ? 1
-                : currentStep === "trades"
-                ? 2
-                : 3
+                : 2
             }
           />
         </div>
@@ -316,7 +265,7 @@ export default function CreateProposalPage() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleUpdateTemplate}>Next: Preview</Button>
+              <Button onClick={handleUpdateTemplate}>Save Proposal</Button>
             </div>
           </TabsContent>
 
