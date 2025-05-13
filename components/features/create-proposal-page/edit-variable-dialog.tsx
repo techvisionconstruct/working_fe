@@ -17,7 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/shared";
-import { BracesIcon, Loader2 } from "lucide-react";
+import { BracesIcon, Loader2, Calculator } from "lucide-react";
+import { FormulaBuilder } from "./components/formula-builder";
+import { useFormula } from "./hooks/use-formula";
 
 interface VariableType {
   id: string;
@@ -37,10 +39,14 @@ interface EditVariableDialogProps {
   setVariableValue: React.Dispatch<React.SetStateAction<number>>;
   variableType: string;
   setVariableType: React.Dispatch<React.SetStateAction<string>>;
+  variableFormula: string; // This should be string not string | null
+  setVariableFormula: React.Dispatch<React.SetStateAction<string>>;
   variableTypes: { id: string; name: string }[];
   isLoadingVariableTypes: boolean;
   isUpdating: boolean;
   onCancel: () => void;
+  variables?: any[];
+  updateVariables?: (variables: any[]) => void;
 }
 
 const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
@@ -56,11 +62,68 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
   setVariableValue,
   variableType,
   setVariableType,
+  variableFormula = "", // Default to empty string instead of null
+  setVariableFormula,
   variableTypes,
   isLoadingVariableTypes,
   isUpdating,
   onCancel,
+  variables = [],
+  updateVariables = () => {},
 }) => {
+  const { 
+    parseFormulaToTokens, 
+    tokensToFormulaString,
+    validateFormulaTokens,
+    replaceVariableNamesWithIds,
+    replaceVariableIdsWithNames,
+  } = useFormula();
+  
+  const [formulaTokens, setFormulaTokens] = useState<any[]>([]);
+  const [showFormulaBuilder, setShowFormulaBuilder] = useState(false);
+  const [formulaError, setFormulaError] = useState<string | null>(null);
+  
+  // Initialize formula tokens when dialog opens
+  useEffect(() => {
+    if (open) {
+      // If there's a formula, convert IDs to variable names first
+      if (variableFormula) {
+        // Convert IDs to names for user-friendly display
+        const displayFormula = replaceVariableIdsWithNames(
+          variableFormula,
+          variables,
+          []
+        );
+        
+        setFormulaTokens(parseFormulaToTokens(displayFormula));
+        setShowFormulaBuilder(true);
+      } else {
+        setFormulaTokens([]);
+        setShowFormulaBuilder(false);
+      }
+    }
+  }, [open, variableFormula, variables, parseFormulaToTokens, replaceVariableIdsWithNames]);
+  
+  // Update formula string when tokens change
+  useEffect(() => {
+    if (formulaTokens.length > 0) {
+      const formulaString = tokensToFormulaString(formulaTokens);
+      setVariableFormula(formulaString);
+    } else if (showFormulaBuilder) {
+      // Allow clearing the formula
+      setVariableFormula("");
+    }
+  }, [formulaTokens, setVariableFormula, tokensToFormulaString, showFormulaBuilder]);
+
+  // Function to convert formula with names to IDs before saving
+  const prepareFormulaForSave = () => {
+    if (variableFormula && variables.length > 0) {
+      // Convert variable names to IDs
+      return replaceVariableNamesWithIds(variableFormula, variables);
+    }
+    return variableFormula || "";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -109,15 +172,49 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
               </Select>
             )}
           </div>
+          
+          {/* Toggle between direct value and formula */}
           <div className="grid gap-2">
-            <Label htmlFor="var-value">Default Value</Label>
-            <Input
-              id="var-value"
-              type="number"
-              value={variableValue}
-              onChange={(e) => setVariableValue(Number(e.target.value))}
-            />
+            <div className="flex justify-between items-center">
+              <Label htmlFor="var-value">Value</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setShowFormulaBuilder(!showFormulaBuilder)}
+              >
+                <Calculator className="h-3.5 w-3.5 mr-1" />
+                {showFormulaBuilder ? "Set Direct Value" : "Use Formula"}
+              </Button>
+            </div>
+            
+            {showFormulaBuilder ? (
+              <div className="space-y-2">
+                <FormulaBuilder
+                  formulaTokens={formulaTokens}
+                  setFormulaTokens={setFormulaTokens}
+                  variables={variables}
+                  updateVariables={updateVariables}
+                  hasError={!!formulaError}
+                  onCreateVariable={(name) => {
+                    // Handle variable creation if needed
+                  }}
+                />
+                {formulaError && (
+                  <p className="text-xs text-red-500">{formulaError}</p>
+                )}
+              </div>
+            ) : (
+              <Input
+                id="var-value"
+                type="number"
+                value={variableValue}
+                onChange={(e) => setVariableValue(Number(e.target.value))}
+              />
+            )}
           </div>
+          
           <div className="grid gap-2">
             <Label htmlFor="var-description">Description</Label>
             <Textarea
@@ -136,12 +233,32 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
           <Button
             onClick={() => {
               if (variableName.trim()) {
+                if (showFormulaBuilder && formulaTokens.length > 0) {
+                  const validation = validateFormulaTokens(formulaTokens);
+                  if (!validation.isValid) {
+                    setFormulaError(validation.error);
+                    return;
+                  }
+                  
+                  // Convert names to IDs before sending to parent component
+                  const idFormula = prepareFormulaForSave();
+                  setVariableFormula(idFormula);
+                }
+                
                 onEditVariable();
               }
             }}
             type="submit"
+            disabled={isUpdating}
           >
-            Save Changes
+            {isUpdating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

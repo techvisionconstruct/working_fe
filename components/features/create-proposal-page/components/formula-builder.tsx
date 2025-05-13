@@ -206,6 +206,13 @@ export function FormulaBuilder({
     setSelectedSuggestion(0);
   }, [formulaInput, proposalVariables, apiVariables?.data, formulaTokens]);
   
+  // Add a clear button
+  const handleClearFormula = () => {
+    setFormulaTokens([]);
+    setFormulaInput('');
+    setShowSuggestions(false);
+  };
+  
   return (
     <>
       <div 
@@ -349,19 +356,33 @@ export function FormulaBuilder({
       </div>
       
       {/* Operator buttons */}
-      <div className="flex flex-wrap gap-1.5 mt-1">
-        {['+', '-', '*', '/', '(', ')', '^'].map(op => (
+      <div className="flex justify-between">
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {['+', '-', '*', '/', '(', ')', '^'].map(op => (
+            <Button 
+              key={op}
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => addFormulaToken(op, 'operator')} 
+              className="h-7 px-2.5 rounded-md bg-muted/30 border-muted hover:bg-muted/60 hover:text-primary transition-colors"
+            >
+              {op === '*' ? '×' : op === '/' ? '÷' : op}
+            </Button>
+          ))}
+        </div>
+        
+        {formulaTokens.length > 0 && (
           <Button 
-            key={op}
             type="button" 
             variant="outline" 
             size="sm" 
-            onClick={() => addFormulaToken(op, 'operator')} 
-            className="h-7 px-2.5 rounded-md bg-muted/30 border-muted hover:bg-muted/60 hover:text-primary transition-colors"
+            onClick={handleClearFormula}
+            className="h-7 mt-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
           >
-            {op === '*' ? '×' : op === '/' ? '÷' : op}
+            Clear Formula
           </Button>
-        ))}
+        )}
       </div>
       
       <div className="text-xs text-muted-foreground mt-1">

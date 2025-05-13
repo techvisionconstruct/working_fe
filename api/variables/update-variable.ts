@@ -12,6 +12,7 @@ export async function updateVariable(
     const payload: Record<string, any> = {};
     if (variable.name !== undefined) payload.name = variable.name;
     if (variable.description !== undefined) payload.description = variable.description;
+    if (variable.formula !== undefined) payload.formula = variable.formula;
     if (variable.value !== undefined) payload.value = variable.value;
     if (variable.is_global !== undefined) payload.is_global = variable.is_global;
     if (variable.variable_type !== undefined) payload.variable_type = variable.variable_type;

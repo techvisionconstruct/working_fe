@@ -6,6 +6,7 @@ export interface VariableResponse {
   id: string;
   name: string;
   description?: string;
+  formula?: string; // Changed from string | null to string | undefined
   value?: number;
   origin?: string;
   is_global: boolean;
@@ -41,6 +42,7 @@ export interface VariableCreateRequest {
 export interface VariableUpdateRequest {
   name?: string;
   description?: string;
+  formula?: string;
   value?: number;
   is_global?: boolean;
   variable_type?: string;

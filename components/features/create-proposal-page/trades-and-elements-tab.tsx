@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/shared";
 import { toast } from "sonner";
-import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
+import { X, BracesIcon, Variable, Search, Loader2, Calculator } from "lucide-react";
 import AddElementDialog from "./add-element-dialog";
 import EditElementDialog from "./edit-element-dialog";
 import AddTradeDialog from "./add-trade-dialog";
@@ -64,6 +64,47 @@ interface TradesAndElementsStepProps {
   updateVariables?: (variables: VariableResponse[]) => void;
 }
 
+// Move this function inside the component or modify to pass variables as a parameter
+const calculateFormulaValue = (formula: string, variables: VariableResponse[]): number | null => {
+  if (!formula) return null;
+
+  try {
+    // Create a map of variable IDs to their values
+    const variableValues: Record<string, number> = {};
+    variables.forEach(variable => {
+      if (variable.id) {
+        variableValues[variable.id] = variable.value || 0;
+      }
+    });
+
+    // Replace variable IDs with their values
+    let evalFormula = formula;
+    const matches = formula.match(/\{([^}]+)\}/g) || [];
+    
+    for (const match of matches) {
+      const variableId = match.slice(1, -1);
+      const variableValue = variableValues[variableId];
+      
+      if (variableValue !== undefined) {
+        evalFormula = evalFormula.replace(match, variableValue.toString());
+      } else {
+        // If variable not found, set to 0 to prevent evaluation errors
+        evalFormula = evalFormula.replace(match, "0");
+      }
+    }
+    
+    // Replace operators for evaluation and clean the formula
+    evalFormula = evalFormula.replace(/\*/g, '*').replace(/\//g, '/');
+    
+    // Use Function constructor to safely evaluate the formula
+    const result = new Function(`return ${evalFormula}`)();
+    return typeof result === 'number' ? result : null;
+  } catch (error) {
+    console.error("Error calculating formula value:", error);
+    return null;
+  }
+};
+
 const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
   templateId,
@@ -72,6 +113,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   updateVariables = () => {},
 }) => {
   const queryClient = useQueryClient();
+  const variables = data.variables || [];
+
+  // Move this function inside the component to access variables
+  const updateVariableWithFormulaValue = (variable: VariableResponse): VariableResponse => {
+    if (variable.formula) {
+      // Calculate the formula value
+      const calculatedValue = calculateFormulaValue(variable.formula, variables);
+      
+      // Return updated variable with the calculated value
+      return {
+        ...variable,
+        value: calculatedValue || variable.value
+      };
+    }
+    return variable;
+  };
 
   const [showEditVariableDialog, setShowEditVariableDialog] = useState(false);
   const [currentVariableId, setCurrentVariableId] = useState<string | null>(
@@ -81,6 +138,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [editVariableDescription, setEditVariableDescription] = useState("");
   const [editVariableValue, setEditVariableValue] = useState(0);
   const [editVariableType, setEditVariableType] = useState("");
+  const [editVariableFormula, setEditVariableFormula] = useState("");
   const [isUpdatingVariable, setIsUpdatingVariable] = useState(false);
 
   const [inlineEditingVariableId, setInlineEditingVariableId] = useState<string | null>(null);
@@ -91,7 +149,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newVarDescription, setNewVarDescription] = useState("");
   const [newVarDefaultVariableType, setNewVarDefaultVariableType] =
     useState("");
-  const variables = data.variables || [];
 
   const [tradeSearchQuery, setTradeSearchQuery] = useState("");
   const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);
@@ -155,6 +212,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddTradeDialog, setShowAddTradeDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [showingFormulaIds, setShowingFormulaIds] = useState<Record<string, boolean>>({});
+
+  const toggleFormulaDisplay = (variableId: string) => {
+    setShowingFormulaIds(prev => ({
+      ...prev,
+      [variableId]: !prev[variableId]
+    }));
+  };
 
   const {
     data: apiTrades = [],
@@ -700,6 +766,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       name: variable.name,
       description: variable.description,
       value: variable.value,
+      formula: variable.formula || "", // Convert null to empty string
       is_global: variable.is_global,
       variable_type: variable.variable_type,
       created_at: variable.created_at,
@@ -768,6 +835,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       setInlineEditingVariableId("zero-values-ready");
     }
   }, [variables]);
+
+  useEffect(() => {
+    if (variables.length > 0) {
+      // Find variables with formulas and update their values
+      const updatedVariables = variables.map(updateVariableWithFormulaValue);
+      
+      // Only update if there's a difference
+      const hasChanges = updatedVariables.some((updatedVar, idx) => 
+        updatedVar.value !== variables[idx].value
+      );
+      
+      if (hasChanges) {
+        updateVariables(updatedVariables);
+      }
+    }
+  }, [variables, updateVariables]);
 
   const startInlineValueEdit = (variable: VariableResponse) => {
     setInlineEditingVariableId(variable.id);
@@ -1040,6 +1123,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setEditVariableDescription(variable.description || "");
     setEditVariableValue(variable.value || 0);
     setEditVariableType(variable.variable_type?.id || "");
+    setEditVariableFormula(variable.formula || ""); // Ensure formula is always a string
     setShowEditVariableDialog(true);
   };
 
@@ -1047,13 +1131,35 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     if (!editVariableName.trim() || !currentVariableId) return;
 
     setIsUpdatingVariable(true);
+    
+    let processedFormula = editVariableFormula;
+    if (editVariableFormula) {
+      const namePattern = /\{([^{}]+)\}/g;
+      processedFormula = editVariableFormula.replace(namePattern, (match, variableName) => {
+        const exactIdMatch = variables.find(v => v.id === variableName);
+        if (exactIdMatch) return match;
+        
+        const variable = variables.find(v => v.name === variableName);
+        return variable ? `{${variable.id}}` : match;
+      });
+    }
 
     const variableData = {
       name: editVariableName.trim(),
       description: editVariableDescription.trim() || undefined,
-      value: editVariableValue,
+      value: processedFormula ? undefined : editVariableValue, // Don't send value if using formula
+      formula: processedFormula || undefined, // Convert empty string to undefined instead of null
       variable_type: editVariableType,
     };
+
+    // Calculate the formula value immediately for the UI update
+    let updatedValue = editVariableValue;
+    if (processedFormula) {
+      const calculatedValue = calculateFormulaValue(processedFormula, variables);
+      if (calculatedValue !== null) {
+        updatedValue = calculatedValue;
+      }
+    }
 
     const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data)
       ? (apiVariableTypes as any).data.find(
@@ -1067,7 +1173,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           ...variable,
           name: editVariableName.trim(),
           description: editVariableDescription.trim() || "",
-          value: editVariableValue,
+          value: updatedValue, // Use calculated or entered value
+          formula: processedFormula || "", // Convert null to empty string here as well
           variable_type: selectedVariableType || variable.variable_type,
         } as VariableResponse;
       }
@@ -1390,6 +1497,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             <div className="flex items-center justify-between">
                               <div className="font-medium text-sm flex items-center">
                                 {variable.name}
+                                {variable.formula && (
+                                  <Badge variant="outline" className="ml-2 text-xs bg-primary/10">
+                                    <Calculator className="h-3 w-3 mr-1" />
+                                    Formula
+                                  </Badge>
+                                )}
                               </div>
                               <Badge variant="outline" className="text-xs">
                                 {variable.variable_type?.name}
@@ -1424,7 +1537,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         setInlineEditingVariableId(variable.id);
                                         setInlineEditValue(variable.value || 0);
                                       }
-                                      // Auto-select all text for easy value replacement
                                       e.target.select();
                                     }}
                                     onKeyDown={(e) => {
@@ -1448,14 +1560,50 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <span 
-                                  className="text-xs cursor-pointer hover:bg-muted rounded px-1"
-                                  onClick={() => {
-                                    startInlineValueEdit(variable);
-                                  }}
-                                >
-                                  {variable.value === null || variable.value === undefined ? "0" : variable.value} {variable.variable_type?.unit}
-                                </span>
+                                <div className="flex items-center">
+                                  <span 
+                                    className="text-xs cursor-pointer hover:bg-muted rounded px-1 flex items-center gap-1"
+                                    onClick={() => {
+                                      if (variable.formula) {
+                                        toggleFormulaDisplay(variable.id);
+                                      } else {
+                                        startInlineValueEdit(variable);
+                                      }
+                                    }}
+                                  >
+                                    {variable.formula && showingFormulaIds[variable.id] ? (
+                                      <>
+                                        <Calculator className="h-3 w-3 opacity-70" />
+                                        <code className="bg-muted/50 px-1 py-0.5 rounded">
+                                          {replaceVariableIdsWithNames(
+                                            variable.formula,
+                                            variables,
+                                            []
+                                          )}
+                                        </code>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {variable.formula ? (
+                                          <>
+                                            <span className="font-medium">
+                                              {calculateFormulaValue(variable.formula, variables) || "0"}
+                                            </span>
+                                            {variable.variable_type?.unit && (
+                                              <span className="ml-1">{variable.variable_type.unit}</span>
+                                            )}
+                                            <span className="ml-1 text-xs opacity-50">(click to view formula)</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            {variable.value === null || variable.value === undefined ? "0" : variable.value} 
+                                            {variable.variable_type?.unit}
+                                          </>
+                                        )}
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
                               )}
                             </div>
                             <div className="absolute -top-2 -right-2 flex gap-1">
@@ -1596,6 +1744,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     setVariableValue={setEditVariableValue}
                     variableType={editVariableType}
                     setVariableType={setEditVariableType}
+                    variableFormula={editVariableFormula}
+                    setVariableFormula={setEditVariableFormula}
                     variableTypes={
                       Array.isArray((apiVariableTypes as any)?.data)
                         ? (apiVariableTypes as any).data
@@ -1607,6 +1757,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       setShowEditVariableDialog(false);
                       setCurrentVariableId(null);
                     }}
+                    variables={variables}
+                    updateVariables={updateVariables}
                   />
                   <AddTradeDialog
                     open={showAddTradeDialog}

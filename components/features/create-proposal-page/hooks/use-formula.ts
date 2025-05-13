@@ -16,10 +16,16 @@ export function useFormula() {
   
   // Validate formula tokens
   const validateFormulaTokens = useCallback((tokens: FormulaToken[]): { isValid: boolean; error: string | null } => {
+    // Allow empty formulas
     if (tokens.length === 0) {
       return { isValid: true, error: null };
     }
 
+    // Check for standalone operators with no operands
+    if (tokens.length === 1 && tokens[0].type === 'operator') {
+      return { isValid: false, error: "Formula cannot contain only an operator" };
+    }
+    
     // Basic validation logic
     let parenthesesCount = 0;
     for (let i = 0; i < tokens.length; i++) {
@@ -130,11 +136,17 @@ export function useFormula() {
     formula: string,
     variableList: VariableResponse[]
   ): string => {
-    if (!formula || !variableList) return formula;
+    if (!formula || !variableList?.length) return formula;
 
     let backendFormula = formula;
     const namePattern = /\{([^{}]+)\}/g;
+    
     backendFormula = backendFormula.replace(namePattern, (match, variableName) => {
+      // First check if this is already an ID (exact match)
+      const exactIdMatch = variableList.find((v) => v.id === variableName);
+      if (exactIdMatch) return match;
+      
+      // If not an ID, try to find by name
       const variable = variableList.find((v) => v.name === variableName);
       return variable ? `{${variable.id}}` : match;
     });
