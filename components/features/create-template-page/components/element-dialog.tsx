@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ interface ElementDialogProps {
   isSubmitting: boolean;
   dialogTitle: string;
   submitButtonText: string;
+  onRequestCreateVariable?: (variableName: string, callback: (newVariable: VariableResponse) => void) => void;
 }
 
 export function ElementDialog({
@@ -48,6 +49,7 @@ export function ElementDialog({
   isSubmitting,
   dialogTitle,
   submitButtonText,
+  onRequestCreateVariable,
 }: ElementDialogProps) {
   const [name, setName] = useState(elementToEdit?.name || initialName);
   const [description, setDescription] = useState(
@@ -55,6 +57,32 @@ export function ElementDialog({
   );
   const [showAddVariableDialog, setShowAddVariableDialog] = useState(false);
   const [pendingVariableName, setPendingVariableName] = useState("");
+  const [pendingFormulaType, setPendingFormulaType] = useState<"material" | "labor" | null>(null);
+
+  // Store formula state during variable creation
+  const [formulaState, setFormulaState] = useState<{
+    materialTokens: FormulaToken[];
+    laborTokens: FormulaToken[];
+    activeField: "material" | "labor" | null;
+  }>({
+    materialTokens: [],
+    laborTokens: [],
+    activeField: null
+  });
+
+  // Track active formula field and insertion point
+  const [activeFormulaField, setActiveFormulaField] = useState<"material" | "labor" | null>(null);
+  
+  // Store pending variable information to be processed after creation
+  const pendingVariableRef = useRef<{
+    variable: VariableResponse | null;
+    formulaType: "material" | "labor" | null;
+    previousTokens: FormulaToken[];
+  }>({
+    variable: null,
+    formulaType: null,
+    previousTokens: []
+  });
 
   const {
     materialFormulaTokens,
@@ -112,6 +140,47 @@ export function ElementDialog({
     replaceVariableIdsWithNames,
   ]);
 
+  // Handle pending variable addition - runs whenever the ref changes
+  useEffect(() => {
+    const pendingVariable = pendingVariableRef.current;
+    
+    if (pendingVariable.variable && pendingVariable.formulaType) {
+      try {
+        // Make sure we're creating a complete valid token
+        const newToken: FormulaToken = {
+          id: Date.now() + Math.random(),
+          text: pendingVariable.variable.name || "",
+          type: "variable"
+        };
+        
+        // Only add token if text is not empty
+        if (newToken.text) {
+          // Add the variable to the formula while preserving existing tokens
+          if (pendingVariable.formulaType === "material") {
+            // Preserve existing tokens and add the new variable token
+            const existingTokens = pendingVariable.previousTokens || materialFormulaTokens;
+            setMaterialFormulaTokens([...existingTokens, newToken]);
+          } else if (pendingVariable.formulaType === "labor") {
+            // Preserve existing tokens and add the new variable token
+            const existingTokens = pendingVariable.previousTokens || laborFormulaTokens;
+            setLaborFormulaTokens([...existingTokens, newToken]);
+          }
+          
+          console.log(`Variable "${newToken.text}" added to ${pendingVariable.formulaType} formula`);
+        }
+        
+        // Reset the pending variable reference
+        pendingVariableRef.current = {
+          variable: null,
+          formulaType: null,
+          previousTokens: []
+        };
+      } catch (error) {
+        console.error("Error adding variable to formula:", error);
+      }
+    }
+  }, [pendingVariableRef.current.variable, materialFormulaTokens, laborFormulaTokens]);
+
   const handleSubmit = () => {
     if (!name.trim()) return;
 
@@ -141,34 +210,88 @@ export function ElementDialog({
     });
   };
 
-  const handleCreateVariable = (variableName: string) => {
-    if (updateVariables) {
-      // Don't create variable if it's a number
-      if (!isNaN(parseFloat(variableName))) {
-        return;
+  const handleCreateVariable = (
+    variableName: string, 
+    formulaType?: "material" | "labor",
+    currentTokens?: FormulaToken[]
+  ) => {
+    if (!onRequestCreateVariable) {
+      // If no callback provided, try fallback to manual addition if updateVariables is available
+      if (updateVariables) {
+        // Don't create variable if it's a number
+        if (!isNaN(parseFloat(variableName))) {
+          return;
+        }
+
+        // Check if variable already exists
+        const existingVar = variables.find(
+          (v) => v.name.toLowerCase() === variableName.toLowerCase()
+        );
+
+        if (existingVar) {
+          // If it exists, just use it
+          toast.info(`Variable "${variableName}" already exists`, {
+            description: "The variable has been added to your formula",
+          });
+          return;
+        }
+
+        // Also check if it's an operator
+        if (["+", "-", "*", "/", "(", ")", "^"].includes(variableName)) {
+          return;
+        }
+
+        setPendingVariableName(variableName);
+        setPendingFormulaType(formulaType || null);
+        setShowAddVariableDialog(true);
       }
-
-      // Check if variable already exists
-      const existingVar = variables.find(
-        (v) => v.name.toLowerCase() === variableName.toLowerCase()
-      );
-
-      if (existingVar) {
-        // If it exists, just use it
-        toast.info(`Variable "${variableName}" already exists`, {
-          description: "The variable has been added to your formula",
-        });
-        return;
-      }
-
-      // Also check if it's an operator
-      if (["+", "-", "*", "/", "(", ")", "^"].includes(variableName)) {
-        return;
-      }
-
-      setPendingVariableName(variableName);
-      setShowAddVariableDialog(true);
+      return;
     }
+
+    // Store which formula field is active
+    setActiveFormulaField(formulaType || null);
+    
+    // Save the current formula state
+    setFormulaState({
+      materialTokens: materialFormulaTokens,
+      laborTokens: laborFormulaTokens,
+      activeField: formulaType || null
+    });
+    
+    // Using the callback from parent component to create the variable
+    onRequestCreateVariable(variableName, (newVariable) => {
+      if (!newVariable) {
+        console.warn("Variable creation callback returned null or undefined");
+        return;
+      }
+      
+      try {
+        // Validate the variable object has a name before storing it
+        if (typeof newVariable === 'object' && newVariable.name) {
+          // Store the variable and the formula state for the useEffect handler
+          pendingVariableRef.current = {
+            variable: newVariable,
+            formulaType: formulaType || null,
+            previousTokens: currentTokens || []
+          };
+          
+          // Trigger the effect manually by updating the ref
+          pendingVariableRef.current = {
+            ...pendingVariableRef.current,
+            variable: {
+              ...newVariable,
+              updated_at: new Date().getTime().toString() // Ensure ref changes
+            }
+          };
+          
+          console.log(`Variable "${newVariable.name}" created, will be added to ${formulaType} formula`);
+        } else {
+          console.error("Invalid variable object structure:", newVariable);
+        }
+      } catch (error) {
+        console.error("Error in variable creation callback:", error);
+      }
+    });
   };
 
   // Element validation state
@@ -298,7 +421,11 @@ export function ElementDialog({
               variables={variables}
               updateVariables={updateVariables}
               hasError={!!materialFormulaError}
-              onCreateVariable={handleCreateVariable}
+              onCreateVariable={(name, type, tokens) => {
+                console.log(`Creating variable: ${name} for material formula`);
+                handleCreateVariable(name, "material", tokens || []);
+              }}
+              formulaType="material"
             />
           </div>
 
@@ -324,7 +451,11 @@ export function ElementDialog({
               variables={variables}
               updateVariables={updateVariables}
               hasError={!!laborFormulaError}
-              onCreateVariable={handleCreateVariable}
+              onCreateVariable={(name, type, tokens) => {
+                console.log(`Creating variable: ${name} for labor formula`);
+                handleCreateVariable(name, "labor", tokens || []);
+              }}
+              formulaType="labor"
             />
           </div>
         </div>

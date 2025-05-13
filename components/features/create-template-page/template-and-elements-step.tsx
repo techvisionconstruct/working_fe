@@ -25,7 +25,7 @@ import {
 } from "@/components/shared";
 import { toast } from "sonner";
 import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
 import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
 import { updateTrade } from "@/api/trades/update-trade";
@@ -75,6 +75,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   );
   const [pendingVariableName, setPendingVariableName] = useState("");
   const variables = data.variables || [];
+  const [pendingVariableCallback, setPendingVariableCallback] = useState<
+    ((newVariable: VariableResponse) => void) | null
+  >(null);
 
   // Trade-related state
   const [tradeSearchQuery, setTradeSearchQuery] = useState("");
@@ -136,18 +139,41 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   // =========== MUTATIONS ===========
 
+  const queryClient = useQueryClient();
+
   // Variable mutation
   const { mutate: createVariableMutation } = useMutation({
     mutationFn: createVariable,
     onSuccess: (response) => {
       if (response && response.data) {
         const createdVariable = response.data;
+
+        // First update the variables list
         updateVariables([...variables, createdVariable]);
+
+        // Call the pending callback if it exists, with proper error handling
+        try {
+          if (pendingVariableCallback) {
+            console.log(
+              "Calling pendingVariableCallback with variable:",
+              createdVariable
+            );
+            pendingVariableCallback(createdVariable);
+            setPendingVariableCallback(null);
+          }
+        } catch (error) {
+          console.error("Error in pendingVariableCallback:", error);
+        }
 
         toast.success("Variable created successfully", {
           position: "top-center",
           description: `"${createdVariable.name}" has been added to your template.`,
         });
+
+        // Invalidate the variables query to refresh the data
+        queryClient.invalidateQueries({ queryKey: ["variables"] });
+
+        // Close dialog and reset form state
         setShowAddDialog(false);
         setNewVarName("");
         setNewVarDescription("");
@@ -166,6 +192,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             : "An unexpected error occurred",
       });
       setIsSubmitting(false);
+      // Clear the callback in case of error
+      setPendingVariableCallback(null);
     },
   });
 
@@ -1560,7 +1588,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         </div>
       </div>
 
-      {/* Element Dialogs using the new components */}
+      {/* Element Dialogs using the new components with robust callback */}
       <ElementDialog
         isOpen={showAddElementDialog}
         onOpenChange={setShowAddElementDialog}
@@ -1571,6 +1599,32 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         isSubmitting={isCreatingElement}
         dialogTitle="Add New Element"
         submitButtonText="Add Element"
+        onRequestCreateVariable={(variableName, callback) => {
+          try {
+            console.log(`Request to create variable: ${variableName}`);
+            
+            // Set the variable name to create
+            setNewVarName(variableName);
+            
+            // Store the callback to be called after creation
+            // Make sure callback is wrapped in a try/catch for safety
+            const safeCallback = (newVar: VariableResponse) => {
+              try {
+                if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
+                console.log(`Variable created, running callback for: ${newVar.name}`);
+                callback(newVar);
+              } catch (err) {
+                console.error("Error in variable creation callback:", err);
+              }
+            };
+            setPendingVariableCallback(() => safeCallback);
+            
+            // Show the add dialog (without closing the element dialog)
+            setShowAddDialog(true);
+          } catch (err) {
+            console.error("Error setting up variable creation:", err);
+          }
+        }}
       />
 
       <ElementDialog
@@ -1583,6 +1637,32 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         isSubmitting={isUpdatingElement}
         dialogTitle="Edit Element"
         submitButtonText="Update Element"
+        onRequestCreateVariable={(variableName, callback) => {
+          try {
+            console.log(`Request to create variable: ${variableName}`);
+            
+            // Set the variable name to create
+            setNewVarName(variableName);
+            
+            // Store the callback to be called after creation
+            // Make sure callback is wrapped in a try/catch for safety
+            const safeCallback = (newVar: VariableResponse) => {
+              try {
+                if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
+                console.log(`Variable created, running callback for: ${newVar.name}`);
+                callback(newVar);
+              } catch (err) {
+                console.error("Error in variable creation callback:", err);
+              }
+            };
+            setPendingVariableCallback(() => safeCallback);
+            
+            // Show the add dialog (without closing the element dialog)
+            setShowAddDialog(true);
+          } catch (err) {
+            console.error("Error setting up variable creation:", err);
+          }
+        }}
       />
 
       {/* Confirm Remove Variable Dialog */}

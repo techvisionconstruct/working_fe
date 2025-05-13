@@ -22,7 +22,8 @@ interface FormulaBuilderProps {
   variables: VariableResponse[];
   updateVariables?: (variables: VariableResponse[]) => void;
   hasError?: boolean;
-  onCreateVariable?: (name: string) => void;
+  onCreateVariable?: (name: string, formulaType?: "material" | "labor", currentTokens?: FormulaToken[]) => void;
+  formulaType?: "material" | "labor";
 }
 
 // Function to validate a mathematical formula
@@ -118,12 +119,17 @@ export function FormulaBuilder({
   updateVariables,
   hasError = false,
   onCreateVariable,
+  formulaType,
 }: FormulaBuilderProps) {
   const [formulaInput, setFormulaInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<VariableResponse[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Track partial tokens and insertion point
+  const [partialToken, setPartialToken] = useState("");
+  const [tokenInsertionPoint, setTokenInsertionPoint] = useState(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -140,15 +146,28 @@ export function FormulaBuilder({
     );
   }, [variables]);
 
-  useEffect(() => {
-    const { isValid, errorMessage } = validateFormula(formulaTokens);
+  // Ensure formulaTokens is always an array of valid tokens
+  const validFormulaTokens = useMemo(() => {
+    if (!Array.isArray(formulaTokens)) return [];
+    
+    return formulaTokens.filter(token => 
+      token && 
+      typeof token === 'object' && 
+      token.id !== undefined && 
+      token.text !== undefined && 
+      token.type !== undefined
+    );
+  }, [formulaTokens]);
 
-    if (!isValid && formulaTokens.length > 0) {
+  useEffect(() => {
+    const { isValid, errorMessage } = validateFormula(validFormulaTokens);
+
+    if (!isValid && validFormulaTokens.length > 0) {
       setValidationError(errorMessage);
     } else {
       setValidationError(null);
     }
-  }, [formulaTokens]);
+  }, [validFormulaTokens]);
 
   const addFormulaToken = (
     text: string,
@@ -159,7 +178,7 @@ export function FormulaBuilder({
       text,
       type: tokenType,
     };
-    const updatedTokens = [...formulaTokens, newToken];
+    const updatedTokens = [...validFormulaTokens, newToken];
 
     const { isValid, errorMessage } = validateFormula(updatedTokens);
 
@@ -199,6 +218,23 @@ export function FormulaBuilder({
     setFormulaInput(e.target.value);
   };
 
+  // Create variable safely with better logging and preserve current tokens
+  const safeCreateVariable = (name: string) => {
+    try {
+      if (onCreateVariable) {
+        console.log(`Requesting variable creation for formula: ${name} (${formulaType})`);
+        // Pass the current tokens to preserve formula state
+        onCreateVariable(name, formulaType, validFormulaTokens);
+        // Clear input after requesting variable creation
+        setFormulaInput("");
+        return true;
+      }
+    } catch (error) {
+      console.error("Error calling onCreateVariable:", error);
+    }
+    return false;
+  };
+
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -233,8 +269,8 @@ export function FormulaBuilder({
         )
       ) {
         if (onCreateVariable) {
-          onCreateVariable(formulaInput.trim());
-          setFormulaInput("");
+          const created = safeCreateVariable(formulaInput.trim());
+          // We don't clear input here, the parent will handle re-rendering with preserved state
         }
       } else if (formulaInput.trim()) {
         const exactMatch = variables.find(
@@ -282,14 +318,14 @@ export function FormulaBuilder({
       return;
     }
 
-    const alreadyInFormula = formulaTokens
+    const alreadyInFormula = validFormulaTokens
       .filter((token) => token.type === "variable")
       .some((token) => token.text.toLowerCase() === formulaInput.toLowerCase());
 
     let templateMatches = templateVariables.filter(
       (v) =>
         v.name.toLowerCase().includes(formulaInput.toLowerCase()) &&
-        !formulaTokens.some(
+        !validFormulaTokens.some(
           (token) =>
             token.type === "variable" &&
             token.text.toLowerCase() === v.name.toLowerCase()
@@ -305,12 +341,11 @@ export function FormulaBuilder({
           !templateMatches.some(
             (tm) => tm.name.toLowerCase() === v.name.toLowerCase()
           ) &&
-          !formulaTokens.some(
+          !validFormulaTokens.some(
             (token) =>
               token.type === "variable" &&
               token.text.toLowerCase() === v.name.toLowerCase()
-          ) &&
-          (v.origin === "original" || v.is_global)
+          )
       );
     }
 
@@ -322,11 +357,11 @@ export function FormulaBuilder({
 
     setShowSuggestions(true);
     setSelectedSuggestion(0);
-  }, [formulaInput, templateVariables, apiVariables?.data, formulaTokens]);
+  }, [formulaInput, templateVariables, apiVariables?.data, validFormulaTokens]);
 
   const isFormulaValid = useMemo(() => {
-    return formulaTokens.length > 0 && !validationError;
-  }, [formulaTokens, validationError]);
+    return validFormulaTokens.length > 0 && !validationError;
+  }, [validFormulaTokens, validationError]);
 
   return (
     <>
@@ -334,13 +369,13 @@ export function FormulaBuilder({
         className={`border rounded-lg p-3 flex flex-wrap gap-2 min-h-[65px] bg-background/50 relative transition-all ${
           hasError || validationError
             ? "border-red-300 bg-red-50/50"
-            : isFormulaValid && formulaTokens.length > 0
+            : isFormulaValid && validFormulaTokens.length > 0
             ? "border-green-300 bg-green-50/50"
             : "hover:border-primary/30 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20"
         }`}
         onClick={() => inputRef.current?.focus()}
       >
-        {formulaTokens.map((token) => (
+        {validFormulaTokens.map((token) => (
           <Badge
             key={token.id}
             variant="outline"
@@ -384,7 +419,7 @@ export function FormulaBuilder({
           onFocus={() => setShowSuggestions(!!formulaInput.trim())}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder={
-            formulaTokens.length
+            validFormulaTokens.length
               ? "Add more..."
               : "Type variables, numbers, or operators..."
           }
@@ -398,7 +433,7 @@ export function FormulaBuilder({
           </div>
         )}
 
-        {isFormulaValid && formulaTokens.length > 0 && (
+        {isFormulaValid && validFormulaTokens.length > 0 && (
           <div className="absolute -bottom-6 left-0 text-xs text-green-600 flex items-center">
             Valid formula
           </div>
@@ -435,7 +470,7 @@ export function FormulaBuilder({
                 </div>
               ))
             ) : formulaInput.trim().length >= 2 ? (
-              formulaTokens.some(
+              validFormulaTokens.some(
                 (token) =>
                   token.type === "variable" &&
                   token.text.toLowerCase() === formulaInput.trim().toLowerCase()
@@ -509,7 +544,10 @@ export function FormulaBuilder({
                 <div
                   className="p-3 flex items-center cursor-pointer hover:bg-accent"
                   onClick={() => {
-                    if (onCreateVariable) onCreateVariable(formulaInput.trim());
+                    if (onCreateVariable) {
+                      safeCreateVariable(formulaInput.trim());
+                      // Input is cleared in safeCreateVariable
+                    }
                   }}
                 >
                   <div className="flex-1">
@@ -517,11 +555,10 @@ export function FormulaBuilder({
                       "{formulaInput.trim()}"
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      {" "}
-                      doesn't exist
+                      {" "}doesn't exist
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Press Enter to create a new variable
+                      Click to create this variable and add to formula
                     </p>
                   </div>
                   <PlusCircle className="h-4 w-4 text-muted-foreground ml-2" />
