@@ -1,5 +1,5 @@
+import { CreatedByInfo } from "../created_by_info/dto";
 import { PaginationLinks, PaginationMeta } from "../pagination/dto";
-import { UserResponse } from "../user/dto";
 
 export interface ElementResponse {
   id: string;
@@ -15,8 +15,8 @@ export interface ElementResponse {
   markup?: number;
   created_at: string;
   updated_at: string;
-  created_by?: UserResponse;
-  updated_by?: UserResponse;
+  created_by?: CreatedByInfo;
+  updated_by?: CreatedByInfo;
 }
 
 export interface ElementListResponse {

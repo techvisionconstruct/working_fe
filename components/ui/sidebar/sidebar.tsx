@@ -211,6 +211,7 @@ export function Sidenav() {
 
   const handleLogout = () => {
     Cookie.remove("auth-token", { path: "/" });
+    Cookie.remove("refresh-token", { path: "/" });
     router.push("/login");
   };
 
