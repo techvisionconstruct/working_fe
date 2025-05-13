@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 // Import our step components
 import TemplateSelectionStep from "@/components/features/create-proposal-page/template-selection-tab";
@@ -25,6 +26,7 @@ import {
 import { set } from "date-fns";
 
 export default function CreateProposalPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("template");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
@@ -102,24 +104,26 @@ export default function CreateProposalPage() {
     },
   });
 
-  const updateTemplateMutation = useMutation({
-    mutationFn: (data: {
-      templateId: string;
-      template: TemplateUpdateRequest;
-    }) => updateTemplate(data.templateId, data.template),
-    onSuccess: () => {
-      toast.success("Template updated successfully!", {
-        description: "Your template has been saved",
-      });
-      handleNext();
-    },
-    onError: (error: any) => {
-      toast.error("Failed to update template", {
-        description:
-          error instanceof Error ? error.message : "Please try again later",
-      });
-    },
-  });
+  const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
+    useMutation({
+      mutationFn: (data: {
+        templateId: string;
+        template: TemplateUpdateRequest;
+      }) => updateTemplate(data.templateId, data.template),
+      onSuccess: () => {
+        toast.success("Template updated successfully!", {
+          description: "Your proposal has been saved",
+        });
+        // Navigate to proposals list after successful save
+        router.push("/proposals");
+      },
+      onError: (error: any) => {
+        toast.error("Failed to update template", {
+          description:
+            error instanceof Error ? error.message : "Please try again later",
+        });
+      },
+    });
 
   const handleCreateProposal = async () => {
     const templateId = formData.template ? formData.template.id : null;
@@ -170,7 +174,7 @@ export default function CreateProposalPage() {
       variables: variableObjects.map((variable) => variable.id),
     };
 
-    updateTemplateMutation.mutate({ templateId, template: tradesAndVariables });
+    updateTemplateMutation({ templateId, template: tradesAndVariables });
   };
 
   return (
@@ -189,16 +193,13 @@ export default function CreateProposalPage() {
               "Template Selection",
               "Proposal Details",
               "Trades & Elements",
-              "Preview",
             ]}
             currentStep={
               currentStep === "template"
                 ? 0
                 : currentStep === "details"
                 ? 1
-                : currentStep === "trades"
-                ? 2
-                : 3
+                : 2
             }
           />
         </div>
@@ -264,7 +265,7 @@ export default function CreateProposalPage() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleUpdateTemplate}>Next: Preview</Button>
+              <Button onClick={handleUpdateTemplate}>Save Proposal</Button>
             </div>
           </TabsContent>
 
