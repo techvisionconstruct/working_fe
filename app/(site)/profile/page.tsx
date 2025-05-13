@@ -29,7 +29,7 @@ import {
   Handshake,
   Share2
 } from "lucide-react";
-import { useUser } from '@/components/mockup/providers/user-provider';
+import { useUser } from '@/components/contexts/user-context';
 import { format, parseISO, formatDistanceToNow, subDays } from 'date-fns';
 
 export default function ProfilePage() {

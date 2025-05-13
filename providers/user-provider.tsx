@@ -1,8 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserResponse } from "@/types/user/dto";
 import Cookies from "js-cookie";
 import { ProfileDetailResponse } from "@/types/user-profile/dto";
 
@@ -84,8 +83,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
     };
-
-    // Initial check
     checkAuthToken();
     
     // Set interval for checking (every 10 seconds is more efficient than every second)
