@@ -254,3 +254,16 @@ export {
  * Calendar
  */
 export { Calendar } from "./calendar/calendar";
+/**
+ * Navigation Menu
+ */
+export { navigationMenuTriggerStyle,
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuContent,
+  NavigationMenuTrigger,
+  NavigationMenuLink,
+  NavigationMenuIndicator,
+  NavigationMenuViewport,
+} from "./navigation-menu/navigation-menu";

@@ -1,9 +1,9 @@
 import {
+  Button,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuItem,
   DropdownMenuContent,
-  Button,
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogContent,
@@ -14,26 +14,16 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from "@/components/shared";
-import { MoreVertical, Edit, Copy, Trash2 } from "lucide-react";
-import { TemplateResponse } from "@/types/templates/dto";
+import { MoreVertical, Trash2 } from "lucide-react";
+import React from "react";
 
-interface TemplateOptionsMenuProps {
-  template: TemplateResponse;
-  onEdit?: (template: TemplateResponse) => void;
-  onUseInProposal?: (template: TemplateResponse) => void;
-  onDelete?: (template: TemplateResponse) => void;
-  isDeleting?: boolean;
+interface TemplateDropdownMenuProps {
+  templateId: string;
+  onDelete: (templateId: string, e?: React.MouseEvent) => void;
 }
 
-export function TemplateOptionsMenu({
-  template,
-  onEdit,
-  onUseInProposal,
-  onDelete,
-  isDeleting = false
-}: TemplateOptionsMenuProps) {
+export function TemplateDropdownMenu({ templateId, onDelete }: TemplateDropdownMenuProps) {
   return (
-    <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
@@ -41,19 +31,14 @@ export function TemplateOptionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onEdit?.(template)}>
-            <Edit className="mr-2 h-4 w-4" />
-            <span>Edit Template</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onUseInProposal?.(template)}>
-            <Copy className="mr-2 h-4 w-4" />
-            <span>Use in Proposal</span>
-          </DropdownMenuItem>
+          {/* Additional menu items can be added here */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>
+              <DropdownMenuItem 
+                className="text-red-600" 
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
-                <span>Delete Template</span>
+                Delete Item
               </DropdownMenuItem>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -68,7 +53,9 @@ export function TemplateOptionsMenu({
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   className="bg-red-600 hover:bg-red-700"
-                  onClick={() => onDelete?.(template)}
+                  onClick={(e) => {
+                    onDelete(templateId);
+                  }}
                 >
                   Delete
                 </AlertDialogAction>
@@ -77,6 +64,5 @@ export function TemplateOptionsMenu({
           </AlertDialog>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
   );
 }

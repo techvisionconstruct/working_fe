@@ -1,18 +1,18 @@
 "use client";
 
 import React from "react";
-import { getTemplateById } from "@/api/templates/get-template-by-id";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { TemplateDetailedLoader } from "@/components/features/template-page/loader-detailed";
 import { VariableResponse } from "@/types/variables/dto";
-import Error from "@/components/features/template-page/error";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
+import { getTemplate } from "@/queryOptions/templates";
+import { AlertError } from "@/components/features/alert-error/alert-error";
 
-// Consistent default image across the application
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
 export default function TemplatedById() {
   const { id } = useParams();
@@ -21,28 +21,21 @@ export default function TemplatedById() {
     data: template,
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ["template", id],
-    queryFn: () => getTemplateById(String(id)),
-    select: (data) => data.data,
-  });
+  } = useQuery(getTemplate(String(id)));
 
   if (isLoading) {
     return <TemplateDetailedLoader />;
   }
 
   if (isError) {
-    return <Error />;
+    return <AlertError resource="template" />;
   }
-
-  // Use template image if available, fall back to default
-  const imageUrl = template?.image || DEFAULT_IMAGE;
 
   return (
     <div className="p-0 mx-auto">
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
         <Image
-          src={imageUrl}
+          src={template.image || DEFAULT_IMAGE}
           alt={template?.name || "Template Image"}
           fill
           className="w-full h-full object-cover object-center rounded-2xl shadow"
@@ -99,8 +92,12 @@ export default function TemplatedById() {
                     <div className="flex flex-col mt-1" key={element.id}>
                       <div className="flex items-center gap-3 p-4 rounded border bg-background">
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">{element.name}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{element.description}</div>
+                          <div className="font-medium text-sm">
+                            {element.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">
+                            {element.description}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">

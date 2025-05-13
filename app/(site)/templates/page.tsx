@@ -1,10 +1,13 @@
 "use client";
 
-import { getAllTemplates } from "@/api/templates/get-all-templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
 import { TemplateLoader } from "@/components/features/template-page/loader";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
   Tabs,
@@ -17,35 +20,25 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { TemplateTour } from "@/components/features/tour-guide/template-tour";
+import { deleteTemplate } from "@/api/templates/delete-template";
+import { getTemplates } from "@/queryOptions/templates";
+import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function TemplatesPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      if (page !== 1) setPage(1);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const {
-    data: templates,
-    isLoading,
-    isError,
-    isPending,
-  } = useQuery({
-    queryKey: ["template", page, pageSize, debouncedSearch],
-    queryFn: () => getAllTemplates(page, pageSize, debouncedSearch),
-    placeholderData: (previousData) => previousData,
-  });
-
   const [tab, setTab] = useState("grid");
+  const [search, setSearch] = useState("");
   const [isTourRunning, setIsTourRunning] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const { data: templates, isError, isPending } = useQuery(getTemplates());
+
+  const { mutate: deleteTemplateMutation } = useMutation({
+    mutationFn: (templateId: string) => deleteTemplate(templateId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["template"] });
+    },
+  });
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour") === "true";
@@ -58,16 +51,12 @@ export default function TemplatesPage() {
     setIsTourRunning(true);
   };
 
-  if (isLoading) {
+  if (isPending) {
     return <TemplateLoader />;
-  }
+  };
 
   if (isError) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-red-500">Error loading templates</div>
-      </div>
-    );
+    return <AlertError resource="templates" />;
   }
 
   return (
@@ -113,100 +102,18 @@ export default function TemplatesPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <TemplateGridView templates={templates.data} />
+          <TemplateGridView
+            templates={templates.data}
+            onDeleteTemplate={deleteTemplateMutation}
+          />
         </TabsContent>
         <TabsContent value="list">
           <TemplateList templates={templates.data} />
         </TabsContent>
       </Tabs>
 
-      {/* Pagination - always visible */}
-      <div className="mt-6">
-        <nav
-          className="flex items-center justify-center mt-8"
-          aria-label="Pagination"
-        >
-          <div className="flex flex-col items-center space-y-2">
-            {templates?.meta ? (
-              <>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={page === 1 || isPending}
-                  >
-                    Previous
-                  </Button>
-
-                  <div className="flex items-center">
-                    {Array.from(
-                      { length: Math.min(5, templates.meta.total_pages) },
-                      (_, i) => {
-                        const pageNumber = i + 1;
-                        return (
-                          <Button
-                            key={pageNumber}
-                            variant={pageNumber === page ? "default" : "outline"}
-                            size="sm"
-                            className="w-9 h-9 mx-1"
-                            onClick={() => setPage(pageNumber)}
-                            disabled={isPending}
-                          >
-                            {pageNumber}
-                          </Button>
-                        );
-                      }
-                    )}
-
-                    {templates.meta.total_pages > 5 && (
-                      <>
-                        <span className="mx-1">...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-9 h-9 mx-1"
-                          onClick={() => setPage(templates.meta.total_pages)}
-                          disabled={isPending}
-                        >
-                          {templates.meta.total_pages}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setPage((prev) =>
-                        Math.min(prev + 1, templates.meta.total_pages)
-                      )
-                    }
-                    disabled={page === templates.meta.total_pages || isPending}
-                  >
-                    Next
-                  </Button>
-                </div>
-
-                <p className="text-sm text-muted-foreground">
-                  Page {page} of {templates.meta.total_pages} (
-                  {templates.meta.total_count} items)
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No pagination data available
-              </p>
-            )}
-          </div>
-        </nav>
-      </div>
-
-      {/* Tour guide component */}
+      {/* ================ Template Tour Guide ================ */}
       <TemplateTour isRunning={isTourRunning} setIsRunning={setIsTourRunning} />
-
-      {/* Floating help button */}
       <div className="fixed bottom-6 right-6">
         <Button
           onClick={startTour}
