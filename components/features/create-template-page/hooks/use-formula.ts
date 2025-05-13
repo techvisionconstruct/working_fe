@@ -15,7 +15,9 @@ export function useFormula() {
   const [laborFormulaError, setLaborFormulaError] = useState<string | null>(null);
   
   // Validate formula tokens
-  const validateFormulaTokens = useCallback((tokens: FormulaToken[]): { isValid: boolean; error: string | null } => {
+  const validateFormulaTokens = useCallback((tokens: FormulaToken[]): {
+    errorMessage: string; isValid: boolean; error: string | null 
+} => {
     if (tokens.length === 0) {
       return { isValid: true, error: null };
     }

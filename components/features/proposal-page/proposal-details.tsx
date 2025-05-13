@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { Button } from "@/components/shared";
+import { evaluateFormula } from "@/lib/formula-evaluator";
 import { ProposalResponse } from "@/types/proposals/dto";
 
 interface ProposalDetailsProps {
