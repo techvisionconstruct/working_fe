@@ -35,20 +35,15 @@ function validateFormula(tokens: FormulaToken[]): {
   }
 
   try {
-    // Convert tokens to a string formula for evaluation
     const formula = tokens
       .map((token) => {
         if (token.type === "variable") {
-          // For validation purposes, we replace variables with the number 1
           return "1";
         }
         return token.text;
       })
       .join(" ");
 
-    // Check for common formula errors before trying to evaluate
-
-    // Check for consecutive operators
     const formulaStr = tokens.map((t) => t.text).join("");
     const operatorPattern = /[\+\-\*\/\^]{2,}/;
     if (operatorPattern.test(formulaStr)) {
@@ -58,7 +53,6 @@ function validateFormula(tokens: FormulaToken[]): {
       };
     }
 
-    // Check for unbalanced parentheses: only invalid if the entire formula is just ()
     if (
       tokens.length === 2 &&
       tokens[0].text === "(" &&
@@ -70,12 +64,10 @@ function validateFormula(tokens: FormulaToken[]): {
       };
     }
 
-    // Check for invalid starting/ending
     if (tokens.length > 0) {
       const firstToken = tokens[0];
       const lastToken = tokens[tokens.length - 1];
 
-      // Formula shouldn't start with certain operators
       if (
         firstToken.type === "operator" &&
         ["*", "/", ")", "^"].includes(firstToken.text)
@@ -86,7 +78,6 @@ function validateFormula(tokens: FormulaToken[]): {
         };
       }
 
-      // Formula shouldn't end with certain operators
       if (
         lastToken.type === "operator" &&
         ["+", "-", "*", "/", "(", "^"].includes(lastToken.text)
@@ -98,27 +89,17 @@ function validateFormula(tokens: FormulaToken[]): {
       }
     }
 
-    // Check for empty parentheses inside the formula,
-    // but allow ( number ) ( number ) or ( variable ) ( number ) etc.
     for (let i = 0; i < tokens.length - 1; i++) {
-      if (
-        tokens[i].text === "(" &&
-        tokens[i + 1].text === ")"
-      ) {
-        // Only error if the entire formula is just ()
+      if (tokens[i].text === "(" && tokens[i + 1].text === ")") {
         if (tokens.length === 2) {
           return {
             isValid: false,
             errorMessage: "Invalid formula: Empty parentheses ()",
           };
         }
-        // Otherwise, allow ( ) if surrounded by numbers/variables/operators
-        // ( number ) ( number ) is allowed
       }
     }
 
-    // Try to evaluate the formula using Function constructor
-    // This will catch syntax errors
     new Function(`return ${formula}`)();
 
     return { isValid: true, errorMessage: "" };
@@ -146,13 +127,19 @@ export function FormulaBuilder({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Query all variables for suggestions
   const { data: apiVariables } = useQuery({
     queryKey: ["variables"],
     queryFn: getAllVariables,
   });
 
-  // Validate formula whenever tokens change
+  const templateVariables = useMemo(() => {
+    if (!variables) return [];
+    return variables.filter(
+      (variable) =>
+        variable && (variable.is_global || variable.origin === "derived")
+    );
+  }, [variables]);
+
   useEffect(() => {
     const { isValid, errorMessage } = validateFormula(formulaTokens);
 
@@ -163,7 +150,6 @@ export function FormulaBuilder({
     }
   }, [formulaTokens]);
 
-  // Add a token to the formula
   const addFormulaToken = (
     text: string,
     tokenType: "variable" | "operator" | "number" | "function"
@@ -175,7 +161,6 @@ export function FormulaBuilder({
     };
     const updatedTokens = [...formulaTokens, newToken];
 
-    // Validate formula before committing
     const { isValid, errorMessage } = validateFormula(updatedTokens);
 
     if (!isValid) {
@@ -184,10 +169,8 @@ export function FormulaBuilder({
         description: errorMessage,
         icon: <AlertCircle className="w-4 h-4" />,
       });
-      // We still add the token to let users fix their formula
       setFormulaTokens(updatedTokens);
     } else {
-      // If valid, just add it normally
       setFormulaTokens(updatedTokens);
     }
 
@@ -195,15 +178,12 @@ export function FormulaBuilder({
     setShowSuggestions(false);
   };
 
-  // Remove a token from the formula
   const removeFormulaToken = (tokenId: number) => {
     setFormulaTokens((prev) => prev.filter((token) => token.id !== tokenId));
   };
 
-  // Handle variable from API that isn't in template variables
   const handleAddApiVariableToFormula = (variable: VariableResponse) => {
-    // First, add the variable to the user's variables if not already there
-    if (updateVariables && !variables.some((v) => v.id === variable.id)) {
+    if (updateVariables && !templateVariables.some((v) => v.id === variable.id)) {
       updateVariables([...variables, variable]);
 
       toast.success("Variable automatically added", {
@@ -212,7 +192,6 @@ export function FormulaBuilder({
       });
     }
 
-    // Then add it as a token
     addFormulaToken(variable.name, "variable");
   };
 
@@ -224,20 +203,17 @@ export function FormulaBuilder({
     if (e.key === "Enter") {
       e.preventDefault();
 
-      // Check if input is a number first
       const numValue = parseFloat(formulaInput);
       if (!isNaN(numValue)) {
         addFormulaToken(formulaInput.trim(), "number");
         return;
       }
 
-      // Check if input is an operator
       if (["+", "-", "*", "/", "(", ")", "^"].includes(formulaInput.trim())) {
         addFormulaToken(formulaInput.trim(), "operator");
         return;
       }
 
-      // Now handle variables
       if (suggestions.length > 0) {
         const selectedVar = suggestions[selectedSuggestion];
         if (
@@ -256,13 +232,11 @@ export function FormulaBuilder({
           (v) => v.name.toLowerCase() === formulaInput.toLowerCase()
         )
       ) {
-        // Only suggest creating a new variable if it's not a number or operator
         if (onCreateVariable) {
           onCreateVariable(formulaInput.trim());
           setFormulaInput("");
         }
       } else if (formulaInput.trim()) {
-        // Try to find exact match
         const exactMatch = variables.find(
           (v) => v.name.toLowerCase() === formulaInput.trim().toLowerCase()
         );
@@ -291,7 +265,6 @@ export function FormulaBuilder({
     }
   };
 
-  // Filter variables based on input
   useEffect(() => {
     if (!formulaInput.trim()) {
       setSuggestions([]);
@@ -299,7 +272,6 @@ export function FormulaBuilder({
       return;
     }
 
-    // Don't show variable suggestions for numbers or operators
     const numValue = parseFloat(formulaInput);
     if (
       !isNaN(numValue) ||
@@ -310,13 +282,11 @@ export function FormulaBuilder({
       return;
     }
 
-    // First check if the input matches any existing token (to avoid duplicates)
     const alreadyInFormula = formulaTokens
       .filter((token) => token.type === "variable")
       .some((token) => token.text.toLowerCase() === formulaInput.toLowerCase());
 
-    // Check template variables
-    let templateMatches = variables.filter(
+    let templateMatches = templateVariables.filter(
       (v) =>
         v.name.toLowerCase().includes(formulaInput.toLowerCase()) &&
         !formulaTokens.some(
@@ -326,29 +296,34 @@ export function FormulaBuilder({
         )
     );
 
-    // Then check API variables
+    let apiMatches: VariableResponse[] = [];
+
     if (apiVariables?.data) {
-      const apiMatches = (apiVariables.data as VariableResponse[]).filter(
+      apiMatches = (apiVariables.data as VariableResponse[]).filter(
         (v) =>
           v.name.toLowerCase().includes(formulaInput.toLowerCase()) &&
-          !templateMatches.some((tv) => tv.id === v.id) &&
+          !templateMatches.some(
+            (tm) => tm.name.toLowerCase() === v.name.toLowerCase()
+          ) &&
           !formulaTokens.some(
             (token) =>
               token.type === "variable" &&
               token.text.toLowerCase() === v.name.toLowerCase()
-          )
+          ) &&
+          (v.origin === "original" || v.is_global)
       );
-
-      setSuggestions([...templateMatches, ...apiMatches]);
-    } else {
-      setSuggestions(templateMatches);
     }
+
+    setSuggestions([
+      ...templateMatches,
+      ...apiMatches.filter((v) => v.is_global),
+      ...apiMatches.filter((v) => !v.is_global),
+    ]);
 
     setShowSuggestions(true);
     setSelectedSuggestion(0);
-  }, [formulaInput, variables, apiVariables?.data, formulaTokens]);
+  }, [formulaInput, templateVariables, apiVariables?.data, formulaTokens]);
 
-  // Check if the formula has been verified as valid
   const isFormulaValid = useMemo(() => {
     return formulaTokens.length > 0 && !validationError;
   }, [formulaTokens, validationError]);
@@ -365,7 +340,6 @@ export function FormulaBuilder({
         }`}
         onClick={() => inputRef.current?.focus()}
       >
-        {/* Render formula tokens */}
         {formulaTokens.map((token) => (
           <Badge
             key={token.id}
@@ -402,7 +376,6 @@ export function FormulaBuilder({
           </Badge>
         ))}
 
-        {/* Formula input */}
         <Input
           ref={inputRef}
           value={formulaInput}
@@ -418,7 +391,6 @@ export function FormulaBuilder({
           className="border-0 shadow-none focus:outline-none focus:ring-0 p-0 h-9 text-sm flex-1 min-w-[40px] bg-transparent"
         />
 
-        {/* Error indicator */}
         {validationError && (
           <div className="absolute -bottom-6 left-0 text-xs text-red-500 flex items-center">
             <AlertCircle className="w-3 h-3 mr-1" />
@@ -426,14 +398,12 @@ export function FormulaBuilder({
           </div>
         )}
 
-        {/* Valid formula indicator - only shows when there are tokens and formula is valid */}
         {isFormulaValid && formulaTokens.length > 0 && (
           <div className="absolute -bottom-6 left-0 text-xs text-green-600 flex items-center">
             Valid formula
           </div>
         )}
 
-        {/* Suggestions dropdown */}
         {showSuggestions && formulaInput && (
           <div className="absolute left-0 top-full mt-1 z-20 w-full bg-background border rounded-md shadow-md max-h-[200px] overflow-y-auto">
             {suggestions.length > 0 ? (
@@ -449,11 +419,18 @@ export function FormulaBuilder({
                 >
                   <div className="flex items-center justify-between">
                     <span>{variable.name}</span>
-                    {!variables.some((v) => v.id === variable.id) && (
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        Will add to template
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {!templateVariables.some((v) => v.id === variable.id) && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          Will add to template
+                        </Badge>
+                      )}
+                      {variable.is_global && (
+                        <Badge variant="secondary" className="text-xs">
+                          Global
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -555,7 +532,6 @@ export function FormulaBuilder({
         )}
       </div>
 
-      {/* Operator buttons */}
       <div className="flex flex-wrap gap-1.5 mt-1">
         {["+", "-", "*", "/", "(", ")", "^"].map((op) => (
           <Button

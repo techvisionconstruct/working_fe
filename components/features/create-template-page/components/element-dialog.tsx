@@ -335,19 +335,13 @@ export function ElementDialog({
           </Button>
           <Button
             onClick={() => {
-              if (
-                validateElementForm() &&
-                (!materialFormulaTokens.length ||
-                  validateFormulaTokens(materialFormulaTokens).isValid) &&
-                (!laborFormulaTokens.length ||
-                  validateFormulaTokens(laborFormulaTokens).isValid)
-              ) {
+              if (validateElementForm()) {
                 handleSubmit();
               } else {
                 setElementTouched({ name: true });
               }
             }}
-            disabled={isSubmitting || !name.trim()}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>

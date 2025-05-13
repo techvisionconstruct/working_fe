@@ -970,17 +970,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         </Button>
                         <Button
                           onClick={() => {
-                            if (validateVariableForm()) {
-                              handleAddVariable();
-                            } else {
-                              setVariableTouched({
-                                name: true,
-                                variable_type: true,
-                              });
-                            }
+                            if (!validateVariableForm()) return;
+
+                            setIsSubmitting(true);
+                            const variableData = {
+                              name: newVarName.trim(),
+                              description: newVarDescription.trim() || undefined,
+                              value: newVarDefaultValue,
+                              is_global: false,
+                              variable_type: newVarDefaultVariableType,
+                            };
+                            createVariableMutation(variableData);
                           }}
                           disabled={isSubmitting}
-                          type="submit"
                         >
                           {isSubmitting ? (
                             <>
@@ -1224,17 +1226,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           Cancel
                         </Button>
                         <Button
-                          onClick={() => {
-                            if (validateTradeForm()) {
-                              handleAddTrade();
-                            } else {
-                              setTradeTouched({
-                                name: true,
-                              });
-                            }
-                          }}
+                          onClick={handleAddTrade}
                           disabled={isCreatingTrade}
-                          type="submit"
                         >
                           {isCreatingTrade ? (
                             <>

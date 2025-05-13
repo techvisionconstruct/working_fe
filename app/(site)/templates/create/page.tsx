@@ -402,8 +402,16 @@ export default function CreateTemplate() {
                     handleCreateTemplate();
                   }
                 }}
+                disabled={isLoading}
               >
-                Next: Trades & Elements
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Next: Trades & Elements"
+                )}
               </Button>
             </div>
           </TabsContent>
@@ -430,11 +438,18 @@ export default function CreateTemplate() {
               }}
             />
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack}>
+              <Button variant="outline" onClick={handleBack} disabled={isLoading}>
                 Back
               </Button>
-              <Button onClick={() => handleUpdateTemplate()}>
-                Next: Preview
+              <Button onClick={() => handleUpdateTemplate()} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Next: Preview"
+                )}
               </Button>
             </div>
           </TabsContent>
@@ -446,10 +461,19 @@ export default function CreateTemplate() {
               variableObjects={variableObjects}
             />
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack}>
+              <Button variant="outline" onClick={handleBack} disabled={isLoading}>
                 Back
               </Button>
-              <Button onClick={handlePublishTemplate}>Create Template</Button>
+              <Button onClick={handlePublishTemplate} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  "Create Template"
+                )}
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
@@ -705,20 +729,6 @@ export default function CreateTemplate() {
               </Button>
             </div>
           </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            type="button"
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-1 border-black text-black shadow-lg"
-            disabled
-            style={{ minWidth: 120 }}
-          >
-            <LoaderCircle className="animate-spin h-6 w-6" />
-            Processing...
-          </button>
         </div>
       )}
     </div>
