@@ -27,7 +27,7 @@ import {
   LogOut,
   ChevronDown
 } from "lucide-react";
-import { useUser } from "../../contexts/user-context";
+import { useUser } from "@/components/contexts/user-context";
 
 const navItems = [
   {
@@ -102,6 +102,8 @@ export function Sidenav() {
   
   const navRef = useRef<HTMLDivElement>(null);
 
+  const userProfile = user?.data;
+
   useEffect(() => {
     const handleResize = () => {
       setTooltipPosition(prev => ({
@@ -114,12 +116,6 @@ export function Sidenav() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Set avatar fallback only on client-side to prevent hydration mismatch
-  useEffect(() => {
-    if (user?.username) {
-      setAvatarFallback(user.username[0].toUpperCase());
-    }
-  }, [user?.username]);
 
   useEffect(() => {
     const currentPath = pathname || "/dashboard";
@@ -214,7 +210,6 @@ export function Sidenav() {
     Cookie.remove("refresh-token", { path: "/" });
     router.push("/login");
   };
-
   return (
     <div className="relative h-screen" ref={navRef}>
       <motion.div 
@@ -372,8 +367,8 @@ export function Sidenav() {
                           transition: { duration: 0.09, ease: "easeInOut" } 
                         }}
                       >
-                        <div className="font-medium text-sm text-sidebar-foreground">{user?.username}</div>
-                        <div className="text-xs text-muted-foreground">{user?.email}</div>
+                        <div className="font-medium text-sm text-sidebar-foreground">{userProfile?.created_by.first_name} {userProfile?.created_by?.last_name}</div>
+                        <div className="text-xs text-muted-foreground">{userProfile?.created_by?.email}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -389,9 +384,9 @@ export function Sidenav() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent focus:bg-accent">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.username}</p>
+                  <p className="text-sm font-medium leading-none">{userProfile?.created_by.first_name} {userProfile?.created_by?.last_name}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
+                  {userProfile?.created_by?.email}
                   </p>
                 </div>
               </DropdownMenuItem>
