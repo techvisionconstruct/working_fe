@@ -771,12 +771,28 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     <Input
                       placeholder="Search variables..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        // Always show suggestions if there's content, regardless of results
+                        if (e.target.value.trim()) {
+                          setIsSearchOpen(true);
+                        } else {
+                          setIsSearchOpen(false);
+                        }
+                      }}
                       onFocus={() => {
-                        if (
-                          searchQuery.trim() &&
-                          filteredVariables.length > 0
-                        ) {
+                        // Always show suggestions on focus if there's content
+                        if (searchQuery.trim()) {
+                          setIsSearchOpen(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Use setTimeout to allow clicks on the dropdown to register first
+                        setTimeout(() => setIsSearchOpen(false), 200);
+                      }}
+                      onClick={() => {
+                        // Also show on click if there's content
+                        if (searchQuery.trim()) {
                           setIsSearchOpen(true);
                         }
                       }}
@@ -818,7 +834,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                   </div>
 
                   {/* Variable search results dropdown */}
-                  {searchQuery.trim() && (
+                  {searchQuery.trim() && isSearchOpen && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                       <div className="p-2">
                         <p className="text-xs text-muted-foreground mb-1 px-2">
@@ -845,14 +861,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
                             ))
                         ) : (
-                          <div className="p-2 text-sm text-muted-foreground">
+                          <div className="p-2 text-sm">
                             {variables.some((v) =>
                               v.name
                                 .toLowerCase()
                                 .includes(searchQuery.toLowerCase())
-                            )
-                              ? "Variable already added"
-                              : "No matching variables found"}
+                            ) ? (
+                              <span className="text-muted-foreground">Variable already added</span>
+                            ) : (
+                              <div>
+                                <span className="text-muted-foreground">"{searchQuery}" doesn't exist.</span>
+                                <p className="text-xs mt-1 text-primary">Press Enter to create this variable</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1096,12 +1117,28 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     <Input
                       placeholder="Search trades..."
                       value={tradeSearchQuery}
-                      onChange={(e) => setTradeSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setTradeSearchQuery(e.target.value);
+                        // Always show suggestions if there's content, regardless of results
+                        if (e.target.value.trim()) {
+                          setIsTradeSearchOpen(true);
+                        } else {
+                          setIsTradeSearchOpen(false);
+                        }
+                      }}
                       onFocus={() => {
-                        if (
-                          tradeSearchQuery.trim() &&
-                          filteredTrades.length > 0
-                        ) {
+                        // Always show suggestions on focus if there's content
+                        if (tradeSearchQuery.trim()) {
+                          setIsTradeSearchOpen(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Use setTimeout to allow clicks on the dropdown to register first
+                        setTimeout(() => setIsTradeSearchOpen(false), 200);
+                      }}
+                      onClick={() => {
+                        // Also show on click if there's content
+                        if (tradeSearchQuery.trim()) {
                           setIsTradeSearchOpen(true);
                         }
                       }}
@@ -1143,7 +1180,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                   </div>
 
                   {/* Trade search results dropdown */}
-                  {tradeSearchQuery.trim() && (
+                  {tradeSearchQuery.trim() && isTradeSearchOpen && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                       <div className="p-2">
                         <p className="text-xs text-muted-foreground mb-1 px-2">
@@ -1165,14 +1202,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               </div>
                             ))
                         ) : (
-                          <div className="p-2 text-sm text-muted-foreground">
+                          <div className="p-2 text-sm">
                             {trades.some((t) =>
                               t.name
                                 .toLowerCase()
                                 .includes(tradeSearchQuery.toLowerCase())
-                            )
-                              ? "Trade already added"
-                              : "No matching trades found"}
+                            ) ? (
+                              <span className="text-muted-foreground">Trade already added</span>
+                            ) : (
+                              <div>
+                                <span className="text-muted-foreground">"{tradeSearchQuery}" doesn't exist.</span>
+                                <p className="text-xs mt-1 text-primary">Press Enter to create this trade</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1316,9 +1358,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
                                     <Input
                                       placeholder="Search elements..."
-                                      value={
-                                        elementSearchQueries[trade.id] || ""
-                                      }
+                                      value={elementSearchQueries[trade.id] || ""}
                                       onChange={(e) => {
                                         setCurrentTradeId(trade.id);
                                         setElementSearchQueries((prev) => ({
@@ -1326,16 +1366,40 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                           [trade.id]: e.target.value,
                                         }));
                                         setElementSearchQuery(e.target.value);
+
+                                        // Always show dropdown when there's content, regardless of results
+                                        if (e.target.value.trim()) {
+                                          setIsElementSearchOpen(true);
+                                        } else {
+                                          setIsElementSearchOpen(false);
+                                        }
                                       }}
                                       onFocus={() => {
                                         setCurrentTradeId(trade.id);
                                         const tradeQuery =
                                           elementSearchQueries[trade.id] || "";
                                         setElementSearchQuery(tradeQuery);
-                                        if (
-                                          tradeQuery.trim() &&
-                                          filteredElements.length > 0
-                                        ) {
+
+                                        // Always show dropdown when there's content, regardless of results
+                                        if (tradeQuery.trim()) {
+                                          setIsElementSearchOpen(true);
+                                        }
+                                      }}
+                                      onBlur={() => {
+                                        // Use setTimeout to allow clicks on the dropdown to register first
+                                        setTimeout(
+                                          () => setIsElementSearchOpen(false),
+                                          200
+                                        );
+                                      }}
+                                      onClick={() => {
+                                        // Update necessary state and always show dropdown when there's content
+                                        setCurrentTradeId(trade.id);
+                                        const tradeQuery =
+                                          elementSearchQueries[trade.id] || "";
+                                        setElementSearchQuery(tradeQuery);
+
+                                        if (tradeQuery.trim()) {
                                           setIsElementSearchOpen(true);
                                         }
                                       }}
@@ -1398,9 +1462,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   </div>
 
                                   {/* Element search results */}
-                                  {(
-                                    elementSearchQueries[trade.id] || ""
-                                  ).trim() &&
+                                  {(elementSearchQueries[trade.id] || "")
+                                    .trim() &&
+                                    isElementSearchOpen &&
                                     currentTradeId === trade.id && (
                                       <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                                         <div className="p-2">
@@ -1431,7 +1495,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                 </div>
                                               ))
                                           ) : (
-                                            <div className="p-2 text-xs text-muted-foreground">
+                                            <div className="p-2 text-xs">
                                               {trade.elements?.some((e) =>
                                                 e.name
                                                   .toLowerCase()
@@ -1442,9 +1506,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                       ] || ""
                                                     ).toLowerCase()
                                                   )
-                                              )
-                                                ? "Element already added to this trade"
-                                                : "No matching elements found"}
+                                              ) ? (
+                                                <span className="text-muted-foreground">Element already added to this trade</span>
+                                              ) : (
+                                                <div>
+                                                  <span className="text-muted-foreground">"{elementSearchQueries[trade.id]}" doesn't exist.</span>
+                                                  <p className="text-xs mt-1 text-primary">Press Enter to create this element</p>
+                                                </div>
+                                              )}
                                             </div>
                                           )}
                                         </div>

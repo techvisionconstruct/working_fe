@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,14 @@ import { FormulaBuilder } from "./formula-builder";
 import { FormulaToken, useFormula } from "../hooks/use-formula";
 import { toast } from "sonner";
 
+// Storage keys for formulas - make them unique to avoid conflicts
+const STORAGE_PREFIX = 'element_dialog_';
+const getStorageKeys = (dialogId: string) => ({
+  MATERIAL_KEY: `${STORAGE_PREFIX}material_${dialogId}`,
+  LABOR_KEY: `${STORAGE_PREFIX}labor_${dialogId}`,
+  IS_OPEN_KEY: `${STORAGE_PREFIX}is_open_${dialogId}`
+});
+
 interface ElementDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,6 +35,7 @@ interface ElementDialogProps {
     description: string;
     materialFormula: string;
     laborFormula: string;
+    markup: number;
   }) => void;
   elementToEdit?: ElementResponse | null;
   initialName?: string;
@@ -35,6 +44,8 @@ interface ElementDialogProps {
   isSubmitting: boolean;
   dialogTitle: string;
   submitButtonText: string;
+  includeMarkup?: boolean;
+  initialMarkup?: number;
   onRequestCreateVariable?: (variableName: string, callback: (newVariable: VariableResponse) => void) => void;
 }
 
@@ -49,41 +60,42 @@ export function ElementDialog({
   isSubmitting,
   dialogTitle,
   submitButtonText,
+  includeMarkup = false,
+  initialMarkup = 0,
   onRequestCreateVariable,
 }: ElementDialogProps) {
+  // Generate a unique ID for this dialog instance
+  const dialogId = useRef(`dialog_${Math.random().toString(36).substring(2, 11)}`).current;
+  const storageKeys = getStorageKeys(dialogId);
+  
+  // Track if this is the first render of the dialog since opening
+  const initialRenderRef = useRef(true);
+  
   const [name, setName] = useState(elementToEdit?.name || initialName);
-  const [description, setDescription] = useState(
-    elementToEdit?.description || ""
-  );
-  const [showAddVariableDialog, setShowAddVariableDialog] = useState(false);
-  const [pendingVariableName, setPendingVariableName] = useState("");
-  const [pendingFormulaType, setPendingFormulaType] = useState<"material" | "labor" | null>(null);
-
-  // Store formula state during variable creation
-  const [formulaState, setFormulaState] = useState<{
-    materialTokens: FormulaToken[];
-    laborTokens: FormulaToken[];
-    activeField: "material" | "labor" | null;
-  }>({
-    materialTokens: [],
-    laborTokens: [],
-    activeField: null
-  });
-
-  // Track active formula field and insertion point
+  const [description, setDescription] = useState(elementToEdit?.description || "");
+  const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
+  
+  // Track which formula field is active/focused
   const [activeFormulaField, setActiveFormulaField] = useState<"material" | "labor" | null>(null);
   
   // Store pending variable information to be processed after creation
   const pendingVariableRef = useRef<{
     variable: VariableResponse | null;
     formulaType: "material" | "labor" | null;
-    previousTokens: FormulaToken[];
   }>({
     variable: null,
-    formulaType: null,
-    previousTokens: []
+    formulaType: null
   });
 
+  // Filter variables to only include those relevant to this template
+  const filteredVariables = useMemo(() => {
+    if (!variables) return [];
+    return variables.filter(variable => 
+      // Include template-specific variables and global variables
+      variable && (variable.is_global || variable.origin === "derived")
+    );
+  }, [variables]);
+  
   const {
     materialFormulaTokens,
     setMaterialFormulaTokens,
@@ -97,89 +109,198 @@ export function ElementDialog({
     replaceVariableIdsWithNames,
   } = useFormula();
 
-  // Initialize form when editing an element
-  useEffect(() => {
-    if (isOpen && elementToEdit) {
-      setName(elementToEdit.name);
-      setDescription(elementToEdit.description || "");
-
-      if (elementToEdit.material_cost_formula) {
-        const displayFormula = replaceVariableIdsWithNames(
-          elementToEdit.material_cost_formula,
-          variables,
-          elementToEdit.material_formula_variables || []
-        );
-        setMaterialFormulaTokens(parseFormulaToTokens(displayFormula));
-      } else {
-        setMaterialFormulaTokens([]);
-      }
-
-      if (elementToEdit.labor_cost_formula) {
-        const displayFormula = replaceVariableIdsWithNames(
-          elementToEdit.labor_cost_formula,
-          variables,
-          elementToEdit.labor_formula_variables || []
-        );
-        setLaborFormulaTokens(parseFormulaToTokens(displayFormula));
-      } else {
-        setLaborFormulaTokens([]);
-      }
-    } else if (isOpen) {
-      // For new elements, just set the name
-      setName(initialName);
-      setDescription("");
-      setMaterialFormulaTokens([]);
-      setLaborFormulaTokens([]);
+  // Local storage helper functions
+  const saveFormulasToStorage = () => {
+    try {
+      localStorage.setItem(storageKeys.MATERIAL_KEY, JSON.stringify(materialFormulaTokens));
+      localStorage.setItem(storageKeys.LABOR_KEY, JSON.stringify(laborFormulaTokens));
+      localStorage.setItem(storageKeys.IS_OPEN_KEY, 'true');
+      console.log('Saved formulas to localStorage');
+    } catch (err) {
+      console.error('Error saving to localStorage:', err);
     }
-  }, [
-    isOpen,
-    elementToEdit,
-    initialName,
-    variables,
-    parseFormulaToTokens,
-    replaceVariableIdsWithNames,
-  ]);
+  };
 
-  // Handle pending variable addition - runs whenever the ref changes
+  const getFormulasFromStorage = () => {
+    try {
+      const materialStr = localStorage.getItem(storageKeys.MATERIAL_KEY);
+      const laborStr = localStorage.getItem(storageKeys.LABOR_KEY);
+      
+      let materialTokens = materialStr ? JSON.parse(materialStr) : [];
+      let laborTokens = laborStr ? JSON.parse(laborStr) : [];
+      
+      // Validate tokens to prevent errors
+      if (!Array.isArray(materialTokens)) materialTokens = [];
+      if (!Array.isArray(laborTokens)) laborTokens = [];
+      
+      return { materialTokens, laborTokens };
+    } catch (err) {
+      console.error('Error reading from localStorage:', err);
+      return { materialTokens: [], laborTokens: [] };
+    }
+  };
+
+  const clearFormulaStorage = () => {
+    try {
+      localStorage.removeItem(storageKeys.MATERIAL_KEY);
+      localStorage.removeItem(storageKeys.LABOR_KEY);
+      localStorage.removeItem(storageKeys.IS_OPEN_KEY);
+      console.log('Cleared formula storage');
+    } catch (err) {
+      console.error('Error clearing localStorage:', err);
+    }
+  };
+
+  // Initialize form when opening/editing
+  useEffect(() => {
+    if (isOpen) {
+      // Reset initial render flag when dialog opens
+      initialRenderRef.current = true;
+      
+      // Always update the name to match either elementToEdit.name or initialName when dialog opens
+      if (elementToEdit) {
+        setName(elementToEdit.name);
+      } else {
+        setName(initialName);
+      }
+      
+      const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === 'true';
+      
+      if (wasOpen) {
+        // Dialog was previously open - restore formulas from localStorage
+        const { materialTokens, laborTokens } = getFormulasFromStorage();
+        if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
+        if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
+        console.log('Restored formulas from localStorage');
+      } else if (elementToEdit) {
+        // Initialize from element to edit
+        setDescription(elementToEdit.description || "");
+        setMarkup(elementToEdit.markup || 0);
+        
+        let materialTokens = [], laborTokens = [];
+        
+        if (elementToEdit.material_cost_formula) {
+          const displayFormula = replaceVariableIdsWithNames(
+            elementToEdit.material_cost_formula,
+            filteredVariables,
+            elementToEdit.material_formula_variables || []
+          );
+          materialTokens = parseFormulaToTokens(displayFormula);
+          setMaterialFormulaTokens(materialTokens);
+        } else {
+          setMaterialFormulaTokens([]);
+        }
+        
+        if (elementToEdit.labor_cost_formula) {
+          const displayFormula = replaceVariableIdsWithNames(
+            elementToEdit.labor_cost_formula,
+            filteredVariables,
+            elementToEdit.labor_formula_variables || []
+          );
+          laborTokens = parseFormulaToTokens(displayFormula);
+          setLaborFormulaTokens(laborTokens);
+        } else {
+          setLaborFormulaTokens([]);
+        }
+        
+        // Initial save to localStorage
+        setTimeout(() => {
+          saveFormulasToStorage();
+        }, 100);
+      } else {
+        // New element, initialize with proper values
+        setDescription("");
+        setMarkup(initialMarkup);
+        setMaterialFormulaTokens([]);
+        setLaborFormulaTokens([]);
+        
+        // Initial save to localStorage
+        setTimeout(() => {
+          saveFormulasToStorage();
+        }, 100);
+      }
+    } else {
+      // Dialog is closing, clear storage
+      clearFormulaStorage();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (!isOpen) {
+        clearFormulaStorage();
+      }
+    };
+  }, [isOpen, elementToEdit, initialName, initialMarkup, filteredVariables, parseFormulaToTokens, replaceVariableIdsWithNames]);
+
+  // Save formulas to localStorage whenever they change
+  useEffect(() => {
+    if (isOpen) {
+      saveFormulasToStorage();
+    }
+  }, [materialFormulaTokens, laborFormulaTokens, isOpen]);
+
+  // Detect when initialName changes while the dialog is open
+  useEffect(() => {
+    // Only update if dialog is open and initialName changes
+    // But skip this on first render to prevent overwriting elementToEdit name
+    if (isOpen && !elementToEdit && !initialRenderRef.current && initialName !== "") {
+      setName(initialName);
+    }
+    initialRenderRef.current = false;
+  }, [initialName, isOpen, elementToEdit]);
+
+  // Handle pending variable addition
   useEffect(() => {
     const pendingVariable = pendingVariableRef.current;
     
     if (pendingVariable.variable && pendingVariable.formulaType) {
       try {
-        // Make sure we're creating a complete valid token
+        // Get current formulas from localStorage to ensure we have latest state
+        const { materialTokens, laborTokens } = getFormulasFromStorage();
+        
+        // Create a token for the new variable
         const newToken: FormulaToken = {
           id: Date.now() + Math.random(),
           text: pendingVariable.variable.name || "",
           type: "variable"
         };
         
-        // Only add token if text is not empty
         if (newToken.text) {
-          // Add the variable to the formula while preserving existing tokens
           if (pendingVariable.formulaType === "material") {
-            // Preserve existing tokens and add the new variable token
-            const existingTokens = pendingVariable.previousTokens || materialFormulaTokens;
-            setMaterialFormulaTokens([...existingTokens, newToken]);
+            // Update material formula with the new variable
+            const updatedMaterialTokens = [...materialTokens, newToken];
+            setMaterialFormulaTokens(updatedMaterialTokens);
+            
+            // Make sure to preserve labor formula
+            if (laborTokens.length > 0) {
+              setLaborFormulaTokens(laborTokens);
+            }
+            
+            console.log(`Variable "${newToken.text}" added to material formula`);
           } else if (pendingVariable.formulaType === "labor") {
-            // Preserve existing tokens and add the new variable token
-            const existingTokens = pendingVariable.previousTokens || laborFormulaTokens;
-            setLaborFormulaTokens([...existingTokens, newToken]);
+            // Update labor formula with the new variable
+            const updatedLaborTokens = [...laborTokens, newToken];
+            setLaborFormulaTokens(updatedLaborTokens);
+            
+            // Make sure to preserve material formula
+            if (materialTokens.length > 0) {
+              setMaterialFormulaTokens(materialTokens);
+            }
+            
+            console.log(`Variable "${newToken.text}" added to labor formula`);
           }
-          
-          console.log(`Variable "${newToken.text}" added to ${pendingVariable.formulaType} formula`);
         }
         
-        // Reset the pending variable reference
+        // Reset the pending variable
         pendingVariableRef.current = {
           variable: null,
-          formulaType: null,
-          previousTokens: []
+          formulaType: null
         };
       } catch (error) {
         console.error("Error adding variable to formula:", error);
       }
     }
-  }, [pendingVariableRef.current.variable, materialFormulaTokens, laborFormulaTokens]);
+  }, [pendingVariableRef.current.variable]);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -188,6 +309,9 @@ export function ElementDialog({
     if (materialFormulaTokens.length > 0) {
       const materialValidation = validateFormulaTokens(materialFormulaTokens);
       if (!materialValidation.isValid) {
+        toast.error("Material formula error", {
+          description: materialValidation.error || "Invalid formula"
+        });
         return;
       }
     }
@@ -195,70 +319,89 @@ export function ElementDialog({
     if (laborFormulaTokens.length > 0) {
       const laborValidation = validateFormulaTokens(laborFormulaTokens);
       if (!laborValidation.isValid) {
+        toast.error("Labor formula error", {
+          description: laborValidation.error || "Invalid formula"
+        });
         return;
       }
     }
 
     const materialFormula = tokensToFormulaString(materialFormulaTokens);
     const laborFormula = tokensToFormulaString(laborFormulaTokens);
-
+    
+    // Clear localStorage before submitting
+    clearFormulaStorage();
+    
     onSubmit({
       name: name.trim(),
       description: description.trim(),
       materialFormula,
       laborFormula,
+      markup
     });
   };
 
   const handleCreateVariable = (
     variableName: string, 
-    formulaType?: "material" | "labor",
-    currentTokens?: FormulaToken[]
+    formulaType?: "material" | "labor"
   ) => {
     if (!onRequestCreateVariable) {
-      // If no callback provided, try fallback to manual addition if updateVariables is available
+      // Fallback if no callback is provided
       if (updateVariables) {
         // Don't create variable if it's a number
-        if (!isNaN(parseFloat(variableName))) {
-          return;
-        }
+        if (!isNaN(parseFloat(variableName))) return;
 
         // Check if variable already exists
-        const existingVar = variables.find(
-          (v) => v.name.toLowerCase() === variableName.toLowerCase()
-        );
-
+        const existingVar = variables.find(v => v.name.toLowerCase() === variableName.toLowerCase());
         if (existingVar) {
-          // If it exists, just use it
-          toast.info(`Variable "${variableName}" already exists`, {
-            description: "The variable has been added to your formula",
-          });
+          toast.info(`Variable "${variableName}" already exists`);
           return;
         }
 
-        // Also check if it's an operator
-        if (["+", "-", "*", "/", "(", ")", "^"].includes(variableName)) {
-          return;
-        }
+        // Skip operators
+        if (["+", "-", "*", "/", "(", ")", "^"].includes(variableName)) return;
 
-        setPendingVariableName(variableName);
-        setPendingFormulaType(formulaType || null);
-        setShowAddVariableDialog(true);
+        // Create temporary variable
+        const tempVariable: VariableResponse = {
+          id: `temp-${Date.now()}`,
+          name: variableName,
+          value: 0,
+          description: "",
+          is_global: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        updateVariables([...variables, tempVariable]);
+        
+        // IMPORTANT: Save current formulas to localStorage before setting pending variable
+        saveFormulasToStorage();
+        
+        // Set the pending variable
+        pendingVariableRef.current = {
+          variable: tempVariable,
+          formulaType: formulaType || null
+        };
+        
+        // Force the useEffect to run with a new reference
+        pendingVariableRef.current = {
+          ...pendingVariableRef.current,
+          variable: {
+            ...tempVariable,
+            updated_at: new Date().getTime().toString() // Ensure ref changes
+          }
+        };
       }
       return;
     }
 
-    // Store which formula field is active
+    // Save which formula field is active
     setActiveFormulaField(formulaType || null);
     
-    // Save the current formula state
-    setFormulaState({
-      materialTokens: materialFormulaTokens,
-      laborTokens: laborFormulaTokens,
-      activeField: formulaType || null
-    });
+    // IMPORTANT: Save current formulas to localStorage before variable creation
+    saveFormulasToStorage();
     
-    // Using the callback from parent component to create the variable
+    // Use the provided callback to create the variable
     onRequestCreateVariable(variableName, (newVariable) => {
       if (!newVariable) {
         console.warn("Variable creation callback returned null or undefined");
@@ -266,16 +409,14 @@ export function ElementDialog({
       }
       
       try {
-        // Validate the variable object has a name before storing it
         if (typeof newVariable === 'object' && newVariable.name) {
-          // Store the variable and the formula state for the useEffect handler
+          // Set the pending variable
           pendingVariableRef.current = {
             variable: newVariable,
-            formulaType: formulaType || null,
-            previousTokens: currentTokens || []
+            formulaType: formulaType || null
           };
           
-          // Trigger the effect manually by updating the ref
+          // Force the useEffect to run with a new reference
           pendingVariableRef.current = {
             ...pendingVariableRef.current,
             variable: {
@@ -294,14 +435,9 @@ export function ElementDialog({
     });
   };
 
-  // Element validation state
-  const [elementErrors, setElementErrors] = useState({
-    name: "",
-  });
-
-  const [elementTouched, setElementTouched] = useState({
-    name: false,
-  });
+  // Element validation
+  const [elementErrors, setElementErrors] = useState({ name: "" });
+  const [elementTouched, setElementTouched] = useState({ name: false });
 
   useEffect(() => {
     if (elementTouched.name) {
@@ -309,7 +445,6 @@ export function ElementDialog({
     }
   }, [name, elementTouched.name]);
 
-  // Add this function to validate element form
   const validateElementForm = () => {
     const newErrors = { name: "" };
 
@@ -323,12 +458,18 @@ export function ElementDialog({
     return !newErrors.name;
   };
 
-  const handleElementBlur = (field: any) => {
+  const handleElementBlur = (field: string) => {
     setElementTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        // Clear storage when dialog is manually closed
+        clearFormulaStorage();
+      }
+      onOpenChange(open);
+    }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
@@ -417,13 +558,17 @@ export function ElementDialog({
             </Label>
             <FormulaBuilder
               formulaTokens={materialFormulaTokens}
-              setFormulaTokens={setMaterialFormulaTokens}
-              variables={variables}
+              setFormulaTokens={(tokens) => {
+                setMaterialFormulaTokens(tokens);
+                // Update localStorage immediately
+                localStorage.setItem(storageKeys.MATERIAL_KEY, JSON.stringify(tokens));
+              }}
+              variables={filteredVariables}
               updateVariables={updateVariables}
               hasError={!!materialFormulaError}
-              onCreateVariable={(name, type, tokens) => {
+              onCreateVariable={(name) => {
                 console.log(`Creating variable: ${name} for material formula`);
-                handleCreateVariable(name, "material", tokens || []);
+                handleCreateVariable(name, "material");
               }}
               formulaType="material"
             />
@@ -447,33 +592,51 @@ export function ElementDialog({
             </Label>
             <FormulaBuilder
               formulaTokens={laborFormulaTokens}
-              setFormulaTokens={setLaborFormulaTokens}
-              variables={variables}
+              setFormulaTokens={(tokens) => {
+                setLaborFormulaTokens(tokens);
+                // Update localStorage immediately
+                localStorage.setItem(storageKeys.LABOR_KEY, JSON.stringify(tokens));
+              }}
+              variables={filteredVariables}
               updateVariables={updateVariables}
               hasError={!!laborFormulaError}
-              onCreateVariable={(name, type, tokens) => {
+              onCreateVariable={(name) => {
                 console.log(`Creating variable: ${name} for labor formula`);
-                handleCreateVariable(name, "labor", tokens || []);
+                handleCreateVariable(name, "labor");
               }}
               formulaType="labor"
             />
           </div>
-        </div>
 
+          {/* Markup Field (only if includeMarkup is true) */}
+          {includeMarkup && (
+            <div className="grid gap-2">
+              <Label htmlFor="element-markup">
+                Markup Percentage (%)
+              </Label>
+              <Input
+                id="element-markup"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="15"
+                value={markup || ''}
+                onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+              />
+              <div className="text-xs text-muted-foreground">
+                Enter the percentage markup to apply to this element (e.g., 15 for 15%)
+              </div>
+            </div>
+          )}
+        </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => {
+            clearFormulaStorage();
+            onOpenChange(false);
+          }}>
             Cancel
           </Button>
-          <Button
-            onClick={() => {
-              if (validateElementForm()) {
-                handleSubmit();
-              } else {
-                setElementTouched({ name: true });
-              }
-            }}
-            disabled={isSubmitting}
-          >
+          <Button onClick={handleSubmit} disabled={isSubmitting || !name.trim()}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

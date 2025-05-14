@@ -53,6 +53,12 @@ import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
 
+declare global {
+  interface Window {
+    openVariableDialog?: (variableName: string, callback: (newVar: any) => void) => void;
+  }
+}
+
 interface TradesAndElementsStepProps {
   data: {
     trades: TradeResponse[];
@@ -64,12 +70,10 @@ interface TradesAndElementsStepProps {
   updateVariables?: (variables: VariableResponse[]) => void;
 }
 
-// Move this function inside the component or modify to pass variables as a parameter
 const calculateFormulaValue = (formula: string, variables: VariableResponse[]): number | null => {
   if (!formula) return null;
 
   try {
-    // Create a map of variable IDs to their values
     const variableValues: Record<string, number> = {};
     variables.forEach(variable => {
       if (variable.id) {
@@ -77,7 +81,6 @@ const calculateFormulaValue = (formula: string, variables: VariableResponse[]): 
       }
     });
 
-    // Replace variable IDs with their values
     let evalFormula = formula;
     const matches = formula.match(/\{([^}]+)\}/g) || [];
     
@@ -88,15 +91,12 @@ const calculateFormulaValue = (formula: string, variables: VariableResponse[]): 
       if (variableValue !== undefined) {
         evalFormula = evalFormula.replace(match, variableValue.toString());
       } else {
-        // If variable not found, set to 0 to prevent evaluation errors
         evalFormula = evalFormula.replace(match, "0");
       }
     }
     
-    // Replace operators for evaluation and clean the formula
     evalFormula = evalFormula.replace(/\*/g, '*').replace(/\//g, '/');
     
-    // Use Function constructor to safely evaluate the formula
     const result = new Function(`return ${evalFormula}`)();
     return typeof result === 'number' ? result : null;
   } catch (error) {
@@ -115,13 +115,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const queryClient = useQueryClient();
   const variables = data.variables || [];
 
-  // Move this function inside the component to access variables
   const updateVariableWithFormulaValue = (variable: VariableResponse): VariableResponse => {
     if (variable.formula) {
-      // Calculate the formula value
       const calculatedValue = calculateFormulaValue(variable.formula, variables);
-      
-      // Return updated variable with the calculated value
       return {
         ...variable,
         value: calculatedValue || variable.value
@@ -131,9 +127,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   };
 
   const [showEditVariableDialog, setShowEditVariableDialog] = useState(false);
-  const [currentVariableId, setCurrentVariableId] = useState<string | null>(
-    null
-  );
+  const [currentVariableId, setCurrentVariableId] = useState<string | null>(null);
   const [editVariableName, setEditVariableName] = useState("");
   const [editVariableDescription, setEditVariableDescription] = useState("");
   const [editVariableValue, setEditVariableValue] = useState(0);
@@ -147,8 +141,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newVarName, setNewVarName] = useState("");
   const [newVarDefaultValue, setNewVarDefaultValue] = useState(0);
   const [newVarDescription, setNewVarDescription] = useState("");
-  const [newVarDefaultVariableType, setNewVarDefaultVariableType] =
-    useState("");
+  const [newVarDefaultVariableType, setNewVarDefaultVariableType] = useState("");
 
   const [tradeSearchQuery, setTradeSearchQuery] = useState("");
   const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);
@@ -159,52 +152,26 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
   const [templateProcessed, setTemplateProcessed] = useState(false);
 
-  useEffect(() => {
-    if (template && !templateProcessed) {
-      setIsProcessingTemplate(true);
-      setIsProcessingTemplate(false);
-      setTemplateProcessed(true);
-    }
-  }, [
-    template,
-    templateProcessed,
-    trades,
-    variables,
-    updateTrades,
-    updateVariables,
-  ]);
-
   const [elementSearchQuery, setElementSearchQuery] = useState("");
   const [isElementSearchOpen, setIsElementSearchOpen] = useState(false);
-  const [elementSearchQueries, setElementSearchQueries] = useState<
-    Record<string, string>
-  >({});
+  const [elementSearchQueries, setElementSearchQueries] = useState<Record<string, string>>({});
   const [showAddElementDialog, setShowAddElementDialog] = useState(false);
   const [showEditElementDialog, setShowEditElementDialog] = useState(false);
   const [currentTradeId, setCurrentTradeId] = useState<string | null>(null);
   const [currentElementId, setCurrentElementId] = useState<string | null>(null);
   const [newElementName, setNewElementName] = useState("");
   const [newElementDescription, setNewElementDescription] = useState("");
-  const [newElementMaterialFormula, setNewElementMaterialFormula] =
-    useState("");
+  const [newElementMaterialFormula, setNewElementMaterialFormula] = useState("");
   const [newElementLaborFormula, setNewElementLaborFormula] = useState("");
   const [elementMarkup, setElementMarkup] = useState<number>(0);
 
-  const [materialSuggestions, setMaterialSuggestions] = useState<
-    VariableResponse[]
-  >([]);
-  const [laborSuggestions, setLaborSuggestions] = useState<VariableResponse[]>(
-    []
-  );
+  const [materialSuggestions, setMaterialSuggestions] = useState<VariableResponse[]>([]);
+  const [laborSuggestions, setLaborSuggestions] = useState<VariableResponse[]>([]);
   const [showMaterialSuggestions, setShowMaterialSuggestions] = useState(false);
   const [showLaborSuggestions, setShowLaborSuggestions] = useState(false);
-  const [selectedMaterialSuggestion, setSelectedMaterialSuggestion] =
-    useState<number>(0);
-  const [selectedLaborSuggestion, setSelectedLaborSuggestion] =
-    useState<number>(0);
-  const [formulaFieldSource, setFormulaFieldSource] = useState<
-    "material" | "labor" | null
-  >(null);
+  const [selectedMaterialSuggestion, setSelectedMaterialSuggestion] = useState<number>(0);
+  const [selectedLaborSuggestion, setSelectedLaborSuggestion] = useState<number>(0);
+  const [formulaFieldSource, setFormulaFieldSource] = useState<"material" | "labor" | null>(null);
   const [pendingVariableName, setPendingVariableName] = useState<string>("");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -214,6 +181,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showingFormulaIds, setShowingFormulaIds] = useState<Record<string, boolean>>({});
+
+  const [pendingVariableCallback, setPendingVariableCallback] = useState<
+    ((newVariable: VariableResponse) => void) | null
+  >(null);
 
   const toggleFormulaDisplay = (variableId: string) => {
     setShowingFormulaIds(prev => ({
@@ -258,12 +229,34 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     queryFn: getAllElements,
   });
 
+  useEffect(() => {
+    window.openVariableDialog = (variableName: string, callback: (newVar: any) => void) => {
+      setPendingVariableCallback(() => callback);
+      setNewVarName(variableName);
+      setShowAddDialog(true);
+    };
+
+    return () => {
+      delete window.openVariableDialog;
+    };
+  }, []);
+
   const { mutate: createVariableMutation } = useMutation({
     mutationFn: createVariable,
     onSuccess: (response) => {
       if (response && response.data) {
         const createdVariable = response.data;
         updateVariables([...variables, createdVariable]);
+
+        if (pendingVariableCallback) {
+          try {
+            pendingVariableCallback(createdVariable);
+            setPendingVariableCallback(null);
+          } catch (error) {
+            console.error("Error in pendingVariableCallback:", error);
+          }
+        }
+
         if (formulaFieldSource === "material" && pendingVariableName) {
           const formula = newElementMaterialFormula;
           const lastBraceIndex = formula.lastIndexOf("{" + pendingVariableName);
@@ -315,8 +308,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             : "An unexpected error occurred",
       });
       setIsSubmitting(false);
+      setPendingVariableCallback(null);
     },
   });
+
+  const handleAddVariable = () => {
+    if (!newVarName.trim()) return;
+    const variableData = {
+      name: newVarName.trim(),
+      description: newVarDescription.trim() || undefined,
+      origin: "derived",
+      value: newVarDefaultValue,
+      is_global: false,
+      variable_type: newVarDefaultVariableType,
+    };
+    setIsSubmitting(true);
+    createVariableMutation(variableData);
+  };
 
   const { mutate: updateVariableMutation } = useMutation({
     mutationFn: ({
@@ -766,7 +774,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       name: variable.name,
       description: variable.description,
       value: variable.value,
-      formula: variable.formula || "", // Convert null to empty string
+      formula: variable.formula || "",
       is_global: variable.is_global,
       variable_type: variable.variable_type,
       created_at: variable.created_at,
@@ -791,20 +799,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setSearchQuery("");
   };
 
-  const handleAddVariable = () => {
-    if (!newVarName.trim()) return;
-    const variableData = {
-      name: newVarName.trim(),
-      description: newVarDescription.trim() || undefined,
-      origin: "derived",
-      value: newVarDefaultValue,
-      is_global: false,
-      variable_type: newVarDefaultVariableType,
-    };
-    setIsSubmitting(true);
-    createVariableMutation(variableData);
-  };
-
   const handleRemoveVariable = (variableId: string) => {
     const updatedVariables = variables.filter((v) => v.id !== variableId);
     updateVariables(updatedVariables);
@@ -820,7 +814,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const isZeroOrEmpty = (value: any): boolean => {
     if (value === null || value === undefined) return true;
     if (typeof value === 'number') {
-      return Math.abs(value) < 0.0001; // Handle potential floating point issues
+      return Math.abs(value) < 0.0001;
     }
     if (typeof value === 'string') {
       const numValue = parseFloat(value);
@@ -838,10 +832,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   useEffect(() => {
     if (variables.length > 0) {
-      // Find variables with formulas and update their values
       const updatedVariables = variables.map(updateVariableWithFormulaValue);
-      
-      // Only update if there's a difference
       const hasChanges = updatedVariables.some((updatedVar, idx) => 
         updatedVar.value !== variables[idx].value
       );
@@ -1123,7 +1114,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setEditVariableDescription(variable.description || "");
     setEditVariableValue(variable.value || 0);
     setEditVariableType(variable.variable_type?.id || "");
-    setEditVariableFormula(variable.formula || ""); // Ensure formula is always a string
+    setEditVariableFormula(variable.formula || "");
     setShowEditVariableDialog(true);
   };
 
@@ -1147,12 +1138,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const variableData = {
       name: editVariableName.trim(),
       description: editVariableDescription.trim() || undefined,
-      value: processedFormula ? undefined : editVariableValue, // Don't send value if using formula
-      formula: processedFormula || undefined, // Convert empty string to undefined instead of null
+      value: processedFormula ? undefined : editVariableValue,
+      formula: processedFormula || undefined,
       variable_type: editVariableType,
     };
 
-    // Calculate the formula value immediately for the UI update
     let updatedValue = editVariableValue;
     if (processedFormula) {
       const calculatedValue = calculateFormulaValue(processedFormula, variables);
@@ -1173,8 +1163,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           ...variable,
           name: editVariableName.trim(),
           description: editVariableDescription.trim() || "",
-          value: updatedValue, // Use calculated or entered value
-          formula: processedFormula || "", // Convert null to empty string here as well
+          value: updatedValue,
+          formula: processedFormula || "",
           variable_type: selectedVariableType || variable.variable_type,
         } as VariableResponse;
       }
@@ -1316,12 +1306,24 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     <Input
                       placeholder="Search variables..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value.trim()) {
+                          setIsSearchOpen(true);
+                        } else {
+                          setIsSearchOpen(false);
+                        }
+                      }}
                       onFocus={() => {
-                        if (
-                          searchQuery.trim() &&
-                          filteredVariables.length > 0
-                        ) {
+                        if (searchQuery.trim()) {
+                          setIsSearchOpen(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setIsSearchOpen(false), 200);
+                      }}
+                      onClick={() => {
+                        if (searchQuery.trim()) {
                           setIsSearchOpen(true);
                         }
                       }}
@@ -1350,27 +1352,45 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </div>
                     )}
                   </div>
-                  {searchQuery.trim() && filteredVariables.length > 0 && (
+                  
+                  {searchQuery.trim() && isSearchOpen && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                       <div className="p-2">
                         <p className="text-xs text-muted-foreground mb-1 px-2">
                           Variables
                         </p>
-                        {filteredVariables.map((variable) => (
-                          <div
-                            key={variable.id}
-                            className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                            onClick={() => handleSelectVariable(variable)}
-                          >
-                            <div className="flex items-center">
-                              <BracesIcon className="mr-2 h-4 w-4" />
-                              <span>{variable.name}</span>
+                        {filteredVariables.length > 0 ? (
+                          filteredVariables.map((variable) => (
+                            <div
+                              key={variable.id}
+                              className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                              onClick={() => handleSelectVariable(variable)}
+                            >
+                              <div className="flex items-center">
+                                <BracesIcon className="mr-2 h-4 w-4" />
+                                <span>{variable.name}</span>
+                              </div>
+                              <Badge variant="outline" className="ml-2">
+                                {variable.variable_type?.name || "Unknown"}
+                              </Badge>
                             </div>
-                            <Badge variant="outline" className="ml-2">
-                              {variable.variable_type?.name || "Unknown"}
-                            </Badge>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm">
+                            {variables.some((v) =>
+                              v.name
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase())
+                            ) ? (
+                              <span className="text-muted-foreground">Variable already added</span>
+                            ) : (
+                              <div>
+                                <span className="text-muted-foreground">"{searchQuery}" doesn't exist.</span>
+                                <p className="text-xs mt-1 text-primary">Press Enter to create this variable</p>
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}
@@ -1626,7 +1646,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                 >
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2h14a2 2 0 0 0 2-2v-7" />
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                 </svg>
                               </Button>
@@ -1675,12 +1695,24 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     <Input
                       placeholder="Search trades..."
                       value={tradeSearchQuery}
-                      onChange={(e) => setTradeSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setTradeSearchQuery(e.target.value);
+                        if (e.target.value.trim()) {
+                          setIsTradeSearchOpen(true);
+                        } else {
+                          setIsTradeSearchOpen(false);
+                        }
+                      }}
                       onFocus={() => {
-                        if (
-                          tradeSearchQuery.trim() &&
-                          filteredTrades.length > 0
-                        ) {
+                        if (tradeSearchQuery.trim()) {
+                          setIsTradeSearchOpen(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setIsTradeSearchOpen(false), 200);
+                      }}
+                      onClick={() => {
+                        if (tradeSearchQuery.trim()) {
                           setIsTradeSearchOpen(true);
                         }
                       }}
@@ -1710,24 +1742,41 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     )}
                   </div>
 
-                  {tradeSearchQuery.trim() && filteredTrades.length > 0 && (
+                  {tradeSearchQuery.trim() && isTradeSearchOpen && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                       <div className="p-2">
                         <p className="text-xs text-muted-foreground mb-1 px-2">
                           Trades
                         </p>
-                        {filteredTrades.map((trade) => (
-                          <div
-                            key={trade.id}
-                            className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                            onClick={() => handleSelectTrade(trade)}
-                          >
-                            <div className="flex items-center">
-                              <BracesIcon className="mr-2 h-4 w-4" />
-                              <span>{trade.name}</span>
+                        {filteredTrades.length > 0 ? (
+                          filteredTrades.map((trade) => (
+                            <div
+                              key={trade.id}
+                              className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
+                              onClick={() => handleSelectTrade(trade)}
+                            >
+                              <div className="flex items-center">
+                                <BracesIcon className="mr-2 h-4 w-4" />
+                                <span>{trade.name}</span>
+                              </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm">
+                            {trades.some((t) =>
+                              t.name
+                                .toLowerCase()
+                                .includes(tradeSearchQuery.toLowerCase())
+                            ) ? (
+                              <span className="text-muted-foreground">Trade already added</span>
+                            ) : (
+                              <div>
+                                <span className="text-muted-foreground">"{tradeSearchQuery}" doesn't exist.</span>
+                                <p className="text-xs mt-1 text-primary">Press Enter to create this trade</p>
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}
@@ -1847,6 +1896,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         [trade.id]: e.target.value,
                                       }));
                                       setElementSearchQuery(e.target.value);
+                                      
+                                      if (e.target.value.trim()) {
+                                        setIsElementSearchOpen(true);
+                                      } else {
+                                        setIsElementSearchOpen(false);
+                                      }
                                     }}
                                     onFocus={() => {
                                       setCurrentTradeId(trade.id);
@@ -1854,9 +1909,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         elementSearchQueries[trade.id] || "";
                                       setElementSearchQuery(tradeQuery);
                                       if (
-                                        tradeQuery.trim() &&
-                                        filteredElements.length > 0
+                                        tradeQuery.trim()
                                       ) {
+                                        setIsElementSearchOpen(true);
+                                      }
+                                    }}
+                                    onBlur={() => {
+                                      setTimeout(() => setIsElementSearchOpen(false), 200);
+                                    }}
+                                    onClick={() => {
+                                      setCurrentTradeId(trade.id);
+                                      const tradeQuery =
+                                        elementSearchQueries[trade.id] || "";
+                                      setElementSearchQuery(tradeQuery);
+                                      
+                                      if (tradeQuery.trim()) {
                                         setIsElementSearchOpen(true);
                                       }
                                     }}
@@ -1900,16 +1967,16 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   )}
                                 </div>
 
-                                {(
-                                  elementSearchQueries[trade.id] || ""
-                                ).trim() &&
-                                  currentTradeId === trade.id && (
-                                    <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
-                                      <div className="p-2">
-                                        <p className="text-xs text-muted-foreground mb-1 px-2">
-                                          Elements
-                                        </p>
-                                        {filteredElements.map((element) => (
+                                {(elementSearchQueries[trade.id] || "").trim() &&
+                                 isElementSearchOpen &&
+                                 currentTradeId === trade.id && (
+                                  <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
+                                    <div className="p-2">
+                                      <p className="text-xs text-muted-foreground mb-1 px-2">
+                                        Elements
+                                      </p>
+                                      {filteredElements.length > 0 ? (
+                                        filteredElements.map((element) => (
                                           <div
                                             key={element.id}
                                             className="flex items-center justify-between w-full p-2 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
@@ -1925,10 +1992,28 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                               <span>{element.name}</span>
                                             </div>
                                           </div>
-                                        ))}
-                                      </div>
+                                        ))
+                                      ) : (
+                                        <div className="p-2 text-xs">
+                                          {trade.elements?.some((e) =>
+                                            e.name
+                                              .toLowerCase()
+                                              .includes(
+                                                (elementSearchQueries[trade.id] || "").toLowerCase()
+                                              )
+                                          ) ? (
+                                            <span className="text-muted-foreground">Element already added to this trade</span>
+                                          ) : (
+                                            <div>
+                                              <span className="text-muted-foreground">"{elementSearchQueries[trade.id]}" doesn't exist.</span>
+                                              <p className="text-xs mt-1 text-primary">Press Enter to create this element</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="space-y-2">
@@ -2043,7 +2128,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
                                           >
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                           </svg>
                                         </Button>

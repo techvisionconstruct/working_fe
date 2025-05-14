@@ -5,7 +5,6 @@ import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { ElementDialog } from "./components/element-dialog";
 
-// Simplify interface to match actual usage in trades-and-elements-tab.tsx
 interface EditElementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,6 +59,15 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
       submitButtonText="Update Element"
       includeMarkup={true}
       initialMarkup={elementMarkup}
+      onRequestCreateVariable={(variableName, callback) => {
+        // Instead of creating the variable right away, we'll pass the request to the parent
+        // The parent component will handle opening the Add Variable dialog
+        if (window.openVariableDialog) {
+          window.openVariableDialog(variableName, callback);
+        } else {
+          console.warn('openVariableDialog function not available on window object');
+        }
+      }}
     />
   );
 };

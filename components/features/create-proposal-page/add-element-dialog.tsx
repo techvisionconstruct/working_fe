@@ -4,7 +4,6 @@ import React from "react";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementDialog } from "./components/element-dialog";
 
-// Simplify interface to match actual usage in trades-and-elements-tab.tsx
 interface AddElementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,6 +54,15 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
       submitButtonText="Add Element"
       includeMarkup={true}
       initialMarkup={0}
+      onRequestCreateVariable={(variableName, callback) => {
+        // Instead of creating the variable right away, we'll pass the request to the parent
+        // The parent component will handle opening the Add Variable dialog
+        if (window.openVariableDialog) {
+          window.openVariableDialog(variableName, callback);
+        } else {
+          console.warn('openVariableDialog function not available on window object');
+        }
+      }}
     />
   );
 };
