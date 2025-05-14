@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/shared";
-import { BracesIcon, Loader2, Calculator } from "lucide-react";
+import { BracesIcon, Loader2, Calculator, X } from "lucide-react";
 import { FormulaBuilder } from "./components/formula-builder";
 import { useFormula } from "./hooks/use-formula";
 
@@ -39,7 +39,7 @@ interface EditVariableDialogProps {
   setVariableValue: React.Dispatch<React.SetStateAction<number>>;
   variableType: string;
   setVariableType: React.Dispatch<React.SetStateAction<string>>;
-  variableFormula: string; // This should be string not string | null
+  variableFormula: string;
   setVariableFormula: React.Dispatch<React.SetStateAction<string>>;
   variableTypes: { id: string; name: string }[];
   isLoadingVariableTypes: boolean;
@@ -62,7 +62,7 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
   setVariableValue,
   variableType,
   setVariableType,
-  variableFormula = "", // Default to empty string instead of null
+  variableFormula = "",
   setVariableFormula,
   variableTypes,
   isLoadingVariableTypes,
@@ -86,9 +86,7 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
   // Initialize formula tokens when dialog opens
   useEffect(() => {
     if (open) {
-      // If there's a formula, convert IDs to variable names first
       if (variableFormula) {
-        // Convert IDs to names for user-friendly display
         const displayFormula = replaceVariableIdsWithNames(
           variableFormula,
           variables,
@@ -110,7 +108,6 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
       const formulaString = tokensToFormulaString(formulaTokens);
       setVariableFormula(formulaString);
     } else if (showFormulaBuilder) {
-      // Allow clearing the formula
       setVariableFormula("");
     }
   }, [formulaTokens, setVariableFormula, tokensToFormulaString, showFormulaBuilder]);
@@ -118,7 +115,6 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
   // Function to convert formula with names to IDs before saving
   const prepareFormulaForSave = () => {
     if (variableFormula && variables.length > 0) {
-      // Convert variable names to IDs
       return replaceVariableNamesWithIds(variableFormula, variables);
     }
     return variableFormula || "";
@@ -126,25 +122,44 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <BracesIcon className="mr-2 h-4 w-4" />
             Edit Variable
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-5 py-5">
           <div className="grid gap-2">
-            <Label htmlFor="var-name">Variable Name</Label>
-            <Input
-              id="var-name"
-              placeholder="Wall Length"
-              value={variableName}
-              onChange={(e) => setVariableName(e.target.value)}
-            />
+            <Label htmlFor="var-name">
+              Variable Name <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="var-name"
+                placeholder="Wall Length"
+                value={variableName}
+                onChange={(e) => setVariableName(e.target.value)}
+                className="pr-10"
+              />
+              {variableName && (
+                <button
+                  type="button"
+                  onClick={() => setVariableName("")}
+                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                  tabIndex={-1}
+                  aria-label="Clear variable name"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              )}
+            </div>
           </div>
+          
           <div className="grid gap-2">
-            <Label htmlFor="var-type">Variable Type</Label>
+            <Label htmlFor="var-type">
+              Variable Type <span className="text-red-500">*</span>
+            </Label>
             {isLoadingVariableTypes ? (
               <div className="relative">
                 <Select disabled>
@@ -174,17 +189,17 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
           </div>
           
           {/* Toggle between direct value and formula */}
-          <div className="grid gap-2">
+          <div className="grid gap-3">
             <div className="flex justify-between items-center">
               <Label htmlFor="var-value">Value</Label>
               <Button 
                 type="button" 
                 variant="outline" 
                 size="sm"
-                className="h-7 px-2"
+                className="h-8 px-2.5"
                 onClick={() => setShowFormulaBuilder(!showFormulaBuilder)}
               >
-                <Calculator className="h-3.5 w-3.5 mr-1" />
+                <Calculator className="h-4 w-4 mr-1.5" />
                 {showFormulaBuilder ? "Set Direct Value" : "Use Formula"}
               </Button>
             </div>
@@ -206,24 +221,53 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
                 )}
               </div>
             ) : (
-              <Input
-                id="var-value"
-                type="number"
-                value={variableValue}
-                onChange={(e) => setVariableValue(Number(e.target.value))}
-              />
+              <div className="relative">
+                <Input
+                  id="var-value"
+                  type="number"
+                  value={variableValue || ''}
+                  onChange={(e) => setVariableValue(Number(e.target.value) || 0)}
+                  className="pr-10"
+                />
+                {variableValue !== 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setVariableValue(0)}
+                    className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                    tabIndex={-1}
+                    aria-label="Clear value"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="var-description">Description</Label>
-            <Textarea
-              id="var-description"
-              placeholder="What this variable represents (optional)"
-              value={variableDescription}
-              onChange={(e) => setVariableDescription(e.target.value)}
-              className="min-h-[80px]"
-            />
+            <Label htmlFor="var-description">
+              Description <span className="text-gray-500">&#40;Optional&#41;</span>
+            </Label>
+            <div className="relative">
+              <Textarea
+                id="var-description"
+                placeholder="What this variable represents"
+                value={variableDescription}
+                onChange={(e) => setVariableDescription(e.target.value)}
+                className="min-h-[80px] pr-10"
+              />
+              {variableDescription && (
+                <button
+                  type="button"
+                  onClick={() => setVariableDescription("")}
+                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                  tabIndex={-1}
+                  aria-label="Clear description"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -248,7 +292,6 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
                 onEditVariable();
               }
             }}
-            type="submit"
             disabled={isUpdating}
           >
             {isUpdating ? (

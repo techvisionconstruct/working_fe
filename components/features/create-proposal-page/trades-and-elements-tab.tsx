@@ -22,9 +22,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
 } from "@/components/shared";
 import { toast } from "sonner";
-import { X, BracesIcon, Variable, Search, Loader2, Calculator } from "lucide-react";
+import { X, BracesIcon, Variable, Search, Loader2, Calculator, PercentIcon } from "lucide-react";
 import AddElementDialog from "./add-element-dialog";
 import EditElementDialog from "./edit-element-dialog";
 import AddTradeDialog from "./add-trade-dialog";
@@ -69,6 +70,15 @@ interface TradesAndElementsStepProps {
   updateTrades: (trades: TradeResponse[]) => void;
   updateVariables?: (variables: VariableResponse[]) => void;
 }
+
+const extractFormulaVariables = (formula: string): Record<string, any>[] => {
+  if (!formula) return [];
+  const matches = formula.match(/\{([^}]+)\}/g) || [];
+  return matches.map(match => {
+    const id = match.substring(1, match.length - 1);
+    return { id };
+  });
+};
 
 const calculateFormulaValue = (formula: string, variables: VariableResponse[]): number | null => {
   if (!formula) return null;
@@ -185,6 +195,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [pendingVariableCallback, setPendingVariableCallback] = useState<
     ((newVariable: VariableResponse) => void) | null
   >(null);
+
+  const [isGlobalMarkupEnabled, setIsGlobalMarkupEnabled] = useState(false);
+  const [globalMarkupValue, setGlobalMarkupValue] = useState(1);
+  const [editingMarkupElementId, setEditingMarkupElementId] = useState<string | null>(null);
+  const [inlineMarkupValue, setInlineMarkupValue] = useState(0);
 
   const toggleFormulaDisplay = (variableId: string) => {
     setShowingFormulaIds(prev => ({
@@ -380,16 +395,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         tradeId: string;
         data: { elements: string[] };
       }) => updateTrade(tradeId, data),
-      onSuccess: () => {},
-      onError: (error) => {
-        toast.error("Failed to connect element to trade", {
-          position: "top-center",
-          description:
-            error instanceof Error
-              ? error.message
-              : "An unexpected error occurred",
-        });
-      },
     });
 
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
@@ -953,6 +958,79 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setInlineEditingVariableId(null);
   };
 
+  const applyGlobalMarkup = (markupValue: number) => {
+    const updatedTrades = trades.map(trade => ({
+      ...trade,
+      elements: trade.elements?.map(element => ({
+        ...element,
+        markup: markupValue
+      })) || []
+    }));
+    
+    updateTrades(updatedTrades);
+    
+    updatedTrades.forEach(trade => {
+      trade.elements?.forEach(element => {
+        updateElementMutation({
+          elementId: element.id,
+          data: {
+            markup: markupValue
+          }
+        });
+      });
+    });
+    
+    toast.success(`Applied ${markupValue}% markup to all elements`, {
+      position: "top-center"
+    });
+  };
+
+  useEffect(() => {
+    if (isGlobalMarkupEnabled) {
+      applyGlobalMarkup(globalMarkupValue);
+    }
+  }, [isGlobalMarkupEnabled, globalMarkupValue]);
+
+  const startEditingElementMarkup = (element: ElementResponse) => {
+    setEditingMarkupElementId(element.id);
+    setInlineMarkupValue(element.markup || 0);
+  };
+
+  const saveElementMarkup = (elementId: string, tradeId: string, newMarkup: number) => {
+    const updatedTrades = trades.map(trade => {
+      if (trade.id === tradeId) {
+        return {
+          ...trade,
+          elements: (trade.elements || []).map(element => {
+            if (element.id === elementId) {
+              return {
+                ...element,
+                markup: newMarkup
+              };
+            }
+            return element;
+          })
+        };
+      }
+      return trade;
+    });
+    
+    updateTrades(updatedTrades);
+    
+    updateElementMutation({
+      elementId,
+      data: {
+        markup: newMarkup
+      }
+    });
+    
+    setEditingMarkupElementId(null);
+  };
+
+  const cancelEditingMarkup = () => {
+    setEditingMarkupElementId(null);
+  };
+
   const handleSelectTrade = (trade: TradeResponse) => {
     const newTrade: TradeResponse = {
       id: trade.id.toString(),
@@ -1007,13 +1085,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
       : undefined;
 
+    const markup = isGlobalMarkupEnabled ? globalMarkupValue : data.markup;
+
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
       material_cost_formula: materialFormula,
       origin: "derived",
       labor_cost_formula: laborFormula,
-      markup: data.markup,
+      markup: markup,
     };
 
     createElementMutation(elementData);
@@ -1036,12 +1116,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
       : undefined;
 
+    const markup = isGlobalMarkupEnabled ? globalMarkupValue : data.markup;
+
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
-      markup: data.markup,
+      markup: markup,
     };
 
     updateElementMutation({
@@ -1598,7 +1680,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                           {replaceVariableIdsWithNames(
                                             variable.formula,
                                             variables,
-                                            []
+                                            extractFormulaVariables(variable.formula)
                                           )}
                                         </code>
                                       </>
@@ -1682,9 +1764,36 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <BracesIcon className="mr-2 h-5 w-5" />
-                <span>Proposal Trades</span>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span className="flex items-center">
+                  <BracesIcon className="mr-2 h-5 w-5" />
+                  <span>Proposal Trades</span>
+                </span>
+                
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="global-markup-switch" className="cursor-pointer">Global Markup</Label>
+                    <Switch 
+                      id="global-markup-switch" 
+                      checked={isGlobalMarkupEnabled}
+                      onCheckedChange={setIsGlobalMarkupEnabled}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <PercentIcon className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={globalMarkupValue}
+                      onChange={(e) => setGlobalMarkupValue(Number(e.target.value))}
+                      onFocus={(e) => e.target.select()}
+                      className="w-16 h-7 text-sm"
+                      disabled={!isGlobalMarkupEnabled}
+                      min={0}
+                      max={100}
+                    />
+                  </div>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -2091,20 +2200,47 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                             </div>
                                           )}
 
-                                          {element.markup !== undefined && (
-                                            <div className="mt-2 flex flex-col">
-                                              <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                  <span className="text-xs font-semibold">
-                                                    Markup:
-                                                  </span>
-                                                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                                    {element.markup}%
+                                          <div className="mt-2 flex flex-col">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs font-semibold">
+                                                  Markup:
+                                                </span>
+                                                {editingMarkupElementId === element.id ? (
+                                                  <div className="flex">
+                                                    <Input 
+                                                      type="number"
+                                                      value={inlineMarkupValue}
+                                                      onChange={(e) => setInlineMarkupValue(Number(e.target.value))}
+                                                      onFocus={(e) => e.target.select()}
+                                                      onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                          saveElementMarkup(element.id, trade.id, inlineMarkupValue);
+                                                        } else if (e.key === 'Escape') {
+                                                          cancelEditingMarkup();
+                                                        }
+                                                      }}
+                                                      onBlur={() => saveElementMarkup(element.id, trade.id, inlineMarkupValue)}
+                                                      className="h-6 text-xs py-0 w-16"
+                                                      autoFocus
+                                                      min={0}
+                                                      max={100}
+                                                    />
+                                                    <span className="text-xs ml-1 flex items-center">%</span>
+                                                  </div>
+                                                ) : (
+                                                  <code 
+                                                    className="text-xs bg-muted px-1 py-0.5 rounded cursor-pointer hover:bg-primary/10"
+                                                    onClick={() => startEditingElementMarkup(element)}
+                                                  >
+                                                    {element.markup !== undefined && element.markup !== null ? 
+                                                      `${element.markup}%` : 
+                                                      '0%'}
                                                   </code>
-                                                </div>
+                                                )}
                                               </div>
                                             </div>
-                                          )}
+                                          </div>
                                         </div>
                                       </div>
 
