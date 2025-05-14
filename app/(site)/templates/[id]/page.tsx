@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Image from "next/image";
@@ -10,12 +10,15 @@ import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { getTemplate } from "@/queryOptions/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
+import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
 export default function TemplatedById() {
   const { id } = useParams();
+  // State to track which variable types are expanded
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
 
   const {
     data: template,
@@ -53,19 +56,61 @@ export default function TemplatedById() {
           <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
             Variables
           </h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {template.variables.map((variable: VariableResponse) => (
-              <span
-                key={variable.id}
-                className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
-              >
-                {variable.name}: {variable.value}
-                <span className="text-[10px] text-gray-400 ml-1">
-                  ({variable.variable_type?.name})
-                </span>
-              </span>
-            ))}
-          </div>
+          {(() => {
+            // Group variables by variable_type name
+            const groupedVariables: Record<string, VariableResponse[]> = {};
+            template.variables.forEach((variable: VariableResponse) => {
+              const typeName = variable.variable_type?.name || 'Other';
+              if (!groupedVariables[typeName]) {
+                groupedVariables[typeName] = [];
+              }
+              groupedVariables[typeName].push(variable);
+            });
+
+            // Return the grouped variables UI in horizontal layout with limited display
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {Object.entries(groupedVariables).map(([typeName, variables]) => {
+                  const isExpanded = expandedTypes[typeName] || false;
+                  const visibleVariables = isExpanded ? variables : variables.slice(0, 3);
+                  
+                  return (
+                    <div key={typeName}>
+                      <h4 className="text-sm font-semibold mb-3 text-foreground">
+                        {typeName}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {visibleVariables.map((variable: VariableResponse) => (
+                          <span
+                            key={variable.id}
+                            className="rounded-full bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground border transition-colors hover:bg-muted"
+                          >
+                            {variable.name}
+                          </span>
+                        ))}
+                        {variables.length > 3 && !isExpanded && (
+                          <button
+                            onClick={() => setExpandedTypes(prev => ({ ...prev, [typeName]: true }))}
+                            className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary border border-primary/20 transition-colors hover:bg-primary/20 cursor-pointer"
+                          >
+                            +{variables.length - 3} more
+                          </button>
+                        )}
+                        {isExpanded && variables.length > 3 && (
+                          <button
+                            onClick={() => setExpandedTypes(prev => ({ ...prev, [typeName]: false }))}
+                            className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary border border-primary/20 transition-colors hover:bg-primary/20 cursor-pointer"
+                          >
+                            Show less
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
       {template.trades.length > 0 && (
@@ -90,25 +135,32 @@ export default function TemplatedById() {
                   </div>
                   {trade.elements?.map((element: ElementResponse) => (
                     <div className="flex flex-col mt-1" key={element.id}>
-                      <div className="flex items-center gap-3 p-4 rounded border bg-background">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">
+                      <div className="flex flex-col p-4 rounded-lg border bg-background hover:shadow-sm transition-all">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-medium text-sm">
                             {element.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {element.description}
-                          </div>
+                          </h5>
                         </div>
-                        <div className="flex gap-2">
-                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Material: {element.material_cost}
-                          </span>
-                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Labor: {element.labor_cost}
-                          </span>
-                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                            Markup: {element.markup}%
-                          </span>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {element.description}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 mt-1">
+                          <div className="p-2 rounded-md bg-muted/40 border-l-2 border-primary/40">
+                            <div className="text-xs font-medium text-muted-foreground">Material Formula</div>
+                            <div className="text-sm mt-1 font-mono tracking-tighter leading-none">{element.material_cost_formula ? replaceVariableIdsWithNames(
+                              element.material_cost_formula,
+                              template.variables,
+                              element.material_formula_variables || []
+                            ) : ''}</div>
+                          </div>
+                          <div className="p-2 rounded-md bg-muted/40 border-l-2 border-primary/70">
+                            <div className="text-xs font-medium text-muted-foreground">Labor Formula</div>
+                            <div className="text-sm mt-1 font-mono tracking-tighter leading-none">{element.labor_cost_formula ? replaceVariableIdsWithNames(
+                              element.labor_cost_formula,
+                              template.variables,
+                              element.labor_formula_variables || []
+                            ) : ''}</div>
+                          </div>
                         </div>
                       </div>
                     </div>

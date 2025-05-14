@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/shared";
-import { evaluateFormula } from "@/lib/formula-evaluator";
 import { ProposalResponse } from "@/types/proposals/dto";
+import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 
 interface ProposalDetailsProps {
   proposal: ProposalResponse;
@@ -9,6 +9,11 @@ interface ProposalDetailsProps {
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   console.log("Proposal Details:", proposal);
+  // State to track which variable types are expanded
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>(
+    {}
+  );
+
   return (
     <>
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
@@ -38,19 +43,92 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                     <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
                       Variables
                     </h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {proposal.template.variables.map((variable) => (
-                        <span
-                          key={variable.id}
-                          className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
-                        >
-                          {variable.name}: {variable.value}
-                          <span className="ml-1 text-[10px] text-gray-400">
-                            ({variable.variable_type?.name})
-                          </span>
-                        </span>
-                      ))}
-                    </div>
+                    {(() => {
+                      // Group variables by variable_type name
+                      const groupedVariables: Record<
+                        string,
+                        typeof proposal.template.variables
+                      > = {};
+                      proposal.template.variables.forEach((variable) => {
+                        const typeName =
+                          variable.variable_type?.name || "Other";
+                        if (!groupedVariables[typeName]) {
+                          groupedVariables[typeName] = [];
+                        }
+                        groupedVariables[typeName].push(variable);
+                      });
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-4">
+                          {Object.entries(groupedVariables).map(
+                            ([typeName, variables]) => {
+                              return (
+                                <div key={typeName}>
+                                  <h4 className="text-sm font-semibold mb-3 text-foreground">
+                                    {typeName}
+                                  </h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(() => {
+                                      const isExpanded =
+                                        expandedTypes[typeName] || false;
+                                      const visibleVariables = isExpanded
+                                        ? variables
+                                        : variables.slice(0, 3);
+
+                                      return (
+                                        <>
+                                          {visibleVariables.map((variable) => (
+                                            <span
+                                              key={variable.id}
+                                              className="rounded-full bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground border transition-colors hover:bg-muted"
+                                            >
+                                              {variable.name}
+                                              {variable.value !== undefined && (
+                                                <span className="ml-1 font-normal">
+                                                  : {variable.value}
+                                                </span>
+                                              )}
+                                            </span>
+                                          ))}
+                                          {variables.length > 3 &&
+                                            !isExpanded && (
+                                              <button
+                                                onClick={() =>
+                                                  setExpandedTypes((prev) => ({
+                                                    ...prev,
+                                                    [typeName]: true,
+                                                  }))
+                                                }
+                                                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary border border-primary/20 transition-colors hover:bg-primary/20 cursor-pointer"
+                                              >
+                                                +{variables.length - 3} more
+                                              </button>
+                                            )}
+                                          {isExpanded &&
+                                            variables.length > 3 && (
+                                              <button
+                                                onClick={() =>
+                                                  setExpandedTypes((prev) => ({
+                                                    ...prev,
+                                                    [typeName]: false,
+                                                  }))
+                                                }
+                                                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary border border-primary/20 transition-colors hover:bg-primary/20 cursor-pointer"
+                                              >
+                                                Show less
+                                              </button>
+                                            )}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
             </div>
@@ -93,7 +171,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           {proposal.template?.trades && proposal.template.trades.length > 0 && (
             <div className="mt-8 w-full">
               <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-               Trades
+                Trades
               </h3>
               <div className="flex flex-col gap-4 w-full">
                 {proposal.template.trades.map((trade) => {
@@ -106,10 +184,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                         <h4 className="font-medium text-base mb-1">
                           {trade.name}
                         </h4>
-                        <div className="text-sm font-medium">
-                          Subtotal:
-                          
-                        </div>
+                        <div className="text-sm font-medium">Subtotal:</div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {trade.description}
@@ -124,32 +199,78 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                               return (
                                 <div
                                   key={element.id}
-                                  className="flex items-center gap-3 p-4 rounded border bg-background w-full"
+                                  className="flex flex-col p-4 rounded border bg-background w-full"
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm">
-                                      {element.name}
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm">
+                                        {element.name}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground line-clamp-1">
+                                        {element.description}
+                                      </div>
                                     </div>
-                                    <div className="text-xs text-muted-foreground line-clamp-1">
-                                      {element.description}
+                                    <div className="flex flex-col items-end gap-1.5 ml-2">
+                                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
+                                          Material: $
+                                          {Number(element.material_cost || 0).toFixed(2)}
+                                        </span>
+                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
+                                          Labor: ${Number(element.labor_cost || 0).toFixed(2)}
+                                        </span>
+                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
+                                          Markup: {element.markup || 0}%
+                                        </span>
+                                        <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
+                                          Total: $
+                                          {(
+                                            (Number(element.material_cost || 0) + Number(element.labor_cost || 0)) * 
+                                            (1 + (Number(element.markup || 0) / 100))
+                                          ).toFixed(2)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                      Material:
-                                      {element.material_cost}
-                                    </span>
-                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                      Labor:
-                                      {element.labor_cost}
-                                    </span>
-                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                      Markup: {element.markup}%
-                                    </span>
-                                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium border border-primary/20">
-                                      Total:
-                                      {/* {formatCurrency(total)} */}
-                                    </span>
+
+                                  {/* Formulas (smaller, less prominent) */}
+                                  <div className="grid grid-cols-2 gap-2 mt-2">
+                                    {element.material_cost_formula && (
+                                      <div className="p-1.5 rounded-md bg-muted/30 border-l border-primary/30">
+                                        <div className="text-[10px] uppercase font-medium text-muted-foreground">
+                                          Material Formula
+                                        </div>
+                                        <div className="text-[11px] font-mono tracking-tighter leading-none truncate text-muted-foreground">
+                                          {element.material_cost_formula
+                                            ? replaceVariableIdsWithNames(
+                                                element.material_cost_formula,
+                                                proposal.template?.variables ||
+                                                  [],
+                                                element.material_formula_variables ||
+                                                  []
+                                              )
+                                            : ""}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {element.labor_cost_formula && (
+                                      <div className="p-1.5 rounded-md bg-muted/30 border-l border-primary/30">
+                                        <div className="text-[10px] uppercase font-medium text-muted-foreground">
+                                          Labor Formula
+                                        </div>
+                                        <div className="text-[11px] font-mono tracking-tighter leading-none truncate text-muted-foreground">
+                                          {element.labor_cost_formula
+                                            ? replaceVariableIdsWithNames(
+                                                element.labor_cost_formula,
+                                                proposal.template?.variables ||
+                                                  [],
+                                                element.labor_formula_variables ||
+                                                  []
+                                              )
+                                            : ""}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
