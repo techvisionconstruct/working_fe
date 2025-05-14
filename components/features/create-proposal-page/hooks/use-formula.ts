@@ -14,18 +14,13 @@ export function useFormula() {
   const [materialFormulaError, setMaterialFormulaError] = useState<string | null>(null);
   const [laborFormulaError, setLaborFormulaError] = useState<string | null>(null);
   
-  // Validate formula tokens
+  // Validate formula tokens - make sure the function includes error message
   const validateFormulaTokens = useCallback((tokens: FormulaToken[]): { isValid: boolean; error: string | null } => {
     // Allow empty formulas
     if (tokens.length === 0) {
       return { isValid: true, error: null };
     }
 
-    // Check for standalone operators with no operands
-    if (tokens.length === 1 && tokens[0].type === 'operator') {
-      return { isValid: false, error: "Formula cannot contain only an operator" };
-    }
-    
     // Basic validation logic
     let parenthesesCount = 0;
     for (let i = 0; i < tokens.length; i++) {
@@ -40,6 +35,15 @@ export function useFormula() {
       return { isValid: false, error: "Missing closing parenthesis" };
     }
 
+    // Check for invalid operator sequences
+    for (let i = 0; i < tokens.length - 1; i++) {
+      if (tokens[i].type === 'operator' && 
+          tokens[i+1].type === 'operator' && 
+          !['+', '-'].includes(tokens[i+1].text)) {
+        return { isValid: false, error: "Invalid operator sequence" };
+      }
+    }
+    
     return { isValid: true, error: null };
   }, []);
   

@@ -2,14 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Badge, Input, Button } from "@/components/shared";
-import {
-  Variable,
-  Calculator,
-  Hash,
-  X,
-  PlusCircle,
-  AlertCircle,
-} from "lucide-react";
+import { Variable, Calculator, Hash, X, PlusCircle, AlertCircle } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -22,7 +15,7 @@ interface FormulaBuilderProps {
   variables: VariableResponse[];
   updateVariables?: (variables: VariableResponse[]) => void;
   hasError?: boolean;
-  onCreateVariable?: (name: string, formulaType?: "material" | "labor", currentTokens?: FormulaToken[]) => void;
+  onCreateVariable?: (name: string, formulaType?: "material" | "labor") => void;
   formulaType?: "material" | "labor";
 }
 
@@ -39,12 +32,13 @@ function validateFormula(tokens: FormulaToken[]): {
     const formula = tokens
       .map((token) => {
         if (token.type === "variable") {
-          return "1";
+          return "1"; // Replace variables with 1 for validation
         }
         return token.text;
       })
       .join(" ");
 
+    // Rest of validation logic
     const formulaStr = tokens.map((t) => t.text).join("");
     const operatorPattern = /[\+\-\*\/\^]{2,}/;
     if (operatorPattern.test(formulaStr)) {
@@ -126,10 +120,13 @@ export function FormulaBuilder({
   const [suggestions, setSuggestions] = useState<VariableResponse[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Track partial tokens and insertion point
-  const [partialToken, setPartialToken] = useState("");
-  const [tokenInsertionPoint, setTokenInsertionPoint] = useState(-1);
+  const [isCreatingVariable, setIsCreatingVariable] = useState(false);
+  
+  // Track the cursor position for inserting variables at the right spot
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  
+  // Track if this component is currently focused
+  const [isFocused, setIsFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -173,11 +170,15 @@ export function FormulaBuilder({
     text: string,
     tokenType: "variable" | "operator" | "number" | "function"
   ) => {
+    console.log(`Adding token: ${text} (${tokenType}) to ${formulaType} formula`);
+    
     const newToken: FormulaToken = {
       id: Date.now() + Math.random(),
       text,
       type: tokenType,
     };
+    
+    // Always append the token at the end for now
     const updatedTokens = [...validFormulaTokens, newToken];
 
     const { isValid, errorMessage } = validateFormula(updatedTokens);
@@ -188,17 +189,17 @@ export function FormulaBuilder({
         description: errorMessage,
         icon: <AlertCircle className="w-4 h-4" />,
       });
-      setFormulaTokens(updatedTokens);
-    } else {
-      setFormulaTokens(updatedTokens);
     }
-
+    
+    // Update tokens regardless of validation results
+    setFormulaTokens(updatedTokens);
     setFormulaInput("");
     setShowSuggestions(false);
   };
 
   const removeFormulaToken = (tokenId: number) => {
-    setFormulaTokens((prev) => prev.filter((token) => token.id !== tokenId));
+    const newTokens = validFormulaTokens.filter((token) => token.id !== tokenId);
+    setFormulaTokens(newTokens);
   };
 
   const handleAddApiVariableToFormula = (variable: VariableResponse) => {
@@ -216,21 +217,26 @@ export function FormulaBuilder({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormulaInput(e.target.value);
+    setCursorPosition(e.target.selectionStart);
   };
 
-  // Create variable safely with better logging and preserve current tokens
+  // Create variable safely with better logging
   const safeCreateVariable = (name: string) => {
     try {
-      if (onCreateVariable) {
-        console.log(`Requesting variable creation for formula: ${name} (${formulaType})`);
-        // Pass the current tokens to preserve formula state
-        onCreateVariable(name, formulaType, validFormulaTokens);
+      if (onCreateVariable && !isCreatingVariable) {
+        console.log(`Requesting variable creation for formula type: ${formulaType}`);
+        setIsCreatingVariable(true);
+        
+        // Pass the formula type to indicate which formula should get the new variable
+        onCreateVariable(name, formulaType);
+        
         // Clear input after requesting variable creation
         setFormulaInput("");
         return true;
       }
     } catch (error) {
       console.error("Error calling onCreateVariable:", error);
+      setIsCreatingVariable(false);
     }
     return false;
   };
@@ -252,10 +258,7 @@ export function FormulaBuilder({
 
       if (suggestions.length > 0) {
         const selectedVar = suggestions[selectedSuggestion];
-        if (
-          updateVariables &&
-          !variables.some((v) => v.id === selectedVar.id)
-        ) {
+        if (updateVariables && !variables.some((v) => v.id === selectedVar.id)) {
           updateVariables([...variables, selectedVar]);
           toast.success("Variable automatically added", {
             description: `"${selectedVar.name}" has been added to your template.`,
@@ -268,10 +271,7 @@ export function FormulaBuilder({
           (v) => v.name.toLowerCase() === formulaInput.toLowerCase()
         )
       ) {
-        if (onCreateVariable) {
-          const created = safeCreateVariable(formulaInput.trim());
-          // We don't clear input here, the parent will handle re-rendering with preserved state
-        }
+        safeCreateVariable(formulaInput.trim());
       } else if (formulaInput.trim()) {
         const exactMatch = variables.find(
           (v) => v.name.toLowerCase() === formulaInput.trim().toLowerCase()
@@ -363,6 +363,11 @@ export function FormulaBuilder({
     return validFormulaTokens.length > 0 && !validationError;
   }, [validFormulaTokens, validationError]);
 
+  // Reset isCreatingVariable when the component re-renders
+  useEffect(() => {
+    setIsCreatingVariable(false);
+  }, [validFormulaTokens]);
+
   return (
     <>
       <div
@@ -416,8 +421,20 @@ export function FormulaBuilder({
           value={formulaInput}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
-          onFocus={() => setShowSuggestions(!!formulaInput.trim())}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onFocus={() => {
+            setIsFocused(true);
+            setShowSuggestions(!!formulaInput.trim());
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            setTimeout(() => setShowSuggestions(false), 150);
+          }}
+          onClick={(e) => {
+            // Update cursor position on click
+            if (inputRef.current) {
+              setCursorPosition(inputRef.current.selectionStart);
+            }
+          }}
           placeholder={
             validFormulaTokens.length
               ? "Add more..."
@@ -543,12 +560,7 @@ export function FormulaBuilder({
               ) : (
                 <div
                   className="p-3 flex items-center cursor-pointer hover:bg-accent"
-                  onClick={() => {
-                    if (onCreateVariable) {
-                      safeCreateVariable(formulaInput.trim());
-                      // Input is cleared in safeCreateVariable
-                    }
-                  }}
+                  onClick={() => safeCreateVariable(formulaInput.trim())}
                 >
                   <div className="flex-1">
                     <span className="font-medium text-sm">
