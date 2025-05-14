@@ -125,7 +125,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                               {variable.name}
                                               {variable.value !== undefined && (
                                                 <span className="ml-1 font-normal">
-                                                  : {variable.value}
+                                                  : {variable.value} {variable.variable_type?.unit}
                                                 </span>
                                               )}
                                             </span>
