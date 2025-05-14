@@ -1,7 +1,7 @@
 "use client";
 
-import { getContracts } from "@/api/client/contracts";
-import { getProposals } from "@/api/client/proposals";
+import { getAllContracts } from "@/api/contracts/get-all-contracts";
+import { getAllProposals } from "@/api/proposals/get-all-proposals";
 import { ContractList } from "@/components/features/contract-page/contract-list-view";
 import { ContractGridView } from "@/components/features/contract-page/contract-grid-view";
 import { ContractLoader } from "@/components/features/contract-page/loader";
@@ -24,12 +24,12 @@ export default function ContractsPage() {
   const router = useRouter();
   const contracts = useQuery({
     queryKey: ["contracts"],
-    queryFn: getContracts,
+    queryFn: getAllContracts,
   });
   
   const proposals = useQuery({
     queryKey: ["proposals"],
-    queryFn: getProposals,
+    queryFn: getAllProposals,
   });
 
   const [search, setSearch] = useState("");
@@ -56,7 +56,7 @@ export default function ContractsPage() {
     }
   }, [proposals.data, router]);
 
-  const filteredContracts = (contracts.data || []).filter(
+  const filteredContracts = (Array.isArray(contracts.data) ? contracts.data : []).filter(
     (contract: any) => {
       const searchMatch =
         contract.title?.toLowerCase().includes(search.toLowerCase()) ||

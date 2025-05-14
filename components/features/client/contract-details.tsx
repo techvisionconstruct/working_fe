@@ -19,6 +19,8 @@ import {
 } from "@/components/shared";
 import { clientSignature, updateContract } from "@/api/server/contracts";
 import { toast } from "sonner";
+import { VariableResponse } from "@/types/variables/dto";
+import { TradeResponse } from "@/types/trades/dto";
 
 interface TermSection {
   id: number;
@@ -56,15 +58,6 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     }
   };
 
-  // State for client details
-  const [clientDetails] = useState({
-    name: proposal?.contract?.clientName || proposal?.client_name || "",
-    email: proposal?.contract?.clientEmail || proposal?.client_email || "",
-    phone:
-      proposal?.contract?.clientPhoneNumber || proposal?.phone_number || "",
-    address: proposal?.contract?.clientAddress || proposal?.address || "",
-  });
-
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -78,6 +71,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
   const signContractMutation = useMutation({
     mutationFn: (data: any) => {
       // Check if contract exists and has an ID
+      console.log("Signing contract with data:", data, proposal);
       if (proposal?.contract) {
         // Try to find the contract ID - check different possible properties
         const contractId =
@@ -119,8 +113,10 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     }
 
     const contractData = {
-      clientInitials: signatures.client.type === "text" ? signatures.client.value : null,
-      clientImage: signatures.client.type === "image" ? signatures.client.value : null,
+      client_initials:
+        signatures.client.type === "text" ? signatures.client.value : null,
+      client_signature:
+        signatures.client.type === "image" ? signatures.client.value : null,
     };
 
     signContractMutation.mutate(contractData);
@@ -129,11 +125,11 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
   const [agreementTitle] = useState(
     proposal?.contract?.contractName || "SERVICE AGREEMENT"
   );
-
   // State for terms and conditions
   const [termsSections] = useState<TermSection[]>(() => {
-    if (proposal?.contract?.terms) {
-      return proposal.contract.terms;
+    const terms = proposal?.contract?.terms;
+    if (Array.isArray(terms)) {
+      return terms;
     } else {
       return [
         {
@@ -158,19 +154,19 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     contractor: Signature;
   }>(() => {
     if (
-      proposal?.contract?.clientInitials !== undefined ||
-      proposal?.contract?.clientImage !== undefined ||
-      proposal?.contract?.contractorInitials !== undefined ||
-      proposal?.contract?.contractorImage !== undefined
+      proposal?.contract?.client_initials !== undefined ||
+      proposal?.contract?.client_signature !== undefined ||
+      proposal?.contract?.contractor_initials !== undefined ||
+      proposal?.contract?.contractor_signature !== undefined
     ) {
       return {
         client: getSignatureData(
-          proposal.contract.clientInitials,
-          proposal.contract.clientImage
+          proposal.contract.client_initials,
+          proposal.contract.client_signature
         ),
         contractor: getSignatureData(
-          proposal.contract.contractorInitials,
-          proposal.contract.contractorImage
+          proposal.contract.contractor_initials,
+          proposal.contract.contractor_signature
         ),
       };
     } else if (proposal?.contract?.signatures) {
@@ -193,8 +189,9 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
 
   // Check if contract is already signed by client
   const isContractSigned = !!(
-    proposal?.contract?.clientImage || 
-    (proposal?.contract?.clientInitials && proposal?.contract?.clientInitials.trim() !== "")
+    proposal?.contract?.client_signature ||
+    (proposal?.contract?.client_initials &&
+      proposal?.contract?.client_initials.trim() !== "")
   );
 
   // Handle input changes for signature
@@ -204,7 +201,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     const { name, value } = e.target;
 
     // Check if this is a signature field
-    if (name === "clientInitials") {
+    if (name === "client_initials") {
       setSignatures((prev) => ({
         ...prev,
         client: {
@@ -282,551 +279,746 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
 
   return (
     <div className="w-full mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <div className="p-6 rounded-lg border bg-muted/30 w-full">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
-                {agreementTitle}
-              </h1>
-              <div className="space-y-0 text-muted-foreground text-center">
-                <p className="text-md">
-                  This Service Agreement is entered into as of April 25, 2025,
-                  by and between:
-                </p>
-                <p className="text-md">
-                  Service Provider: Simple ProjeX, with its principal place of
-                  business at Irvine, California, and
-                </p>
-                <p className="text-md">
-                  Client:{" "}
-                  {clientDetails.name || proposal?.client_name || "test"}, with
-                  a primary address at{" "}
-                  {clientDetails.address ||
-                    proposal?.address ||
-                    "[Client Address]"}{" "}
-                  .
-                </p>
-              </div>
-            </div>
-
-            <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider">
-              Contract Details
-            </h2>
-
-            {proposal ? (
-              <div className="space-y-8 w-full">
-                {/* Contract Header */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">
-                    {proposal.name || "Unnamed Project"}
-                  </h3>
-                  <p className="text-muted-foreground whitespace-pre-line">
-                    {proposal.description}
+      {!proposal.contract ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-8 text-center my-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-amber-600 mx-auto mb-4"
+          >
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <h2 className="text-2xl font-semibold text-amber-800 mb-3">No Contract Available</h2>
+          <p className="text-amber-700 text-lg mb-4">This proposal doesn't have a contract attached to it yet.</p>
+          <p className="text-amber-600">Please contact your contractor to set up a contract for this proposal.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <div className="p-6 rounded-lg border bg-muted/30 w-full">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
+                  {agreementTitle}
+                </h1>
+                <div className="space-y-0 text-muted-foreground text-center">
+                  <p className="text-md">
+                    This Service Agreement is entered into as of April 25, 2025,
+                    by and between:
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {proposal.project_modules?.map((module: any) => (
-                      <Badge
-                        key={module.id}
-                        variant="outline"
-                        className="font-semibold uppercase text-xs"
-                      >
-                        {module.module?.name || "Module"}
-                      </Badge>
-                    ))}
-                  </div>
+                  <p className="text-md">
+                    Service Provider: Simple ProjeX, with its principal place of
+                    business at Irvine, California, and
+                  </p>
+                  <p className="text-md">
+                    Client: {proposal.client_name || "Client Name"}, with a
+                    primary address at{" "}
+                    {proposal.client_address || "[Client Address]"} .
+                  </p>
                 </div>
+              </div>
 
-                <Separator />
+              <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider">
+                Contract Details
+              </h2>
 
-                {/* Client and Contractor Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Client Information */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">
-                        Client Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Client Name
-                        </p>
-                        <p className="font-medium">
-                          {proposal.client_name || "N/A"}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium">
-                          {proposal.client_email || "N/A"}
-                        </p>
-                      </div>
-                      {proposal.phone_number && (
+              {proposal ? (
+                <div className="space-y-8 w-full">
+                  {/* Contract Header */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold">
+                      {proposal.name || "Unnamed Project"}
+                    </h3>
+                    <p className="text-muted-foreground whitespace-pre-line">
+                      {proposal.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {proposal.project_modules?.map((module: any) => (
+                        <Badge
+                          key={module.id}
+                          variant="outline"
+                          className="font-semibold uppercase text-xs"
+                        >
+                          {module.module?.name || "Module"}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Client Information */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">
+                          Client Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Client Name
+                          </p>
+                          <p className="font-medium">
+                            {proposal.client_name || "N/A"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="font-medium">
+                            {proposal.client_email || "N/A"}
+                          </p>
+                        </div>
+
                         <div className="space-y-2">
                           <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{proposal.phone_number}</p>
+                          <p className="font-medium">{proposal.client_phone}</p>
                         </div>
-                      )}
-                      {proposal.address && (
+
                         <div className="space-y-2">
                           <p className="text-sm text-muted-foreground">
                             Address
                           </p>
-                          <p className="font-medium">{proposal.address}</p>
+                          <p className="font-medium">
+                            {proposal.client_address}
+                          </p>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
 
-                  {/* Contract Summary */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">
-                        Contract Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Total Project Cost</span>
-                        <span className="font-bold text-xl">
-                          {calculateTotalCost()}
-                        </span>
-                      </div>
-                      <Separator />
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Created</span>
-                          <span>
-                            {proposal.created_at
-                              ? formatDate(proposal.created_at)
-                              : "N/A"}
+                    {/* Contractor Information */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">
+                          Contract Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Total Project Cost</span>
+                          <span className="font-bold text-xl">
+                            {proposal.total_cost || "N/A"}
                           </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Last Updated</span>
-                          <span>
-                            {proposal.updated_at
-                              ? formatDate(proposal.updated_at)
-                              : "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Project Parameters */}
-                {proposal.project_parameters &&
-                  proposal.project_parameters.length > 0 && (
-                    <div className="space-y-4 mt-4">
-                      <h3 className="text-lg font-semibold">
-                        Project Parameters
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {proposal.project_parameters.map((param: any) => (
-                          <div
-                            key={param.id}
-                            className="p-3 bg-muted/50 rounded-xl flex justify-between items-center"
-                          >
-                            <span className="font-medium">
-                              {param.parameter?.name || "Parameter"}
+                        <Separator />
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Created</span>
+                            <span>
+                              {proposal.created_at
+                                ? new Date(
+                                    proposal.created_at
+                                  ).toLocaleDateString("en-US", {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : "N/A"}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <span>{param.value}</span>
-                              <span className="text-muted-foreground text-sm">
-                                {param.parameter?.type || ""}
-                              </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Last Updated</span>
+                            <span>
+                              {proposal.updated_at
+                                ? new Date(
+                                    proposal.updated_at
+                                  ).toLocaleDateString("en-US", {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : "N/A"}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between text-sm">
+                            <span>Created By</span>
+                            <span>
+                              {proposal.created_by?.first_name ||
+                                "Contractor First Name"}{" "}
+                              {proposal.created_by?.last_name ||
+                                "Contractor Last Name"}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {proposal.template?.variables &&
+                    proposal.template?.variables.length > 0 && (
+                      <div className="space-y-4 mt-4">
+                        <h3 className="text-lg font-semibold">
+                          Project Variables
+                        </h3>
+                        {(() => {
+                          // Group variables by variable_type name
+                          const groupedVariables: Record<
+                            string,
+                            VariableResponse[]
+                          > = {};
+                          proposal.template.variables.forEach(
+                            (variable: VariableResponse) => {
+                              const typeName =
+                                variable.variable_type?.name || "Other";
+                              if (!groupedVariables[typeName]) {
+                                groupedVariables[typeName] = [];
+                              }
+                              groupedVariables[typeName].push(variable);
+                            }
+                          );
+
+                          return (
+                            <div className="grid grid-cols-2 gap-6">
+                              {Object.entries(groupedVariables).map(
+                                ([typeName, variables]) => (
+                                  <div
+                                    key={typeName}
+                                    className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                                  >
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                      <h4 className="font-medium text-sm">
+                                        {typeName}
+                                      </h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                      {variables.map((variable) => (
+                                        <div
+                                          key={variable.id}
+                                          className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
+                                        >
+                                          <span className="text-gray-600">
+                                            {variable.name || "Variable Name"}
+                                          </span>
+                                          <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
+                                            {variable.value}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              )}
                             </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                  {/* Project Elements */}
+                  {proposal.project_modules &&
+                    proposal.project_modules.length > 0 && (
+                      <div className="space-y-4 mt-4">
+                        <h3 className="text-lg font-semibold">
+                          Project Details
+                        </h3>
+                        {proposal.project_modules.map((moduleItem: any) => (
+                          <div key={moduleItem.id} className="space-y-4">
+                            <h4 className="text-base font-semibold">
+                              {moduleItem.module?.name || "Module"}
+                            </h4>
+                            {proposal.project_elements && (
+                              <div className="rounded-lg border p-4 overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Element</TableHead>
+                                      <TableHead>Description</TableHead>
+                                      <TableHead className="text-right">
+                                        Cost
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {proposal.project_elements
+                                      .filter(
+                                        (element: any) =>
+                                          element.project_module?.module?.id ===
+                                          moduleItem.module?.id
+                                      )
+                                      .map((element: any) => (
+                                        <TableRow key={element.id}>
+                                          <TableCell className="font-medium">
+                                            {element.element?.name ||
+                                              "Element"}
+                                          </TableCell>
+                                          <TableCell>
+                                            {element.element?.description ||
+                                              "No description available"}
+                                          </TableCell>
+                                          <TableCell className="text-right font-semibold">
+                                            {new Intl.NumberFormat("en-US", {
+                                              style: "currency",
+                                              currency: "USD",
+                                            }).format(
+                                              (parseFloat(
+                                                element.material_cost || 0
+                                              ) +
+                                                parseFloat(
+                                                  element.labor_cost || 0
+                                                )) *
+                                                (1 +
+                                                  parseFloat(
+                                                    element.markup || 0
+                                                  ) /
+                                                    100)
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                {/* Project Elements */}
-                {proposal.project_modules &&
-                  proposal.project_modules.length > 0 && (
-                    <div className="space-y-4 mt-4">
-                      <h3 className="text-lg font-semibold">Project Details</h3>
-                      {proposal.project_modules.map((moduleItem: any) => (
-                        <div key={moduleItem.id} className="space-y-4">
-                          <h4 className="text-base font-semibold">
-                            {moduleItem.module?.name || "Module"}
-                          </h4>
-                          {proposal.project_elements && (
-                            <div className="rounded-lg border p-4 overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Element</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">
-                                      Cost
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {proposal.project_elements
-                                    .filter(
-                                      (element: any) =>
-                                        element.project_module?.module?.id ===
-                                        moduleItem.module?.id
-                                    )
-                                    .map((element: any) => (
-                                      <TableRow key={element.id}>
-                                        <TableCell className="font-medium">
-                                          {element.element?.name || "Element"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {element.element?.description ||
-                                            "No description available"}
-                                        </TableCell>
-                                        <TableCell className="text-right font-semibold">
-                                          {new Intl.NumberFormat("en-US", {
-                                            style: "currency",
-                                            currency: "USD",
-                                          }).format(
-                                            (parseFloat(
-                                              element.material_cost || 0
-                                            ) +
-                                              parseFloat(
-                                                element.labor_cost || 0
-                                              )) *
-                                              (1 +
+                  {proposal.template?.trades &&
+                    proposal.template?.trades.length > 0 && (
+                      <div className="space-y-6 mt-4">
+                        <h3 className="text-lg font-semibold">
+                          Project Details
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6">
+                          {proposal.template?.trades.map(
+                            (trade: TradeResponse) => (
+                              <div
+                                key={trade.id}
+                                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                              >
+                                <div className="flex items-center gap-2 mb-4">
+                                  <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                  <h4 className="font-medium">
+                                    {trade.name || "Trade Name"}
+                                  </h4>
+                                </div>
+
+                                {trade.elements && trade.elements.length > 0 && (
+                                  <div className="space-y-2">
+                                    {trade.elements.map((element: any) => (
+                                      <div
+                                        key={element.id}
+                                        className="bg-gray-50 rounded-md p-3 border border-gray-100 hover:border-primary/20 transition-colors"
+                                      >
+                                        <div className="flex justify-between items-center mb-1">
+                                          <h5 className="font-medium text-sm">
+                                            {element.name || "Element Name"}
+                                          </h5>
+                                          <span className="font-medium text-sm bg-white px-3 py-1 rounded text-primary border border-gray-100">
+                                            {new Intl.NumberFormat("en-US", {
+                                              style: "currency",
+                                              currency: "USD",
+                                            }).format(
+                                              (parseFloat(
+                                                element.material_cost || 0
+                                              ) +
                                                 parseFloat(
-                                                  element.markup || 0
-                                                ) /
-                                                  100)
-                                          )}
-                                        </TableCell>
-                                      </TableRow>
+                                                  element.labor_cost || 0
+                                                )) *
+                                                (1 +
+                                                  parseFloat(
+                                                    element.markup || 0
+                                                  ) /
+                                                    100)
+                                            )}
+                                          </span>
+                                        </div>
+
+                                        <p className="text-xs text-gray-600 line-clamp-2">
+                                          {element.description ||
+                                            "No description available"}
+                                        </p>
+
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                          <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                            Material: $
+                                            {Number(
+                                              element.material_cost || 0
+                                            ).toFixed(2)}
+                                          </span>
+                                          <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                            Labor: $
+                                            {Number(
+                                              element.labor_cost || 0
+                                            ).toFixed(2)}
+                                          </span>
+                                          <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                            Markup: {element.markup || 0}%
+                                          </span>
+                                        </div>
+                                      </div>
                                     ))}
-                                </TableBody>
-                              </Table>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Terms and Conditions */}
+                  <div className="space-y-4 mt-4">
+                    <h3 className="text-lg font-semibold">
+                      Terms and Conditions
+                    </h3>
+
+                    <div className="overflow-hidden">
+                      <div>
+                        <div className="p-2 relative">
+                          <div className="text-slate-800">
+                            <div className="space-y-6 leading-relaxed">
+                              {termsSections.map((section, index) => (
+                                <div key={section.id} className="mb-6">
+                                  <div className="flex items-baseline gap-3 mb-2">
+                                    <div className="w-7 h-7 rounded-full border border-primary/30 flex items-center justify-center flex-shrink-0 text-primary bg-primary/5">
+                                      <span className="text-xs font-bold">
+                                        {index + 1}
+                                      </span>
+                                    </div>
+                                    <h5 className="text-base font-bold uppercase tracking-wide text-slate-700">
+                                      {section.title}
+                                    </h5>
+                                  </div>
+                                  <div className="ml-10 text-sm text-slate-600 leading-relaxed">
+                                    {section.description}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Signatures */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                    {/* Client Signature - Always an input field unless already signed */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Your Signature</h3>
+                      {isContractSigned ? (
+                        <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
+                          {signatures.client.type === "text" ? (
+                            <p className="font-medium text-xl">
+                              {signatures.client.value}
+                            </p>
+                          ) : (
+                            <img
+                              src={signatures.client.value}
+                              alt="Client signature"
+                              className="max-h-full object-contain"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg p-4 bg-muted/10">
+                          <div className="flex gap-4 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="clientInitialsOption"
+                                name="clientSignatureType"
+                                className="w-4 h-4"
+                                checked={signatures.client.type === "text"}
+                                onChange={() =>
+                                  handleSignatureTypeChange("text")
+                                }
+                              />
+                              <Label htmlFor="clientInitialsOption">
+                                Type Initials
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="clientImageOption"
+                                name="clientSignatureType"
+                                className="w-4 h-4"
+                                checked={signatures.client.type === "image"}
+                                onChange={() =>
+                                  handleSignatureTypeChange("image")
+                                }
+                              />
+                              <Label htmlFor="clientImageOption">
+                                Upload Signature
+                              </Label>
+                            </div>
+                          </div>
+
+                          {signatures.client.type === "text" ? (
+                            <div className="space-y-2">
+                              <Label htmlFor="client_initials">
+                                Enter your initials
+                              </Label>
+                              <Input
+                                id="client_initials"
+                                name="client_initials"
+                                value={signatures.client.value}
+                                onChange={handleInputChange}
+                                placeholder="Type your initials"
+                                className="font-medium"
+                              />
+                              {signatures.client.value && (
+                                <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white">
+                                  <p className="font-medium text-xl">
+                                    {signatures.client.value}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Label htmlFor="clientSignatureImage">
+                                Upload your signature
+                              </Label>
+                              <Input
+                                id="clientSignatureImage"
+                                name="clientSignatureImage"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleSignatureImageUpload}
+                                className="text-sm"
+                              />
+                              {signatures.client.value && (
+                                <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white overflow-hidden">
+                                  <img
+                                    src={signatures.client.value}
+                                    alt="Client signature"
+                                    className="max-h-full object-contain"
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                {/* Terms and Conditions */}
-                <div className="space-y-4 mt-4">
-                  <h3 className="text-lg font-semibold">
-                    Terms and Conditions
-                  </h3>
-
-                  <div className="overflow-hidden">
-                    <div>
-                      <div className="p-2 relative">
-                        <div className="text-slate-800">
-                          <div className="space-y-6 leading-relaxed">
-                            {termsSections.map((section, index) => (
-                              <div key={section.id} className="mb-6">
-                                <div className="flex items-baseline gap-3 mb-2">
-                                  <div className="w-7 h-7 rounded-full border border-primary/30 flex items-center justify-center flex-shrink-0 text-primary bg-primary/5">
-                                    <span className="text-xs font-bold">
-                                      {index + 1}
-                                    </span>
-                                  </div>
-                                  <h5 className="text-base font-bold uppercase tracking-wide text-slate-700">
-                                    {section.title}
-                                  </h5>
-                                </div>
-                                <div className="ml-10 text-sm text-slate-600 leading-relaxed">
-                                  {section.description}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Signatures */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
-                  {/* Client Signature - Always an input field unless already signed */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Your Signature</h3>
-                    {isContractSigned ? (
-                      <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
-                        {signatures.client.type === "text" ? (
-                          <p className="font-medium text-xl">
-                            {signatures.client.value}
-                          </p>
-                        ) : (
-                          <img
-                            src={signatures.client.value}
-                            alt="Client signature"
-                            className="max-h-full object-contain"
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="border rounded-lg p-4 bg-muted/10">
-                        <div className="flex gap-4 mb-3">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="clientInitialsOption"
-                              name="clientSignatureType"
-                              className="w-4 h-4"
-                              checked={signatures.client.type === "text"}
-                              onChange={() => handleSignatureTypeChange("text")}
-                            />
-                            <Label htmlFor="clientInitialsOption">
-                              Type Initials
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="clientImageOption"
-                              name="clientSignatureType"
-                              className="w-4 h-4"
-                              checked={signatures.client.type === "image"}
-                              onChange={() => handleSignatureTypeChange("image")}
-                            />
-                            <Label htmlFor="clientImageOption">Upload Signature</Label>
-                          </div>
-                        </div>
-
-                        {signatures.client.type === "text" ? (
-                          <div className="space-y-2">
-                            <Label htmlFor="clientInitials">
-                              Enter your initials
-                            </Label>
-                            <Input
-                              id="clientInitials"
-                              name="clientInitials"
-                              value={signatures.client.value}
-                              onChange={handleInputChange}
-                              placeholder="Type your initials"
-                              className="font-medium"
-                            />
-                            {signatures.client.value && (
-                              <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white">
-                                <p className="font-medium text-xl">
-                                  {signatures.client.value}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <Label htmlFor="clientSignatureImage">
-                              Upload your signature
-                            </Label>
-                            <Input
-                              id="clientSignatureImage"
-                              name="clientSignatureImage"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleSignatureImageUpload}
-                              className="text-sm"
-                            />
-                            {signatures.client.value && ( 
-                              <div className="h-20 border rounded-lg flex items-center justify-center mt-2 bg-white overflow-hidden">
-                                <img
-                                  src={signatures.client.value}
-                                  alt="Client signature"
-                                  className="max-h-full object-contain"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {new Date().toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  
-                  {/* Contractor Signature - Read-only view */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">
-                      Contractor Signature
-                    </h3>
-                    <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
-                      {signatures.contractor.value ? (
-                        signatures.contractor.type === "text" ? (
-                          <p className="font-medium text-xl">
-                            {signatures.contractor.value}
-                          </p>
-                        ) : (
-                          <img
-                            src={signatures.contractor.value}
-                            alt="Contractor signature"
-                            className="max-h-full object-contain"
-                          />
-                        )
-                      ) : (
-                        <p className="text-muted-foreground">
-                          Pending contractor signature
-                        </p>
                       )}
+                      <p className="text-sm text-muted-foreground">
+                        Date:{" "}
+                        {new Date().toLocaleDateString("en-US", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {proposal?.contract?.updatedAt 
-                        ? formatDate(proposal.contract.updatedAt)
-                        : "Pending"}
-                    </p>
+
+                    {/* Contractor Signature - Read-only view */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">
+                        Contractor Signature
+                      </h3>
+                      <div className="h-24 border rounded-lg flex items-center justify-center bg-muted/20">
+                        {signatures.contractor.value ? (
+                          signatures.contractor.type === "text" ? (
+                            <p className="font-medium text-xl">
+                              {signatures.contractor.value}
+                            </p>
+                          ) : (
+                            <img
+                              src={signatures.contractor.value}
+                              alt="Contractor signature"
+                              className="max-h-full object-contain"
+                            />
+                          )
+                        ) : (
+                          <p className="text-muted-foreground">
+                            Pending contractor signature
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Date:{" "}
+                        {proposal?.contract?.updatedAt
+                          ? formatDate(proposal.contract.updatedAt)
+                          : "Pending"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-base text-muted-foreground">
-                No contract details available.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Client Actions - Right Side (Narrower) */}
-        <div className="lg:col-span-1">
-          <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
-            <h3 className="text-lg font-semibold mb-4">Contract Actions</h3>
-            <div className="space-y-3">
-              {!isContractSigned ? (
-                <Button
-                  variant="default"
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={handleSignContract}
-                  disabled={signContractMutation.isPending || !signatures.client.value}
-                >
-                  {signContractMutation.isPending ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Signing...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
-                      </svg>
-                      Sign Contract
-                    </>
-                  )}
-                </Button>
               ) : (
-                <div className="bg-green-50 border border-green-200 rounded-md p-3 text-green-700 text-center">
+                <div className="text-base text-muted-foreground">
+                  No contract details available.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Client Actions - Right Side (Narrower) */}
+          <div className="lg:col-span-1">
+            <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
+              <h3 className="text-lg font-semibold mb-4">Contract Actions</h3>
+              <div className="space-y-3">
+                {!proposal.contract ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-700 text-center mb-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="inline-block mr-2"
+                    >
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    No contract available
+                  </div>
+                ) : !isContractSigned ? (
+                  <Button
+                    variant="default"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={handleSignContract}
+                    disabled={
+                      signContractMutation.isPending || !signatures.client.value
+                    }
+                  >
+                    {signContractMutation.isPending ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Signing...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12h14" />
+                          <path d="M12 5v14" />
+                        </svg>
+                        Sign Contract
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 text-green-700 text-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="inline-block mr-2"
+                    >
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    You have signed this contract
+                  </div>
+                )}
+
+                <Button
+                  variant="secondary"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={() => window.print()}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="18"
+                    height="18"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="inline-block mr-2"
+                    className="lucide lucide-printer"
                   >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect width="12" height="8" x="6" y="14" />
                   </svg>
-                  You have signed this contract
-                </div>
-              )}
-              
-              <Button
-                variant="secondary"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() => window.print()}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-printer"
-                >
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect width="12" height="8" x="6" y="14" />
-                </svg>
-                Print Contract
-              </Button>
-              
-              <Card className="mt-4">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm">Contract Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="text-xs space-y-1 text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>Total Cost:</span>
-                      <span className="font-semibold text-foreground">
-                        {calculateTotalCost()}
-                      </span>
+                  Print Contract (Not Working) 
+                </Button>
+
+                <Card className="mt-4">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-sm">Contract Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <div className="text-xs space-y-1 text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>Total Cost:</span>
+                        <span className="font-semibold text-foreground">
+                          {calculateTotalCost()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Parameters:</span>
+                        <span>{proposal?.project_parameters?.length || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Modules:</span>
+                        <span>{proposal?.project_modules?.length || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <span
+                          className={`font-semibold ${
+                            isContractSigned
+                              ? "text-green-600"
+                              : "text-amber-600"
+                          }`}
+                        >
+                          {isContractSigned ? "Signed" : "Pending Signature"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Parameters:</span>
-                      <span>{proposal?.project_parameters?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Modules:</span>
-                      <span>{proposal?.project_modules?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <span className={`font-semibold ${isContractSigned ? 'text-green-600' : 'text-amber-600'}`}>
-                        {isContractSigned ? 'Signed' : 'Pending Signature'}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

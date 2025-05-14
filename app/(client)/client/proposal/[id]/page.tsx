@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getProposalById } from "@/api/client/proposals";
+import { getProposalById } from "@/api/proposals/get-proposal-by-id";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/shared";
@@ -25,7 +25,7 @@ export default function ProposalById() {
 
   const proposal = useQuery({
     queryKey: ["proposal", id],
-    queryFn: () => getProposalById(Number(id)),
+    queryFn: () => getProposalById(String(id)),
   });
 
   const handleTabChange = (value: string) => {
@@ -86,10 +86,10 @@ export default function ProposalById() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="proposal">
-          {proposal.data && <ProposalDetails proposal={proposal.data} />}
+          {proposal?.data && <ProposalDetails proposal={proposal?.data.data} />}
         </TabsContent>
         <TabsContent value="contract">
-          {proposal.data && <ContractDetails proposal={proposal.data} />}
+          {proposal?.data && <ContractDetails proposal={proposal?.data.data} />}
         </TabsContent>
       </Tabs>
     </div>

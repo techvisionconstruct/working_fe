@@ -25,27 +25,22 @@ import {
 import {
   ArrowRight,
   ArrowLeft,
-  User,
   Mail,
-  Phone,
   Lock,
   Eye,
   EyeOff,
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import {
   personalInfoSchema,
-  contactInfoSchema,
   verificationSchema,
 } from "@/zod-schemas/register/register-schema";
-import { useRegister } from "@/hooks/api/auth/register";
-import { useVerifyOtp } from "@/hooks/api/auth/verify-otp";
+import { signUp } from "@/api/auth/sign-up";
+import { verifyOtp } from "@/api/auth/verify-otp";
 import { GoogleButton } from "../google-login/google-button";
 
 type PersonalInfoValues = z.infer<typeof personalInfoSchema>;
-type ContactInfoValues = z.infer<typeof contactInfoSchema>;
 type VerificationValues = z.infer<typeof verificationSchema>;
 
 export function RegisterForm({
@@ -58,45 +53,23 @@ export function RegisterForm({
   const [step, setStep] = useState<number>(1);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
     confirmPassword: "",
-    email: "",
-    phone: "",
     otp: "",
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const {
-    register: registerUser,
-    isLoading: isRegistering,
-    error: registerError,
-  } = useRegister();
-  const {
-    verifyOtp,
-    isLoading: isVerifyingOtp,
-    error: verifyOtpError,
-  } = useVerifyOtp();
 
-  // Form for Step 1: Personal Information
   const personalInfoForm = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
     defaultValues: {
-      username: formData.username,
+      email: formData.email,
       password: formData.password,
       confirmPassword: formData.confirmPassword,
     },
   });
 
-  // Form for Step 2: Contact Information
-  const contactInfoForm = useForm<ContactInfoValues>({
-    resolver: zodResolver(contactInfoSchema),
-    defaultValues: {
-      email: formData.email,
-      phone: formData.phone,
-    },
-  });
-
-  // Form for Step 3: Verification
+  // Form for Step 2: Verification
   const verificationForm = useForm<VerificationValues>({
     resolver: zodResolver(verificationSchema),
     defaultValues: {
@@ -104,36 +77,41 @@ export function RegisterForm({
     },
   });
 
-  // Handle form submission for personal information
-  const onPersonalInfoSubmit = (values: PersonalInfoValues) => {
-    setFormData((prev) => ({ ...prev, ...values }));
-    setStep(2);
-  };
-
-  // Handle form submission for contact information
-  const onContactInfoSubmit = async (values: ContactInfoValues) => {
+  // Handle form submission for personal information and call signup API directly
+  const onPersonalInfoSubmit = async (values: PersonalInfoValues) => {
     setIsLoading(true);
     try {
       setFormData((prev) => ({ ...prev, ...values }));
-      // Call registration API here if you want to register after contact info
-      const result = await registerUser({
-        username: formData.username,
+      
+      // Generate a simple first and last name based on email
+      const emailPrefix = values.email.split('@')[0];
+      const firstName = emailPrefix || 'User';
+      const lastName = 'Account';
+      
+      // Call our signup API function directly
+      const result = await signUp({
         email: values.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
+        password: values.password,
+        first_name: firstName,
+        last_name: lastName,
+        username: values.email // Using email as username
       });
+      
       if (!result.success) {
-        throw new Error(result.error || "Registration failed");
+        throw new Error(result.message || "Registration failed");
       }
+      
       toast.success("Verification code sent", {
         description: `A 6-digit verification code has been sent to ${values.email}`,
         duration: 3000,
         position: "top-center",
       });
-      setStep(3);
+      setStep(2); // Go directly to verification step
     } catch (error) {
       toast.error("Error", {
-        description: `Failed to send verification code. Please try again.`,
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to send verification code. Please try again.",
         duration: 3000,
         position: "top-center",
       });
@@ -145,17 +123,29 @@ export function RegisterForm({
   const onVerificationSubmit = async (values: VerificationValues) => {
     setIsLoading(true);
     try {
-      const completeData = {
-        ...formData,
-        ...values,
+      // Generate a simple first and last name based on email
+      const emailPrefix = formData.email.split('@')[0];
+      const firstName = emailPrefix || 'User';
+      const lastName = 'Account';
+      
+      // Prepare the OTP verification data according to our API requirements
+      const verificationData = {
+        email: formData.email,
+        otp_code: values.otp,
+        password: formData.password,
+        first_name: firstName,
+        last_name: lastName
       };
 
-      const otpNumber =
-        typeof values.otp === "string" ? parseInt(values.otp, 10) : values.otp;
-      const result = await verifyOtp({ otp: otpNumber });
+      const result = await verifyOtp(verificationData);
+      
       if (!result.success) {
-        throw new Error(result.error || "OTP verification failed");
+        const errorMessage = result.errors?.length > 0 
+          ? result.errors[0].message 
+          : result.message || "OTP verification failed";
+        throw new Error(errorMessage);
       }
+      
       toast.success("Registration successful", {
         description: `Your account has been created successfully.`,
         duration: 3000,
@@ -165,8 +155,9 @@ export function RegisterForm({
       window.location.href = "/signin";
     } catch (error) {
       toast.error("Registration failed", {
-        description:
-          "There was an error creating your account. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "There was an error creating your account. Please try again.",
         duration: 3000,
         position: "top-center",
       });
@@ -185,16 +176,13 @@ export function RegisterForm({
   // Function to reset form and start over
   const handleReset = () => {
     setFormData({
-      username: "",
+      email: "",
       password: "",
       confirmPassword: "",
-      email: "",
-      phone: "",
       otp: "",
     });
     setStep(1);
     personalInfoForm.reset();
-    contactInfoForm.reset();
     verificationForm.reset();
   };
 
@@ -211,7 +199,7 @@ export function RegisterForm({
 
             {/* Progress indicator */}
             <div className="flex items-center justify-center w-full max-w-md mx-auto mt-4">
-              {[1, 2, 3].map((i) => (
+              {[1, 2].map((i) => (
                 <div key={i} className="flex items-center">
                   <div
                     className={cn(
@@ -226,7 +214,7 @@ export function RegisterForm({
                     {step > i ? <Check className="h-3 w-3" /> : i}
                   </div>
 
-                  {i < 3 && (
+                  {i < 2 && (
                     <div
                       className={cn(
                         "h-1 w-26 bg-muted",
@@ -248,15 +236,16 @@ export function RegisterForm({
               >
                 <FormField
                   control={personalInfoForm.control}
-                  name="username"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                           <Input
-                            placeholder="johndoe25"
+                            placeholder="john.doe@example.com"
+                            type="email"
                             className="pl-10"
                             {...field}
                           />
@@ -327,84 +316,16 @@ export function RegisterForm({
                   )}
                 />
 
-                <Button type="submit" className="w-full">
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Continue"} 
+                  {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                 </Button>
               </form>
             </Form>
           )}
 
-          {/* Step 2: Contact Information */}
+          {/* Step 2: Verification */}
           {step === 2 && (
-            <Form {...contactInfoForm}>
-              <form
-                onSubmit={contactInfoForm.handleSubmit(onContactInfoSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={contactInfoForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                          <Input
-                            placeholder="john.doe@example.com"
-                            type="email"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={contactInfoForm.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                          <Input
-                            placeholder="1234567890"
-                            type="tel"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    className="flex-1"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                  </Button>
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
-                    {isLoading ? "Sending..." : "Verify"}
-                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          )}
-
-          {/* Step 3: Verification */}
-          {step === 3 && (
             <Form {...verificationForm}>
               <form
                 onSubmit={verificationForm.handleSubmit(onVerificationSubmit)}
