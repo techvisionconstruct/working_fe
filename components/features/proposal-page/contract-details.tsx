@@ -514,7 +514,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Total Project Cost</span>
                         <span className="font-bold text-xl">
-                          {/* {calculateTotalCost()} */}
+                          {proposal.total_cost || "N/A"}
                         </span>
                       </div>
                       <Separator />
@@ -568,90 +568,139 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                       <h3 className="text-lg font-semibold">
                         Project Variables
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {proposal.template?.variables.map(
-                          (variable: VariableResponse) => (
-                            <div
-                              key={variable.id}
-                              className="p-3 bg-muted/50 rounded-xl flex justify-between items-center"
-                            >
-                              <span className="font-medium">
-                                {variable.name || "Variable Name"}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span>{variable.value}</span>
-                                <span className="text-muted-foreground text-sm">
-                                  {variable.variable_type?.name ||
-                                    "Variable Type"}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
+                      {(() => {
+                        // Group variables by variable_type name
+                        const groupedVariables: Record<
+                          string,
+                          VariableResponse[]
+                        > = {};
+                        proposal.template.variables.forEach((variable) => {
+                          const typeName =
+                            variable.variable_type?.name || "Other";
+                          if (!groupedVariables[typeName]) {
+                            groupedVariables[typeName] = [];
+                          }
+                          groupedVariables[typeName].push(variable);
+                        });
+
+                        return (
+                          <div className="grid grid-cols-2 gap-6">
+                            {Object.entries(groupedVariables).map(
+                              ([typeName, variables]) => (
+                                <div
+                                  key={typeName}
+                                  className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                                >
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                    <h4 className="font-medium text-sm">
+                                      {typeName}
+                                    </h4>
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {variables.map((variable) => (
+                                      <div
+                                        key={variable.id}
+                                        className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
+                                      >
+                                        <span className="text-gray-600">
+                                          {variable.name || "Variable Name"}
+                                        </span>
+                                        <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
+                                          {variable.value}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
                 {/* Project Elements */}
                 {proposal.template?.trades &&
                   proposal.template?.trades.length > 0 && (
-                    <div className="space-y-4 mt-4">
+                    <div className="space-y-6 mt-4">
                       <h3 className="text-lg font-semibold">Project Details</h3>
-                      {proposal.template?.trades.map((trade: TradeResponse) => (
-                        <div key={trade.id} className="space-y-4">
-                          <h4 className="text-base font-semibold">
-                            {trade.name || "Trade Name"}
-                          </h4>
-                          {trade.elements && (
-                            <div className="rounded-lg border p-4 overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Element</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">
-                                      Cost
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                      <div className="grid grid-cols-1 gap-6">
+                        {proposal.template?.trades.map(
+                          (trade: TradeResponse) => (
+                            <div
+                              key={trade.id}
+                              className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                            >
+                              <div className="flex items-center gap-2 mb-4">
+                                <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                <h4 className="font-medium">
+                                  {trade.name || "Trade Name"}
+                                </h4>
+                              </div>
+
+                              {trade.elements && trade.elements.length > 0 && (
+                                <div className="space-y-2">
                                   {trade.elements.map((element: any) => (
-                                    <TableRow key={element.id}>
-                                      <TableCell className="font-medium">
-                                        {element.name || "Element Name"}
-                                      </TableCell>
-                                      <TableCell>
-                                        {element.description
-                                          ? element.description.length > 60
-                                            ? element.description.slice(0, 60) +
-                                              "..."
-                                            : element.description
-                                          : "No description available"}
-                                      </TableCell>
-                                      <TableCell className="text-right font-semibold">
-                                        {new Intl.NumberFormat("en-US", {
-                                          style: "currency",
-                                          currency: "USD",
-                                        }).format(
-                                          (parseFloat(
+                                    <div
+                                      key={element.id}
+                                      className="bg-gray-50 rounded-md p-3 border border-gray-100 hover:border-primary/20 transition-colors"
+                                    >
+                                      <div className="flex justify-between items-center mb-1">
+                                        <h5 className="font-medium text-sm">
+                                          {element.name || "Element Name"}
+                                        </h5>
+                                        <span className="font-medium text-sm bg-white px-3 py-1 rounded text-primary border border-gray-100">
+                                          {new Intl.NumberFormat("en-US", {
+                                            style: "currency",
+                                            currency: "USD",
+                                          }).format(
+                                            (parseFloat(
+                                              element.material_cost || 0
+                                            ) +
+                                              parseFloat(
+                                                element.labor_cost || 0
+                                              )) *
+                                              (1 +
+                                                parseFloat(
+                                                  element.markup || 0
+                                                ) /
+                                                  100)
+                                          )}
+                                        </span>
+                                      </div>
+
+                                      <p className="text-xs text-gray-600 line-clamp-2">
+                                        {element.description ||
+                                          "No description available"}
+                                      </p>
+
+                                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                                        <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                          Material: $
+                                          {Number(
                                             element.material_cost || 0
-                                          ) +
-                                            parseFloat(
-                                              element.labor_cost || 0
-                                            )) *
-                                            (1 +
-                                              parseFloat(element.markup || 0) /
-                                                100)
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
+                                          ).toFixed(2)}
+                                        </span>
+                                        <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                          Labor: $
+                                          {Number(
+                                            element.labor_cost || 0
+                                          ).toFixed(2)}
+                                        </span>
+                                        <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
+                                          Markup: {element.markup || 0}%
+                                        </span>
+                                      </div>
+                                    </div>
                                   ))}
-                                </TableBody>
-                              </Table>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          )
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -797,12 +846,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {new Date().toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      Date: {proposal.contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -913,11 +957,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                     )}
                     <p className="text-sm text-muted-foreground">
                       Date:{" "}
-                      {new Date().toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {proposal.contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -983,7 +1023,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                   <rect width="12" height="8" x="6" y="14" />
                 </svg>
-                Print Contract
+                Print Contract (Not Working)
               </Button>
 
               {!proposal.contract && (
