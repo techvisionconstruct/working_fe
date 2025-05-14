@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/shared";
-import { evaluateFormula } from "@/lib/formula-evaluator";
 import { ProposalResponse } from "@/types/proposals/dto";
 
 interface ProposalDetailsProps {
@@ -8,7 +8,46 @@ interface ProposalDetailsProps {
 }
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
-  console.log("Proposal Details:", proposal);
+  const [isSending, setIsSending] = useState(false);
+  const sendProposalToClient = async () => {
+    if (!proposal.id) return;
+
+    setIsSending(true);
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/v1/proposals/send/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            proposal_id: proposal.id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send proposal");
+      }
+
+      // Show success message
+      alert("Proposal has been sent to the client successfully.");
+    } catch (error) {
+      console.error("Error sending proposal:", error);
+      // Show error message
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending the proposal."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <>
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
@@ -55,6 +94,24 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 )}
             </div>
             <div className="w-full lg:w-[380px] flex-shrink-0">
+              <Button
+                variant="outline"
+                className="w-full mb-4"
+                onClick={sendProposalToClient}
+                disabled={isSending || !proposal.client_email}
+              >
+                {isSending ? (
+                  <span className="inline-flex items-center">
+                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                    Sending...
+                  </span>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" /> Send to Client
+                  </>
+                )}
+              </Button>
+
               <div className="my-0 p-4 rounded-lg border bg-muted/30">
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
                   Client Details
@@ -93,7 +150,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           {proposal.template?.trades && proposal.template.trades.length > 0 && (
             <div className="mt-8 w-full">
               <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-               Trades
+                Trades
               </h3>
               <div className="flex flex-col gap-4 w-full">
                 {proposal.template.trades.map((trade) => {
@@ -106,10 +163,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                         <h4 className="font-medium text-base mb-1">
                           {trade.name}
                         </h4>
-                        <div className="text-sm font-medium">
-                          Subtotal:
-                          
-                        </div>
+                        <div className="text-sm font-medium">Subtotal:</div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {trade.description}
