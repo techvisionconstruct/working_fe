@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/shared";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
@@ -8,7 +9,46 @@ interface ProposalDetailsProps {
 }
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
-  console.log("Proposal Details:", proposal);
+  const [isSending, setIsSending] = useState(false);
+  const sendProposalToClient = async () => {
+    if (!proposal.id) return;
+
+    setIsSending(true);
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/v1/proposals/send/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            proposal_id: proposal.id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send proposal");
+      }
+
+      // Show success message
+      alert("Proposal has been sent to the client successfully.");
+    } catch (error) {
+      console.error("Error sending proposal:", error);
+      // Show error message
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending the proposal."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   // State to track which variable types are expanded
   const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>(
     {}
@@ -133,6 +173,24 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 )}
             </div>
             <div className="w-full lg:w-[380px] flex-shrink-0">
+              <Button
+                variant="outline"
+                className="w-full mb-4"
+                onClick={sendProposalToClient}
+                disabled={isSending || !proposal.client_email}
+              >
+                {isSending ? (
+                  <span className="inline-flex items-center">
+                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                    Sending...
+                  </span>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" /> Send to Client
+                  </>
+                )}
+              </Button>
+
               <div className="my-0 p-4 rounded-lg border bg-muted/30">
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
                   Client Details

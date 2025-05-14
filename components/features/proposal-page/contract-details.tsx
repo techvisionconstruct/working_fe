@@ -46,6 +46,7 @@ interface ContractDetailsProps {
 }
 
 export function ContractDetails({ proposal }: ContractDetailsProps) {
+  const [isSending, setIsSending] = useState(false);
   const parseTermsAndConditions = (termsString: string): TermSection[] => {
     if (!termsString) return [];
 
@@ -285,46 +286,105 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
   // Create contract mutation
   const createContractMutation = useMutation({
-    mutationFn: (contractData: ContractCreateRequest) => createContract(contractData),
+    mutationFn: (contractData: ContractCreateRequest) =>
+      createContract(contractData),
     onSuccess: (data) => {
       toast.success("Contract created successfully!");
       setIsEditing(false);
     },
     onError: (error: any) => {
-      toast.error(`Failed to create contract: ${error.message || "Unknown error"}`);
-    }
+      toast.error(
+        `Failed to create contract: ${error.message || "Unknown error"}`
+      );
+    },
   });
 
   // Update contract mutation
   const updateContractMutation = useMutation({
-    mutationFn: ({ id, contract }: { id: string; contract: Partial<ContractCreateRequest> }) => updateContract(id, contract),
+    mutationFn: ({
+      id,
+      contract,
+    }: {
+      id: string;
+      contract: Partial<ContractCreateRequest>;
+    }) => updateContract(id, contract),
     onSuccess: (data) => {
       toast.success("Contract updated successfully!");
       setIsEditing(false);
     },
     onError: (error: any) => {
-      toast.error(`Failed to update contract: ${error.message || "Unknown error"}`);
-    }
+      toast.error(
+        `Failed to update contract: ${error.message || "Unknown error"}`
+      );
+    },
   });
 
   // Handle contract submit
   const handleSubmit = () => {
     const termsString = termsSections
-      .map(section => `${section.title}: ${section.description}`)
+      .map((section) => `${section.title}: ${section.description}`)
       .join("\n");
     const payload: ContractCreateRequest = {
       name: proposal?.name || "",
       description: proposal?.description || "",
       status: proposal?.contract?.status || undefined,
-      contractor_initials: signatures.contractor.type === "text" ? signatures.contractor.value : undefined,
-      contractor_signature: signatures.contractor.type === "image" ? signatures.contractor.value : undefined,
+      contractor_initials:
+        signatures.contractor.type === "text"
+          ? signatures.contractor.value
+          : undefined,
+      contractor_signature:
+        signatures.contractor.type === "image"
+          ? signatures.contractor.value
+          : undefined,
       terms: termsString,
       proposal_id: proposal?.id || undefined,
     };
     if (proposal.contract && proposal.contract.id) {
-      updateContractMutation.mutate({ id: proposal.contract.id, contract: payload });
+      updateContractMutation.mutate({
+        id: proposal.contract.id,
+        contract: payload,
+      });
     } else {
       createContractMutation.mutate(payload);
+    }
+  };
+
+  const sendProposalToClient = async () => {
+    if (!proposal.id) return;
+
+    setIsSending(true);
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/v1/proposals/send/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            proposal_id: proposal.id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send proposal");
+      }
+
+      // Show success message
+      alert("Proposal has been sent to the client successfully.");
+    } catch (error) {
+      console.error("Error sending proposal:", error);
+      // Show error message
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending the proposal."
+      );
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -339,7 +399,10 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     <div className="w-full mx-auto">
       {proposal.contract == null && (
         <Alert className="mb-4 border-yellow-300 bg-yellow-50 text-yellow-900 flex items-center gap-3">
-          <AlertTriangle color="#f0b000" className="h-5 w-5 mt-1.5 mr-2 flex-shrink-0" />
+          <AlertTriangle
+            color="#f0b000"
+            className="h-5 w-5 mt-1.5 mr-2 flex-shrink-0"
+          />
           <div className="mt-2">
             <AlertTitle>Draft Mode</AlertTitle>
             <AlertDescription>
@@ -352,12 +415,10 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
             <div className="mb-8">
-           
-                
-                <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
-                 Service Agreement
-                </h1>
-         
+              <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
+                Service Agreement
+              </h1>
+
               <div className="space-y-0 text-muted-foreground text-center">
                 <p className="text-md">
                   This Service Agreement is entered into as of April 25, 2025,
@@ -562,7 +623,8 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                                       <TableCell>
                                         {element.description
                                           ? element.description.length > 60
-                                            ? element.description.slice(0, 60) + "..."
+                                            ? element.description.slice(0, 60) +
+                                              "..."
                                             : element.description
                                           : "No description available"}
                                       </TableCell>
@@ -873,10 +935,16 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
           <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-3">
-            <Button
+              <Button
                 variant="default"
                 className="w-full flex items-center justify-center gap-2 mt-2"
-                onClick={() => toast.info("Send to Client action coming soon!")}
+                disabled={
+                  isSending ||
+                  !proposal.client_email ||
+                  isContractSigned ||
+                  !proposal.contract
+                }
+                onClick={sendProposalToClient}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -917,7 +985,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 </svg>
                 Print Contract
               </Button>
-              
+
               {!proposal.contract && (
                 <Button
                   variant="default"

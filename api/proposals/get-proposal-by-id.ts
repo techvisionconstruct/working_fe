@@ -6,7 +6,7 @@ const getAuthToken = () => Cookies.get("auth-token");
 export const getProposalById = async (id: string) => {
     const token = getAuthToken();
   
-    const res = await fetch(`${API_URL}/v1/proposals/detail/${id}`, {
+    const res = await fetch(`${API_URL}/v1/proposals/detail/${id}/client`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

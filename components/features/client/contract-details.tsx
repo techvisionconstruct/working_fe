@@ -17,7 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { clientSignContract } from "@/api/contracts/client-sign-contract";
+import { clientSignature, updateContract } from "@/api/server/contracts";
 import { toast } from "sonner";
 
 interface TermSection {
@@ -78,6 +78,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
   const signContractMutation = useMutation({
     mutationFn: (data: any) => {
       // Check if contract exists and has an ID
+      console.log("Signing contract with data:", data, proposal);
       if (proposal?.contract) {
         // Try to find the contract ID - check different possible properties
         const contractId =
@@ -89,7 +90,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
           console.error("No contract ID found in the proposal object");
           throw new Error("Contract ID is missing");
         }
-        return clientSignContract(contractId, data);
+        return clientSignature(contractId, data);
       } else {
         throw new Error("No contract found to sign");
       }
@@ -119,8 +120,8 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     }
 
     const contractData = {
-      clientInitials: signatures.client.type === "text" ? signatures.client.value : null,
-      clientImage: signatures.client.type === "image" ? signatures.client.value : null,
+      client_initials: signatures.client.type === "text" ? signatures.client.value : null,
+      client_image: signatures.client.type === "image" ? signatures.client.value : null,
     };
 
     signContractMutation.mutate(contractData);
@@ -129,11 +130,12 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
   const [agreementTitle] = useState(
     proposal?.contract?.contractName || "SERVICE AGREEMENT"
   );
-
+  console.log("Proposalssss:", proposal);
   // State for terms and conditions
   const [termsSections] = useState<TermSection[]>(() => {
-    if (proposal?.contract?.terms) {
-      return proposal.contract.terms;
+    const terms = proposal?.contract?.terms;
+    if (Array.isArray(terms)) {
+      return terms;
     } else {
       return [
         {
@@ -158,19 +160,19 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     contractor: Signature;
   }>(() => {
     if (
-      proposal?.contract?.clientInitials !== undefined ||
-      proposal?.contract?.clientImage !== undefined ||
-      proposal?.contract?.contractorInitials !== undefined ||
-      proposal?.contract?.contractorImage !== undefined
+      proposal?.contract?.client_initials !== undefined ||
+      proposal?.contract?.client_signature !== undefined ||
+      proposal?.contract?.contractor_initials !== undefined ||
+      proposal?.contract?.contractor_signature !== undefined
     ) {
       return {
         client: getSignatureData(
-          proposal.contract.clientInitials,
-          proposal.contract.clientImage
+          proposal.contract.client_initials,
+          proposal.contract.client_signature
         ),
         contractor: getSignatureData(
-          proposal.contract.contractorInitials,
-          proposal.contract.contractorImage
+          proposal.contract.contractor_initials,
+          proposal.contract.contractor_signature
         ),
       };
     } else if (proposal?.contract?.signatures) {
@@ -193,8 +195,8 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
 
   // Check if contract is already signed by client
   const isContractSigned = !!(
-    proposal?.contract?.clientImage || 
-    (proposal?.contract?.clientInitials && proposal?.contract?.clientInitials.trim() !== "")
+    proposal?.contract?.client_signature || 
+    (proposal?.contract?.client_initials && proposal?.contract?.client_initials.trim() !== "")
   );
 
   // Handle input changes for signature
@@ -204,7 +206,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     const { name, value } = e.target;
 
     // Check if this is a signature field
-    if (name === "clientInitials") {
+    if (name === "client_initials") {
       setSignatures((prev) => ({
         ...prev,
         client: {
@@ -597,12 +599,12 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
 
                         {signatures.client.type === "text" ? (
                           <div className="space-y-2">
-                            <Label htmlFor="clientInitials">
+                            <Label htmlFor="client_initials">
                               Enter your initials
                             </Label>
                             <Input
-                              id="clientInitials"
-                              name="clientInitials"
+                              id="client_initials"
+                              name="client_initials"
                               value={signatures.client.value}
                               onChange={handleInputChange}
                               placeholder="Type your initials"
