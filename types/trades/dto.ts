@@ -1,6 +1,6 @@
 import { PaginationLinks, PaginationMeta } from "../pagination/dto";
-import { UserResponse } from "../user/dto";
 import { ElementResponse } from "../elements/dto";
+import { CreatedByInfo } from "../created_by_info/dto";
 
 export interface TradeResponse {
   id: string;
@@ -10,8 +10,8 @@ export interface TradeResponse {
   elements?: ElementResponse[];
   created_at: string;
   updated_at: string;
-  created_by?: UserResponse;
-  updated_by?: UserResponse;
+  created_by?: CreatedByInfo;
+  updated_by?: CreatedByInfo;
 }
 
 export interface TradeListResponse {

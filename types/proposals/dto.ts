@@ -1,7 +1,7 @@
 import { ContractResponse } from '../contracts/dto';
+import { CreatedByInfo } from '../created_by_info/dto';
 import { PaginationLinks, PaginationMeta } from '../pagination/dto';
-import { TemplateCreateRequest, TemplateResponse } from '../templates/dto';
-import { UserResponse } from '../user/dto';
+import { TemplateResponse } from '../templates/dto';
 
 export interface ProposalResponse {
   id: string;
@@ -23,8 +23,8 @@ export interface ProposalResponse {
   total_with_markup?: number;
   created_at: Date;
   updated_at: Date;
-  created_by?: UserResponse;
-  updated_by?: UserResponse;
+  created_by?: CreatedByInfo;
+  updated_by?: CreatedByInfo;
 }
 
 export interface ProposalListResponse {
