@@ -86,10 +86,10 @@ export default function ProposalById() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="proposal">
-          {proposal.data && <ProposalDetails proposal={proposal.data} />}
+          {proposal?.data && <ProposalDetails proposal={proposal?.data.data} />}
         </TabsContent>
         <TabsContent value="contract">
-          {proposal.data && <ContractDetails proposal={proposal.data} />}
+          {proposal?.data && <ContractDetails proposal={proposal?.data.data} />}
         </TabsContent>
       </Tabs>
     </div>
