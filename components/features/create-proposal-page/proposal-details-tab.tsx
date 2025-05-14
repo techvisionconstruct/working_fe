@@ -1,263 +1,201 @@
-import React from "react";
-import {
-  Input,
-  Textarea,
+"use client";
+
+import React, { useState } from "react";
+import { 
+  Input, 
+  Label, 
+  Textarea, 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Button,
-  Label
 } from "@/components/shared";
-import { CloudUpload, X } from "lucide-react";
+import { FileUpload, FileUploadDropzone, FileUploadList, FileUploadTrigger } from "@/components/shared/file-upload/file-upload";
+import { Calendar } from "@/components/shared/calendar/calendar";
+import { CalendarIcon, Upload, ImageIcon, X } from "lucide-react";
+import Image from "next/image";
 
 interface ProposalDetailsTabProps {
-  value: {
+  data: {
     name: string;
     description: string;
+    image: string;
     client_name: string;
     client_email: string;
-    phone_number: string;
-    address: string;
-    image: string;
+    client_phone: string;
+    client_address: string;
+    valid_until: string;
+    location: string;
   };
-  onChange: (value: any) => void;
-  onNext: () => void;
-  errors?: Record<string, string>;
+  updateData: (data: any) => void;
 }
 
-export function ProposalDetailsTab({ 
-  value, 
-  onChange, 
-  onNext,
-  errors = {} 
-}: ProposalDetailsTabProps) {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value: inputValue } = e.target;
-    onChange({
-      ...value,
-      [name]: inputValue,
+const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateData }) => {
+  const [imagePreview, setImagePreview] = useState<string | null>(data.image || null);
+  const [date, setDate] = useState<Date | undefined>(
+    data.valid_until ? new Date(data.valid_until) : undefined
+  );
+
+  const handleChange = (field: string, value: string) => {
+    updateData({
+      ...data,
+      [field]: value
     });
   };
-  
-  const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value: inputValue } = e.target;
-    const numericValue = inputValue.replace(/[^0-9]/g, '');
-    onChange({
-      ...value,
-      phone_number: numericValue,
+
+  const handleDateSelect = (newDate: Date | undefined) => {
+    setDate(newDate);
+    if (newDate) {
+      handleChange("valid_until", newDate.toISOString());
+    }
+  };
+
+  // Helper function to format dates without relying directly on date-fns
+  const formatDate = (date: Date | undefined): string => {
+    if (!date) return "Select a date";
+    
+    // Format as "Month Day, Year" (e.g., "May 15, 2023")
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
+  };
+
+  // Helper function for ISO date format (yyyy-MM-dd)
+  const formatISODate = (date: Date | undefined): string => {
+    if (!date) return "";
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   };
 
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="name">Proposal Name</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Enter proposal name"
-              value={value.name}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors["name"] ? "border-red-500" : ""}`}
-            />
-            {errors["name"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["name"]}</p>
-            )}
-          </div>
-          
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              placeholder="Describe this proposal"
-              value={value.description}
-              onChange={handleInputChange}
-              className={`mt-1 min-h-32 ${errors["description"] ? "border-red-500" : ""}`}
-            />
-            {errors["description"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["description"]}</p>
-            )}
-          </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Proposal Details</h2>
+        <p className="text-muted-foreground mb-6">
+          Provide the essential details for your proposal, including client information and project scope.
+        </p>
+      </div>
 
-          <div>
-            <Label htmlFor="image">Proposal Image</Label>
-            <div className="mt-1">
-              {!value.image ? (
-                <div className="border-2 border-dashed h-48 flex flex-col items-center justify-center bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors mb-4">
-                  <CloudUpload className="w-10 h-10 mb-3 text-muted-foreground" />
-                  <p className="mb-2 text-base font-medium text-muted-foreground">
-                    Upload an image
-                  </p>
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          onChange({
-                            ...value,
-                            image: event.target?.result as string || "",
-                          });
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Left Column - Proposal Details */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Proposal Information</h3>
+          
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Proposal Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter proposal name"
+                value={data.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="description">Proposal Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe the project scope, goals, and any other relevant information"
+                className="min-h-[120px]"
+                value={data.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="location">Project Location</Label>
+              <Input
+                id="location"
+                placeholder="Enter project location"
+                value={data.location}
+                onChange={(e) => handleChange("location", e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="valid_until">Valid Until</Label>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="mb-2"
-                    onClick={() => {
-                      document.getElementById("image-upload")?.click();
-                    }}
+                    className="w-full justify-start text-left font-normal"
+                    id="valid_until"
                   >
-                    Choose file
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formatDate(date)}
                   </Button>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG or GIF recommended (max. 5MB)
-                  </p>
-                </div>
-              ) : (
-                <div className="relative mb-4">
-                  <div className="relative h-48 w-full overflow-hidden rounded-lg border">
-                    <img
-                      src={value.image}
-                      alt="Proposal"
-                      className="h-full w-full object-cover"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8 rounded-full shadow-md absolute top-2 right-2"
-                      onClick={() => {
-                        onChange({
-                          ...value,
-                          image: "",
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            {errors["image"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["image"]}</p>
-            )}
           </div>
         </div>
-
+        
+        {/* Right Column - Client Details */}
         <div className="space-y-6">
-          <div>
-            <Label htmlFor="client_name">Client Name</Label>
-            <Input
-              id="client_name"
-              name="client_name"
-              placeholder="Client's full name"
-              value={value.client_name}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors["client_name"] ? "border-red-500" : ""}`}
-            />
-            {errors["client_name"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["client_name"]}</p>
-            )}
-          </div>
+          <h3 className="text-lg font-semibold">Client Information</h3>
           
-          <div>
-            <Label htmlFor="client_email">Client Email</Label>
-            <Input
-              id="client_email"
-              name="client_email"
-              type="email"
-              placeholder="client@example.com"
-              value={value.client_email}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors["client_email"] ? "border-red-500" : ""}`}
-            />
-            {errors["client_email"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["client_email"]}</p>
-            )}
-          </div>
-          
-          <div>
-            <Label htmlFor="phone_number">Client Phone</Label>
-            <Input
-              id="phone_number"
-              name="phone_number"
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Phone number"
-              value={value.phone_number}
-              onChange={handlePhoneInput}
-              className={`mt-1 ${errors["phone_number"] ? "border-red-500" : ""}`}
-            />
-            {errors["phone_number"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["phone_number"]}</p>
-            )}
-          </div>
-          
-          <div>
-            <Label htmlFor="address">Client Address</Label>
-            <Textarea
-              id="address"
-              name="address"
-              placeholder="Client's address"
-              value={value.address}
-              onChange={handleInputChange}
-              className={`mt-1 ${errors["address"] ? "border-red-500" : ""}`}
-            />
-            {errors["address"] && (
-              <p className="text-sm text-red-500 mt-1">{errors["address"]}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Preview</h3>
-        </div>
-        <div className="mt-2 p-4 border rounded-lg">
-          <div className="flex gap-4 items-start">
-            <div className="w-20 h-20 relative overflow-hidden rounded-md flex-shrink-0">
-              {value.image && (
-                <img
-                  src={value.image}
-                  alt="Proposal"
-                  className="object-cover w-full h-full"
-                />
-              )}
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="client_name">Client Name</Label>
+              <Input
+                id="client_name"
+                placeholder="Enter client name"
+                value={data.client_name}
+                onChange={(e) => handleChange("client_name", e.target.value)}
+              />
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">
-                {value.name || "Untitled Proposal"}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {value.description || "No description provided."}
-              </p>
-              <div className="mt-2">
-                <span className="text-xs font-medium">Client: </span>
-                <span className="text-xs text-muted-foreground">
-                  {value.client_name || "Not specified"}
-                </span>
-              </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="client_email">Client Email</Label>
+              <Input
+                id="client_email"
+                type="email"
+                placeholder="Enter client email"
+                value={data.client_email}
+                onChange={(e) => handleChange("client_email", e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="client_phone">Client Phone</Label>
+              <Input
+                id="client_phone"
+                placeholder="Enter client phone number"
+                value={data.client_phone}
+                onChange={(e) => handleChange("client_phone", e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="client_address">Client Address</Label>
+              <Textarea
+                id="client_address"
+                placeholder="Enter client address"
+                className="min-h-[120px]"
+                value={data.client_address}
+                onChange={(e) => handleChange("client_address", e.target.value)}
+              />
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <Button onClick={onNext}>
-          Continue to Template Selection
-        </Button>
       </div>
     </div>
   );
-}
+};
+
+export default ProposalDetailsTab;

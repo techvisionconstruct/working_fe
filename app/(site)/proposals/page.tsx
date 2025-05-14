@@ -1,9 +1,8 @@
 "use client";
 
-import { getProposals } from "@/api/client/proposals";
 import { ProposalList } from "@/components/features/proposal-page/proposal-list-view";
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
-import { Proposal } from "@/types/proposals";
+import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
@@ -16,50 +15,38 @@ import {
 } from "@/components/shared";
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
-import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
-
-declare global {
-  interface Window {
-    proposalTourEndCallback?: () => void;
-    proposalTourCreateCallback?: () => void;
-  }
-}
+import { getProposals } from "@/queryOptions/proposals";
+import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function ProposalsPage() {
-  const proposals = useQuery({
-    queryKey: ["proposals"],
-    queryFn: getProposals,
-  });
-
-  const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
+  const [search, setSearch] = useState("");
   const [isTourRunning, setIsTourRunning] = useState(false);
 
+  const {
+    data: proposals,
+    isError,
+    isPending,
+  } = useQuery(getProposals());
+
   useEffect(() => {
-    // Check if the user has seen the tour
     const hasSeenTour = localStorage.getItem("hasSeenProposalsTour") === "true";
     if (!hasSeenTour && proposals.data && proposals.data.length > 0) {
-      // Only show the tour automatically if there's data to display
       setIsTourRunning(true);
     }
-  }, [proposals.data]);
+  }, [proposals]);
 
   const startTour = () => {
     setIsTourRunning(true);
   };
 
-  const filteredProposals = (proposals.data || []).filter(
-    (proposal: Proposal) => {
-      const searchMatch =
-        proposal.name.toLowerCase().includes(search.toLowerCase()) ||
-        proposal.description.toLowerCase().includes(search.toLowerCase());
-      return searchMatch;
-    }
-  );
-
-  if (proposals.isLoading) {
+  if (isPending) {
     return <ProposalLoader />;
+  }
+
+  if (isError) {
+    return <AlertError resource="proposals" />;
   }
 
   return (
@@ -105,10 +92,10 @@ export default function ProposalsPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <ProposalGridView proposals={filteredProposals} />
+          <ProposalGridView proposals={proposals?.data} />
         </TabsContent>
         <TabsContent value="list">
-          <ProposalList proposals={filteredProposals} />
+          <ProposalList proposals={proposals?.data} />
         </TabsContent>
       </Tabs>
 

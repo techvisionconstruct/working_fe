@@ -11,8 +11,9 @@ import {
 } from "@/components/shared";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookie from "js-cookie";
 import { GoogleButton } from "../google-login/google-button";
+import { signIn } from "@/api/auth/sign-in";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -22,7 +23,7 @@ export function LoginForm({
   onSwitchToRegister?: () => void;
 }) {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,40 +34,10 @@ export function LoginForm({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/api/accounts/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Sign In failed");
-      }
-      // Set the auth token with SameSite=None for cross-site requests
-      Cookie.set("auth-token", data.access, {
-        expires: 1,
-        path: "/",
-        sameSite: "none",
-        secure: true
-      });
-      
-      // Invalidate React Query cache to force a refetch with the new token
-      window.dispatchEvent(new Event('auth-changed'));
-      
+      await signIn({ email, password });
       router.push("/templates");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Sign In error:", err);
     } finally {
       setIsLoading(false);
@@ -91,31 +62,32 @@ export function LoginForm({
                 </div>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
+                  id="email"
                   type="text"
-                  placeholder="johndoe25"
+                  placeholder="johndoe@simpleprojex.com"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
+                  <Link
                     href="#"
                     className="ml-auto text-xs underline-offset-2 hover:underline"
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
                 <Input
                   id="password"
                   type="password"
                   required
+                  placeholder="********"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}

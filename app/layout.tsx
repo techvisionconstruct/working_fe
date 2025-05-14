@@ -6,7 +6,6 @@ import "@/assets/style/globals.css";
 
 import { Suspense } from "react";
 import { Toaster } from "@/components/shared";
-import { UserProvider } from "@/components/contexts/user-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,12 +50,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={bodyClasses}>
         <GoogleOAuthProvider clientId="567542844583-g4l8v9o77s6mae3s9hgffun8u4k5u8ec.apps.googleusercontent.com">
-          <UserProvider>
-            <Toaster />
-            <Suspense>
-              {children}
-            </Suspense>
-          </UserProvider>
+          <Toaster />
+          <Suspense>{children}</Suspense>
         </GoogleOAuthProvider>
       </body>
     </html>

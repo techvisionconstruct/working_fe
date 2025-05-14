@@ -3,7 +3,6 @@ export type SortOption = {
     label: string
   }
 
-
 export interface SortByComponentProps {
   onChange?: (sortOption: SortOption) => void;
   initialValue?: string;

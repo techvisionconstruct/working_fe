@@ -2,10 +2,10 @@ import { Card, Badge } from "@/components/shared";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
-import { Proposal } from "@/types/proposals";
+import { ProposalResponse } from "@/types/proposals/dto";
 
 interface ProposalGridViewProps {
-  proposals: Proposal[];
+  proposals: ProposalResponse[];
 }
 
 export function ProposalGridView({ proposals }: ProposalGridViewProps) {
@@ -31,27 +31,27 @@ export function ProposalGridView({ proposals }: ProposalGridViewProps) {
             </div>
             <div className="space-y-2 mt-auto pt-4">
               <div className="flex flex-wrap gap-2">
-                {proposal.project_modules?.slice(0, 3).map((pm) => (
-                  <Badge key={pm.id} variant="secondary" className="text-xs">
-                    {pm.module.name}
+                {proposal.template?.trades?.slice(0, 3).map((trade) => (
+                  <Badge key={trade.id} variant="secondary" className="text-xs">
+                    {trade.name}
                   </Badge>
                 ))}
-                {proposal.project_modules && proposal.project_modules.length > 3 && (
+                {proposal.template?.trades && proposal.template.trades.length > 3 && (
                   <Badge variant="secondary" className="text-xs">
-                    +{proposal.project_modules.length - 3} more
+                    +{proposal.template.trades.length - 3} more
                   </Badge>
                 )}
               </div>
-              {proposal.project_parameters?.length > 0 && (
+              {proposal.template?.variables && proposal.template.variables.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {proposal.project_parameters.slice(0, 3).map((pp) => (
-                    <Badge key={pp.id} variant="outline" className="text-xs">
-                      {pp.parameter.name}
+                  {proposal.template.variables.slice(0, 3).map((variable) => (
+                    <Badge key={variable.id} variant="outline" className="text-xs">
+                      {variable.name}
                     </Badge>
                   ))}
-                  {proposal.project_parameters.length > 3 && (
+                  {proposal.template.variables.length > 3 && (
                     <Badge variant="outline" className="text-xs">
-                      +{proposal.project_parameters.length - 3} more
+                      +{proposal.template.variables.length - 3} more
                     </Badge>
                   )}
                 </div>

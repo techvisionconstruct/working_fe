@@ -17,7 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { clientSignature, updateContract } from "@/api/server/contracts";
+import { clientSignContract } from "@/api/contracts/client-sign-contract";
 import { toast } from "sonner";
 
 interface TermSection {
@@ -89,7 +89,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
           console.error("No contract ID found in the proposal object");
           throw new Error("Contract ID is missing");
         }
-        return clientSignature(contractId, data);
+        return clientSignContract(contractId, data);
       } else {
         throw new Error("No contract found to sign");
       }

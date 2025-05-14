@@ -1,12 +1,14 @@
-import React from "react";
-import { ProjectModule, ProjectParameter, ProjectElement } from "@/types/proposals";
+import React, { useEffect } from "react";
 import { Button } from "@/components/shared";
+import { evaluateFormula } from "@/lib/formula-evaluator";
+import { ProposalResponse } from "@/types/proposals/dto";
 
 interface ProposalDetailsProps {
-  proposal: any;
+  proposal: ProposalResponse;
 }
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
+  console.log("Proposal Details:", proposal);
   return (
     <>
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
@@ -17,7 +19,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           }
           alt={proposal?.name || "Proposal Image"}
           className="w-full h-full object-cover object-center rounded-2xl shadow"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
       <div className="flex flex-col lg:flex-row lg:items-start gap-8">
@@ -30,40 +32,29 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               <p className="text-lg text-muted-foreground mb-2">
                 {proposal?.description}
               </p>
-              {proposal?.project_parameters?.length > 0 && (
-                <div className="mt-4 w-full">
-                  <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-                    Parameters
-                  </h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {proposal.project_parameters.map((param: ProjectParameter) => (
-                      <span
-                        key={param.id}
-                        className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
-                      >
-                        {param.parameter.name}: {param.value}{" "}
-                        <span className="text-[10px] text-gray-400">
-                          ({param.parameter.type})
+              {proposal.template?.variables &&
+                proposal.template.variables.length > 0 && (
+                  <div className="mt-4 w-full">
+                    <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+                      Variables
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {proposal.template.variables.map((variable) => (
+                        <span
+                          key={variable.id}
+                          className="inline-block rounded bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border"
+                        >
+                          {variable.name}: {variable.value}
+                          <span className="ml-1 text-[10px] text-gray-400">
+                            ({variable.variable_type?.name})
+                          </span>
                         </span>
-                      </span>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
             <div className="w-full lg:w-[380px] flex-shrink-0">
-              {/* Action Buttons above Client Details */}
-              <div className="flex gap-2 mb-4 justify-end">
-                <Button variant="outline" onClick={() => window.print()}>
-                  Print
-                </Button>
-                <Button variant="default" onClick={() => {/* TODO: Implement email to client */}}>
-                  Email to Client
-                </Button>
-                <Button variant="secondary" onClick={() => {/* TODO: Implement make contract */}}>
-                  Make a Contract
-                </Button>
-              </div>
               <div className="my-0 p-4 rounded-lg border bg-muted/30">
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
                   Client Details
@@ -79,82 +70,96 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                   </div>
                   <div>
                     <span className="font-medium">Phone:</span>{" "}
-                    {proposal?.phone_number}
+                    {proposal?.client_phone}
                   </div>
                   <div>
                     <span className="font-medium">Address:</span>{" "}
-                    {proposal?.address}
+                    {proposal?.client_address}
                   </div>
+                </div>
+              </div>
+
+              {/* Total Cost Summary Card */}
+              <div className="mt-4 p-4 rounded-lg border bg-primary/10">
+                <h3 className="text-lg font-semibold mb-2 text-primary uppercase tracking-wider">
+                  Total Estimate
+                </h3>
+                <div className="text-3xl font-bold text-primary">
+                  $ {proposal.total_cost}
                 </div>
               </div>
             </div>
           </div>
-          {proposal?.project_modules?.length > 0 && (
+          {proposal.template?.trades && proposal.template.trades.length > 0 && (
             <div className="mt-8 w-full">
               <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-                Modules
+               Trades
               </h3>
               <div className="flex flex-col gap-4 w-full">
-                {proposal.project_modules.map((pm: ProjectModule) => (
-                  <div
-                    key={pm.id}
-                    className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
-                  >
-                    <h4 className="font-medium text-base mb-1">
-                      {pm.module.name}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {pm.module.description}
-                    </p>
-                    {proposal.project_elements?.filter(
-                      (el: ProjectElement) => el.project_module.id === pm.id
-                    ).length > 0 && (
-                      <div className="ml-2 mt-2 w-full">
-                        <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                          Elements
-                        </div>
-                        <div className="flex flex-col gap-2 w-full">
-                          {proposal.project_elements
-                            .filter((el: ProjectElement) => el.project_module.id === pm.id)
-                            .map((el: ProjectElement) => (
-                              <div
-                                key={el.id}
-                                className="flex items-center gap-3 p-4 rounded border bg-background w-full"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm">
-                                    {el.element.name}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground line-clamp-1">
-                                    {el.element.description}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    <span className="font-medium">Formula:</span>{" "}
-                                    {el.element.formula}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    <span className="font-medium">Labor Formula:</span>{" "}
-                                    {el.element.labor_formula}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                    Material: {el.material_cost}
-                                  </span>
-                                  <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                    Labor: {el.labor_cost}
-                                  </span>
-                                  <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
-                                    Markup: {el.markup ?? 0}%
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                {proposal.template.trades.map((trade) => {
+                  return (
+                    <div
+                      key={trade.id}
+                      className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium text-base mb-1">
+                          {trade.name}
+                        </h4>
+                        <div className="text-sm font-medium">
+                          Subtotal:
+                          
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {trade.description}
+                      </p>
+                      {trade.elements && trade.elements.length > 0 && (
+                        <div className="mt-2 w-full">
+                          <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
+                            Elements
+                          </div>
+                          <div className="flex flex-col gap-1 w-full">
+                            {trade.elements.map((element) => {
+                              return (
+                                <div
+                                  key={element.id}
+                                  className="flex items-center gap-3 p-4 rounded border bg-background w-full"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm">
+                                      {element.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground line-clamp-1">
+                                      {element.description}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row gap-2">
+                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                                      Material:
+                                      {element.material_cost}
+                                    </span>
+                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                                      Labor:
+                                      {element.labor_cost}
+                                    </span>
+                                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+                                      Markup: {element.markup}%
+                                    </span>
+                                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium border border-primary/20">
+                                      Total:
+                                      {/* {formatCurrency(total)} */}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1,11 +1,13 @@
 "use client";
 
-import { getTemplates } from "@/api/client/templates";
 import { TemplateList } from "@/components/features/template-page/template-list-view";
 import { TemplateGridView } from "@/components/features/template-page/template-grid-view";
 import { TemplateLoader } from "@/components/features/template-page/loader";
-import { Template } from "@/types/templates";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import React, { useState, useEffect } from "react";
 import {
   Tabs,
@@ -18,49 +20,43 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { TemplateTour } from "@/components/features/tour-guide/template-tour";
+import { deleteTemplate } from "@/api/templates/delete-template";
+import { getTemplates } from "@/queryOptions/templates";
+import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function TemplatesPage() {
-  const templates = useQuery({
-    queryKey: ["template"],
-    queryFn: getTemplates,
-  });
-
-  const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
+  const [search, setSearch] = useState("");
   const [isTourRunning, setIsTourRunning] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  const { data: templates, isError, isPending } = useQuery(getTemplates());
+
+  const { mutate: deleteTemplateMutation } = useMutation({
+    mutationFn: (templateId: string) => deleteTemplate(templateId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["template"] });
+    },
+  });
+
   useEffect(() => {
-    // Check if the user has seen the tour
     const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour") === "true";
-    if (!hasSeenTour && templates.data && templates.data.length > 0) {
-      // Only show the tour automatically if there's data to display
+    if (!hasSeenTour && templates?.data && templates.data.length > 0) {
       setIsTourRunning(true);
     }
-  }, [templates.data]);
+  }, [templates]);
 
   const startTour = () => {
     setIsTourRunning(true);
   };
 
-  const filteredTemplates = (templates.data || []).filter(
-    (template: Template) => {
-      const searchMatch =
-        template.name.toLowerCase().includes(search.toLowerCase()) ||
-        template.description.toLowerCase().includes(search.toLowerCase());
-      return searchMatch;
-    }
-  );
-
-  if (templates.isLoading) {
+  if (isPending) {
     return <TemplateLoader />;
-  }
+  };
 
-  if (templates.isError) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-red-500">Error loading templates</div>
-      </div>
-    );
+  if (isError) {
+    return <AlertError resource="templates" />;
   }
 
   return (
@@ -106,17 +102,18 @@ export default function TemplatesPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <TemplateGridView templates={filteredTemplates} />
+          <TemplateGridView
+            templates={templates.data}
+            onDeleteTemplate={deleteTemplateMutation}
+          />
         </TabsContent>
         <TabsContent value="list">
-          <TemplateList templates={filteredTemplates} />
+          <TemplateList templates={templates.data} />
         </TabsContent>
       </Tabs>
 
-      {/* Tour guide component */}
+      {/* ================ Template Tour Guide ================ */}
       <TemplateTour isRunning={isTourRunning} setIsRunning={setIsTourRunning} />
-
-      {/* Floating help button */}
       <div className="fixed bottom-6 right-6">
         <Button
           onClick={startTour}
