@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardHeader,
@@ -939,9 +939,38 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const cancelInlineValueEdit = () => {
     setInlineEditingVariableId(null);
-  };
-
-  const applyGlobalMarkup = (markupValue: number) => {
+  };  const applyGlobalMarkup = (markupValue: number) => {
+    // Validate the markup value
+    if (markupValue < 0 || isNaN(markupValue)) {
+      toast.error("Invalid markup value", {
+        position: "top-center",
+        description: "Markup value must be a positive number"
+      });
+      return;
+    }
+    
+    // Count elements to update
+    let elementCount = 0;
+    trades.forEach(trade => {
+      if (trade.elements?.length) {
+        elementCount += trade.elements.length;
+      }
+    });
+    
+    if (elementCount === 0) {
+      toast.info("No elements to update", {
+        position: "top-center",
+        description: "Add elements before applying global markup"
+      });
+      return;
+    }
+    
+    // Prepare a loading toast
+    const loadingToast = toast.loading(`Updating ${elementCount} elements with ${markupValue}% markup...`, {
+      position: "top-center"
+    });
+    
+    // First, update the element objects in our local state
     const updatedTrades = trades.map(trade => ({
       ...trade,
       elements: trade.elements?.map(element => ({
@@ -950,27 +979,84 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       })) || []
     }));
     
+    // Update local state immediately
     updateTrades(updatedTrades);
     
+    // Create an array to track all update promises
+    const updatePromises: Promise<any>[] = [];
+    
+    // For each element, send a proper complete update to the backend
     updatedTrades.forEach(trade => {
       trade.elements?.forEach(element => {
-        updateElementMutation({
-          elementId: element.id,
-          data: {
-            markup: markupValue
-          }
-        });
+        if (!element || !element.id) return; // Skip invalid elements
+        
+        // Create a complete element update with all required fields
+        const elementData = {
+          name: element.name,
+          description: element.description || undefined,
+          material_cost_formula: element.material_cost_formula,
+          labor_cost_formula: element.labor_cost_formula,
+          markup: markupValue,
+          // Include other essential fields that might be needed
+          material_formula_variables: element.material_formula_variables,
+          labor_formula_variables: element.labor_formula_variables,
+        };
+        
+        // Add this update to our promises array - use updateElementMutation instead of direct API call
+        updatePromises.push(
+          updateElement(element.id, elementData)
+            .catch(error => {
+              console.error(`Error updating element ${element.id}:`, error);
+              throw error; // Re-throw to be caught by the Promise.all
+            })
+        );
       });
     });
     
-    toast.success(`Applied ${markupValue}% markup to all elements`, {
-      position: "top-center"
-    });
+    // Process all updates in parallel
+    Promise.all(updatePromises)
+      .then(() => {
+        console.log(`Successfully updated ${updatePromises.length} elements with markup ${markupValue}%`);
+        // Force a refresh of the trades/elements data
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(loadingToast);
+        toast.success(`Applied ${markupValue}% markup to all elements`, {
+          position: "top-center",
+          description: `Updated ${updatePromises.length} elements with ${markupValue}% markup.`
+        });
+      })
+      .catch(error => {
+        console.error("Error applying global markup:", error);
+        
+        // Dismiss loading toast and show error
+        toast.dismiss(loadingToast);
+        toast.error("Error applying global markup", {
+          position: "top-center",
+          description: error instanceof Error ? error.message : "Failed to update one or more elements"
+        });
+      });
   };
-
+  // Track initial render for global markup
+  const isFirstGlobalMarkupRender = useRef(true);
   useEffect(() => {
-    if (isGlobalMarkupEnabled) {
-      applyGlobalMarkup(globalMarkupValue);
+    // Skip first render to avoid unnecessary updates when component mounts
+    if (isFirstGlobalMarkupRender.current) {
+      isFirstGlobalMarkupRender.current = false;
+      return;
+    }
+    
+    // Only apply global markup when it's enabled and we have trades with elements
+    if (isGlobalMarkupEnabled && trades.some(trade => (trade.elements || []).length > 0)) {
+      // Add a small delay to ensure the state has been updated
+      const timer = setTimeout(() => {
+        applyGlobalMarkup(globalMarkupValue);
+      }, 100);
+      
+      // Clean up timer if component unmounts
+      return () => clearTimeout(timer);
     }
   }, [isGlobalMarkupEnabled, globalMarkupValue]);
 
@@ -1303,13 +1389,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }
     }, 1000);
   };
-
   const handleOpenEditDialog = (element: ElementResponse) => {
     setCurrentElementId(element.id);
 
     setNewElementName(element.name);
     setNewElementDescription(element.description || "");
-    setElementMarkup(element.markup || 0);
+    
+    // If global markup is enabled and this element uses the global markup value,
+    // use the global markup value; otherwise use the element's markup
+    const markupValue = isGlobalMarkupEnabled && element.markup === globalMarkupValue
+      ? globalMarkupValue 
+      : (element.markup || 0);
+      
+    setElementMarkup(markupValue);
 
     if (element.material_cost_formula) {
       setNewElementMaterialFormula(
@@ -1910,9 +2002,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     newTradeDescription={newTradeDescription}
                     setNewTradeDescription={setNewTradeDescription}
                     isCreatingTrade={isCreatingTrade}
-                  />
-
-                  <AddElementDialog
+                  />                  <AddElementDialog
                     open={showAddElementDialog}
                     onOpenChange={setShowAddElementDialog}
                     onAddElement={handleAddElement}
@@ -1920,9 +2010,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     variables={variables}
                     updateVariables={updateVariables}
                     isCreatingElement={isCreatingElement}
-                  />
-
-                  <EditElementDialog
+                    isGlobalMarkupEnabled={isGlobalMarkupEnabled}
+                    globalMarkupValue={globalMarkupValue}
+                  />                  <EditElementDialog
                     open={showEditElementDialog}
                     onOpenChange={setShowEditElementDialog}
                     onEditElement={handleEditElement}
@@ -1941,6 +2031,64 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     onCancel={() => {
                       setShowEditElementDialog(false);
                       setCurrentElementId(null);
+                    }}
+                    isGlobalMarkupEnabled={isGlobalMarkupEnabled}
+                    globalMarkupValue={globalMarkupValue}
+                    onUseGlobalMarkup={() => {
+                      if (currentElementId) {
+                        // Update markup in local state
+                        setElementMarkup(globalMarkupValue);
+                        
+                        // Find the current element from all trades
+                        const currentElement = trades
+                          .flatMap(trade => trade.elements || [])
+                          .find(element => element.id === currentElementId);
+                          
+                        if (currentElement) {
+                          // Create a complete element update with all required fields
+                          const elementData = {
+                            name: currentElement.name,
+                            description: currentElement.description || undefined,
+                            material_cost_formula: currentElement.material_cost_formula,
+                            labor_cost_formula: currentElement.labor_cost_formula,
+                            markup: globalMarkupValue,
+                            // Include any other essential fields
+                            material_formula_variables: currentElement.material_formula_variables,
+                            labor_formula_variables: currentElement.labor_formula_variables,
+                          };
+                          
+                          // Update the element on the backend
+                          updateElement(currentElementId, elementData)
+                            .then(() => {
+                              // Update local state
+                              const updatedTrades = trades.map(trade => ({
+                                ...trade,
+                                elements: trade.elements?.map(element => 
+                                  element.id === currentElementId 
+                                    ? { ...element, markup: globalMarkupValue } 
+                                    : element
+                                ) || []
+                              }));
+                              
+                              // Update local state immediately
+                              updateTrades(updatedTrades);
+                              
+                              // Show success message
+                              toast.success(`Applied global markup of ${globalMarkupValue}% to element`, {
+                                position: "top-center"
+                              });
+                              
+                              // Force a refresh of the trades/elements data
+                              queryClient.invalidateQueries({ queryKey: ["elements"] });
+                            })
+                            .catch(error => {
+                              console.error("Error updating element markup:", error);
+                              toast.error("Failed to apply global markup to element", {
+                                position: "top-center"
+                              });
+                            });
+                        }
+                      }
                     }}
                   />
                 </div>
@@ -2167,7 +2315,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                       variables,
                                                       element.labor_formula_variables ||
                                                         []
-                                                    )}
+                                                                                                       )}
                                                   </code>
                                                 </div>
                                                 {element.labor_cost !==

@@ -18,6 +18,9 @@ interface AddElementDialogProps {
   variables: VariableResponse[];
   updateVariables?: (variables: VariableResponse[]) => void;
   isCreatingElement: boolean;
+  // Global markup props
+  isGlobalMarkupEnabled?: boolean;
+  globalMarkupValue?: number;
 }
 
 const AddElementDialog: React.FC<AddElementDialogProps> = ({
@@ -28,6 +31,8 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
   variables = [],
   updateVariables = () => {},
   isCreatingElement,
+  isGlobalMarkupEnabled = false,
+  globalMarkupValue = 0,
 }) => {
   const handleSubmit = (data: {
     name: string;
@@ -53,7 +58,13 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
       dialogTitle="Add New Element"
       submitButtonText="Add Element"
       includeMarkup={true}
-      initialMarkup={0}
+      initialMarkup={isGlobalMarkupEnabled ? globalMarkupValue : 0}
+      isGlobalMarkupEnabled={isGlobalMarkupEnabled}
+      globalMarkupValue={globalMarkupValue}
+      onUseGlobalMarkup={() => {
+        // This can be a no-op for now since we're already setting initialMarkup to globalMarkupValue
+        // when global markup is enabled, but in the future we might want to track this action
+      }}
       onRequestCreateVariable={(variableName, callback) => {
         // Instead of creating the variable right away, we'll pass the request to the parent
         // The parent component will handle opening the Add Variable dialog

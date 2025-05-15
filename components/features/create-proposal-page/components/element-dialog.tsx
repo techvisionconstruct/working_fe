@@ -47,6 +47,10 @@ interface ElementDialogProps {
   includeMarkup?: boolean;
   initialMarkup?: number;
   onRequestCreateVariable?: (variableName: string, callback: (newVariable: VariableResponse) => void) => void;
+  // Global markup props
+  isGlobalMarkupEnabled?: boolean;
+  globalMarkupValue?: number;
+  onUseGlobalMarkup?: () => void;
 }
 
 export function ElementDialog({
@@ -63,6 +67,10 @@ export function ElementDialog({
   includeMarkup = false,
   initialMarkup = 0,
   onRequestCreateVariable,
+  // Global markup props
+  isGlobalMarkupEnabled = false,
+  globalMarkupValue = 0,
+  onUseGlobalMarkup = () => {},
 }: ElementDialogProps) {
   // Generate a unique ID for this dialog instance
   const dialogId = useRef(`dialog_${Math.random().toString(36).substring(2, 11)}`).current;
@@ -600,20 +608,62 @@ export function ElementDialog({
           {/* Markup Field (only if includeMarkup is true) */}
           {includeMarkup && (
             <div className="grid gap-2">
-              <Label htmlFor="element-markup">
-                Markup Percentage (%)
-              </Label>
-              <Input
-                id="element-markup"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="15"
-                value={markup || ''}
-                onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
-              />
+              <div className="flex justify-between items-center mb-1">
+                <Label htmlFor="element-markup">
+                  Markup Percentage (%)
+                </Label>
+                {isGlobalMarkupEnabled && (
+                  <div className="flex items-center">
+                    {markup !== globalMarkupValue && (
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs flex items-center gap-1 text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          // First update local state
+                          setMarkup(globalMarkupValue);
+                          
+                          // Then call the callback to notify parent component
+                          // This is crucial for updating the element in the parent's state
+                          if (onUseGlobalMarkup) {
+                            onUseGlobalMarkup();
+                          }
+                          
+                          // Show success message
+                          toast.success(`Applied global markup of ${globalMarkupValue}%`);
+                        }}
+                      >
+                        Use Global ({globalMarkupValue}%)
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="element-markup"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder={isGlobalMarkupEnabled ? globalMarkupValue.toString() : "15"}
+                  value={markup || ''}
+                  onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+                  className={isGlobalMarkupEnabled && markup === globalMarkupValue ? 'border-primary/30' : ''}
+                />
+                {isGlobalMarkupEnabled && markup === globalMarkupValue && (
+                  <div className="absolute right-3 top-2 flex items-center">
+                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs">
+                      Global
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">
-                Enter the percentage markup to apply to this element (e.g., 15 for 15%)
+                {isGlobalMarkupEnabled 
+                  ? markup === globalMarkupValue 
+                    ? `Using global markup value (${globalMarkupValue}%)` 
+                    : `Enter custom markup or use the global value (${globalMarkupValue}%)`
+                  : "Enter the percentage markup to apply to this element (e.g., 15 for 15%)"}
               </div>
             </div>
           )}
