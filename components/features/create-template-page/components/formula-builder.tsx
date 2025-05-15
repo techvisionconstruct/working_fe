@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
 import { FormulaToken } from "../hooks/use-formula";
+import { getVariables } from "@/queryOptions/variables";
 
 interface FormulaBuilderProps {
   formulaTokens: FormulaToken[];
@@ -130,10 +131,9 @@ export function FormulaBuilder({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: apiVariables } = useQuery({
-    queryKey: ["variables"],
-    queryFn: getAllVariables,
-  });
+   const { data: variablesData, isLoading: variablesLoading } = useQuery(
+     getVariables(1, 10, formulaInput)
+   );
 
   const templateVariables = useMemo(() => {
     if (!variables) return [];
@@ -334,8 +334,8 @@ export function FormulaBuilder({
 
     let apiMatches: VariableResponse[] = [];
 
-    if (apiVariables?.data) {
-      apiMatches = (apiVariables.data as VariableResponse[]).filter(
+    if (variablesData?.data) {
+      apiMatches = (variablesData.data as VariableResponse[]).filter(
         (v) =>
           v.name.toLowerCase().includes(formulaInput.toLowerCase()) &&
           !templateMatches.some(
@@ -357,7 +357,7 @@ export function FormulaBuilder({
 
     setShowSuggestions(true);
     setSelectedSuggestion(0);
-  }, [formulaInput, templateVariables, apiVariables?.data, validFormulaTokens]);
+  }, [formulaInput, templateVariables, variablesData?.data, validFormulaTokens]);
 
   const isFormulaValid = useMemo(() => {
     return validFormulaTokens.length > 0 && !validationError;

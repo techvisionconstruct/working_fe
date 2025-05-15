@@ -2,10 +2,10 @@ import { getAllTemplates } from "@/api/templates/get-all-templates";
 import { getTemplateById } from "@/api/templates/get-template-by-id";
 import { queryOptions } from "@tanstack/react-query";
 
-export function getTemplates() {
+export function getTemplates(page = 1, pageSize = 10, searchQuery?: string) {
   return queryOptions({
-    queryKey: ["template"],
-    queryFn: () => getAllTemplates(),
+    queryKey: ["template", page, pageSize, searchQuery],
+    queryFn: () => getAllTemplates(page, pageSize, searchQuery),
   });
 }
 
