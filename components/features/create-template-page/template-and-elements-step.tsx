@@ -47,6 +47,9 @@ import {
   DialogTitle as ConfirmDialogTitle,
   DialogFooter as ConfirmDialogFooter,
 } from "@/components/shared";
+import { getVariables } from "@/queryOptions/variables";
+import { getTrades } from "@/queryOptions/trades";
+import { getElements } from "@/queryOptions/elements";
 
 interface TradesAndElementsStepProps {
   data: {
@@ -116,26 +119,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // API Queries
-  const { data: apiTrades = [], isLoading: isLoadingTrades } = useQuery({
-    queryKey: ["trades"],
-    queryFn: getAllTrades,
-  });
-
-  const { data: apiVariables = [], isLoading: isLoadingVariables } = useQuery({
-    queryKey: ["variables"],
-    queryFn: getAllVariables,
-  });
+  const { data: tradesData, isLoading: tradesLoading } = useQuery(
+    getTrades(1, 10, tradeSearchQuery)
+  );
+  const { data: elementsData, isLoading: elementsLoading } = useQuery(
+    getElements(1, 10, elementSearchQuery)
+  );
+  const { data: variablesData, isLoading: variablesLoading } = useQuery(
+    getVariables(1, 10, searchQuery)
+  );
 
   const { data: apiVariableTypes = [], isLoading: isLoadingVariableTypes } =
     useQuery({
       queryKey: ["variable-types"],
-      queryFn: getAllVariableTypes,
+      queryFn: () => getAllVariableTypes(),
     });
-
-  const { data: apiElements = [], isLoading: isLoadingElements } = useQuery({
-    queryKey: ["elements"],
-    queryFn: getAllElements,
-  });
 
   // =========== MUTATIONS ===========
 
@@ -366,20 +364,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const filteredVariables =
     searchQuery === ""
       ? []
-      : Array.isArray(apiVariables.data)
-      ? (apiVariables.data as VariableResponse[]).filter(
+      : Array.isArray(variablesData?.data)
+      ? (variablesData.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !variables.some((v) => v.id === variable.id) &&
-            variable.origin === "original"
+            !variables.some((v) => v.id === variable.id)
         )
       : [];
+
+  console.log("filteredVariables", filteredVariables);
 
   const filteredTrades =
     tradeSearchQuery === ""
       ? []
-      : Array.isArray(apiTrades.data)
-      ? (apiTrades.data as TradeResponse[]).filter(
+      : Array.isArray(tradesData?.data)
+      ? (tradesData.data as TradeResponse[]).filter(
           (trade) =>
             trade.name.toLowerCase().includes(tradeSearchQuery.toLowerCase()) &&
             !trades.some((t) => t.id === trade.id) &&
@@ -390,8 +389,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const filteredElements =
     elementSearchQuery === ""
       ? []
-      : Array.isArray(apiElements.data)
-      ? (apiElements.data as ElementResponse[]).filter((element) => {
+      : Array.isArray(elementsData?.data)
+      ? (elementsData.data as ElementResponse[]).filter((element) => {
           const matchesQuery =
             element.name
               .toLowerCase()
@@ -826,7 +825,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
                       </button>
                     )}
-                    {isLoadingVariables && (
+                    {variablesLoading && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
@@ -867,11 +866,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                 .toLowerCase()
                                 .includes(searchQuery.toLowerCase())
                             ) ? (
-                              <span className="text-muted-foreground">Variable already added</span>
+                              <span className="text-muted-foreground">
+                                Variable already added
+                              </span>
                             ) : (
                               <div>
-                                <span className="text-muted-foreground">"{searchQuery}" doesn't exist.</span>
-                                <p className="text-xs mt-1 text-primary">Press Enter to create this variable</p>
+                                <span className="text-muted-foreground">
+                                  "{searchQuery}" doesn't exist.
+                                </span>
+                                <p className="text-xs mt-1 text-primary">
+                                  Press Enter to create this variable
+                                </p>
                               </div>
                             )}
                           </div>
@@ -1024,7 +1029,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             setIsSubmitting(true);
                             const variableData = {
                               name: newVarName.trim(),
-                              description: newVarDescription.trim() || undefined,
+                              description:
+                                newVarDescription.trim() || undefined,
                               value: newVarDefaultValue,
                               is_global: false,
                               variable_type: newVarDefaultVariableType,
@@ -1172,7 +1178,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
                       </button>
                     )}
-                    {isLoadingTrades && (
+                    {tradesLoading && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
@@ -1208,11 +1214,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                 .toLowerCase()
                                 .includes(tradeSearchQuery.toLowerCase())
                             ) ? (
-                              <span className="text-muted-foreground">Trade already added</span>
+                              <span className="text-muted-foreground">
+                                Trade already added
+                              </span>
                             ) : (
                               <div>
-                                <span className="text-muted-foreground">"{tradeSearchQuery}" doesn't exist.</span>
-                                <p className="text-xs mt-1 text-primary">Press Enter to create this trade</p>
+                                <span className="text-muted-foreground">
+                                  "{tradeSearchQuery}" doesn't exist.
+                                </span>
+                                <p className="text-xs mt-1 text-primary">
+                                  Press Enter to create this trade
+                                </p>
                               </div>
                             )}
                           </div>
@@ -1358,7 +1370,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
                                     <Input
                                       placeholder="Search elements..."
-                                      value={elementSearchQueries[trade.id] || ""}
+                                      value={
+                                        elementSearchQueries[trade.id] || ""
+                                      }
                                       onChange={(e) => {
                                         setCurrentTradeId(trade.id);
                                         setElementSearchQueries((prev) => ({
@@ -1454,7 +1468,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
                                       </button>
                                     )}
-                                    {isLoadingElements && (
+                                    {elementsLoading && (
                                       <div className="absolute right-2 top-2">
                                         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                       </div>
@@ -1462,8 +1476,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                   </div>
 
                                   {/* Element search results */}
-                                  {(elementSearchQueries[trade.id] || "")
-                                    .trim() &&
+                                  {(
+                                    elementSearchQueries[trade.id] || ""
+                                  ).trim() &&
                                     isElementSearchOpen &&
                                     currentTradeId === trade.id && (
                                       <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
@@ -1507,11 +1522,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                     ).toLowerCase()
                                                   )
                                               ) ? (
-                                                <span className="text-muted-foreground">Element already added to this trade</span>
+                                                <span className="text-muted-foreground">
+                                                  Element already added to this
+                                                  trade
+                                                </span>
                                               ) : (
                                                 <div>
-                                                  <span className="text-muted-foreground">"{elementSearchQueries[trade.id]}" doesn't exist.</span>
-                                                  <p className="text-xs mt-1 text-primary">Press Enter to create this element</p>
+                                                  <span className="text-muted-foreground">
+                                                    "
+                                                    {
+                                                      elementSearchQueries[
+                                                        trade.id
+                                                      ]
+                                                    }
+                                                    " doesn't exist.
+                                                  </span>
+                                                  <p className="text-xs mt-1 text-primary">
+                                                    Press Enter to create this
+                                                    element
+                                                  </p>
                                                 </div>
                                               )}
                                             </div>
@@ -1671,23 +1700,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         onRequestCreateVariable={(variableName, callback) => {
           try {
             console.log(`Request to create variable: ${variableName}`);
-            
+
             // Set the variable name to create
             setNewVarName(variableName);
-            
+
             // Store the callback to be called after creation
             // Make sure callback is wrapped in a try/catch for safety
             const safeCallback = (newVar: VariableResponse) => {
               try {
                 if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
-                console.log(`Variable created, running callback for: ${newVar.name}`);
+                console.log(
+                  `Variable created, running callback for: ${newVar.name}`
+                );
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);
               }
             };
             setPendingVariableCallback(() => safeCallback);
-            
+
             // Show the add dialog (without closing the element dialog)
             setShowAddDialog(true);
           } catch (err) {
@@ -1709,23 +1740,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         onRequestCreateVariable={(variableName, callback) => {
           try {
             console.log(`Request to create variable: ${variableName}`);
-            
+
             // Set the variable name to create
             setNewVarName(variableName);
-            
+
             // Store the callback to be called after creation
             // Make sure callback is wrapped in a try/catch for safety
             const safeCallback = (newVar: VariableResponse) => {
               try {
                 if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
-                console.log(`Variable created, running callback for: ${newVar.name}`);
+                console.log(
+                  `Variable created, running callback for: ${newVar.name}`
+                );
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);
               }
             };
             setPendingVariableCallback(() => safeCallback);
-            
+
             // Show the add dialog (without closing the element dialog)
             setShowAddDialog(true);
           } catch (err) {

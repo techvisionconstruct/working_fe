@@ -53,6 +53,9 @@ import { TradeResponse } from "@/types/trades/dto";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
+import { getTrades } from "@/queryOptions/trades";
+import { getElements } from "@/queryOptions/elements";
+import { getVariables } from "@/queryOptions/variables";
 
 declare global {
   interface Window {
@@ -208,41 +211,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     }));
   };
 
-  const {
-    data: apiTrades = [],
-    isLoading: isLoadingTrades,
-    error: tradesError,
-  } = useQuery({
-    queryKey: ["trades"],
-    queryFn: getAllTrades,
-  });
+  const { data: tradesData, isLoading: tradesLoading } = useQuery(
+    getTrades(1, 10, tradeSearchQuery)
+  );
+  const { data: elementsData, isLoading: elementsLoading } = useQuery(
+    getElements(1, 10, elementSearchQuery)
+  );
+  const { data: variablesData, isLoading: variablesLoading } = useQuery(
+    getVariables(1, 10, searchQuery)
+  );
 
-  const {
-    data: apiVariables = [],
-    isLoading: isLoadingVariables,
-    error: variableError,
-  } = useQuery({
-    queryKey: ["variables"],
-    queryFn: getAllVariables,
-  });
-
-  const {
-    data: apiVariableTypes = [],
-    isLoading: isLoadingVariableTypes,
-    error: variableTypesError,
-  } = useQuery({
-    queryKey: ["variable-types"],
-    queryFn: getAllVariableTypes,
-  });
-
-  const {
-    data: apiElements = [],
-    isLoading: isLoadingElements,
-    error: elementsError,
-  } = useQuery({
-    queryKey: ["elements"],
-    queryFn: getAllElements,
-  });
+  const { data: apiVariableTypes = [], isLoading: isLoadingVariableTypes } =
+    useQuery({
+      queryKey: ["variable-types"],
+      queryFn: () => getAllVariableTypes(),
+    });
 
   useEffect(() => {
     window.openVariableDialog = (variableName: string, callback: (newVar: any) => void) => {
@@ -530,8 +513,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const filteredVariables =
     searchQuery === ""
       ? []
-      : Array.isArray(apiVariables.data)
-      ? (apiVariables.data as VariableResponse[]).filter(
+      : Array.isArray(variablesData?.data)
+      ? (variablesData.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
             variable.origin === "original"
@@ -541,8 +524,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const filteredTrades =
     tradeSearchQuery === ""
       ? []
-      : Array.isArray(apiTrades.data)
-      ? (apiTrades.data as TradeResponse[]).filter(
+      : Array.isArray(tradesData?.data)
+      ? (tradesData.data as TradeResponse[]).filter(
           (trade) =>
             trade.name.toLowerCase().includes(tradeSearchQuery.toLowerCase()) &&
             !trades.some((t) => t.id === trade.id.toString()) &&
@@ -553,8 +536,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const filteredElements =
     elementSearchQuery === ""
       ? []
-      : Array.isArray(apiElements.data)
-      ? (apiElements.data as ElementResponse[]).filter((element) => {
+      : Array.isArray(elementsData?.data)
+      ? (elementsData.data as ElementResponse[]).filter((element) => {
           const matchesQuery =
             element.name
               .toLowerCase()
@@ -1428,7 +1411,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       }}
                       className="w-full pl-8 pr-4"
                     />
-                    {isLoadingVariables && (
+                    {variablesLoading && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
@@ -1844,7 +1827,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       }}
                       className="w-full pl-8 pr-4"
                     />
-                    {isLoadingTrades && (
+                    {tradesLoading && (
                       <div className="absolute right-2 top-2.5">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
@@ -2069,7 +2052,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     }}
                                     className="w-full pl-7 pr-4 h-8 text-xs"
                                   />
-                                  {isLoadingElements && (
+                                  {elementsLoading && (
                                     <div className="absolute right-2 top-2">
                                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                     </div>
