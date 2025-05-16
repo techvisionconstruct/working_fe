@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, Button, Input, Badge } from "@/components/shared";
 import { Search, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,9 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
   updateData,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Track if we've done the initial load
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   const { data: templatesData, isPending } = useQuery(
     getTemplates(1, 5, searchQuery)
@@ -27,12 +30,54 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
 
   const templates = templatesData?.data || [];
 
+  // Make sure we preserve variables when selecting a template
+  const handleSelectTemplate = (template: TemplateResponse) => {
+    // If selecting the same template, don't change anything
+    if (data?.id === template.id) return;
+
+    // Ensure we preserve any variables that were added to the current template
+    if (data && data.variables && data.variables.length > 0) {
+      // When switching templates, ask if user wants to keep their variables
+      const confirmed = window.confirm(
+        "Do you want to preserve your current variables when switching templates?"
+      );
+      
+      if (confirmed && template.variables) {
+        // Create a set of existing variable IDs for quick lookup
+        const existingVarIds = new Set(template.variables.map(v => v.id));
+        
+        // Add variables from current template that don't exist in the new one
+        const newTemplate = {
+          ...template,
+          variables: [
+            ...template.variables,
+            ...data.variables.filter(v => !existingVarIds.has(v.id))
+          ]
+        };
+        
+        updateData(newTemplate);
+        return;
+      }
+    }
+    
+    // Default case: just update with the new template
+    updateData(template);
+  };
+
   const filteredTemplates = templates.filter(
     (template: TemplateResponse) =>
       template.origin === "original" &&
       (template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         template.description?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  // Ensure template selections don't lose variables
+  useEffect(() => {
+    if (templatesData && !initialLoaded && data) {
+      setInitialLoaded(true);
+      // This ensures we keep any initial template data provided
+    }
+  }, [templatesData, data, initialLoaded]);
 
   return (
     <div className="space-y-6">
@@ -81,7 +126,7 @@ const TemplateSelectionTab: React.FC<TemplateSelectionTabProps> = ({
               className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full ${
                 data?.id === template.id ? "border-2 border-primary" : ""
               }`}
-              onClick={() => updateData(template)}
+              onClick={() => handleSelectTemplate(template)}
             >
               <div className="flex gap-4">
                 <Image

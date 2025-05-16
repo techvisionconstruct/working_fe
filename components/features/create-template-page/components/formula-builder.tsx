@@ -14,7 +14,7 @@ interface FormulaBuilderProps {
   formulaTokens: FormulaToken[];
   setFormulaTokens: React.Dispatch<React.SetStateAction<FormulaToken[]>>;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   hasError?: boolean;
   onCreateVariable?: (name: string, formulaType?: "material" | "labor") => void;
   formulaType?: "material" | "labor";
@@ -203,12 +203,25 @@ export function FormulaBuilder({
   };
 
   const handleAddApiVariableToFormula = (variable: VariableResponse) => {
+    // Never call updateVariables with a brand new array directly
+    // Instead, check if the variable exists and then add it if it doesn't
     if (updateVariables && !templateVariables.some((v) => v.id === variable.id)) {
-      updateVariables([...variables, variable]);
-
-      toast.success("Variable automatically added", {
-        position: "top-center",
-        description: `"${variable.name}" was added because it's used in your formula.`,
+      // Use a callback pattern to ensure access to the latest state
+      updateVariables(currentVariables => {
+        // Check again to make sure this variable doesn't already exist
+        if (currentVariables.some(v => v.id === variable.id)) {
+          return currentVariables; // No change needed
+        }
+        
+        const updatedVariables = [...currentVariables, variable];
+        console.log("Adding variable to template:", variable.name, "New count:", updatedVariables.length);
+        
+        toast.success("Variable automatically added", {
+          position: "top-center",
+          description: `"${variable.name}" was added because it's used in your formula.`,
+        });
+        
+        return updatedVariables;
       });
     }
 
@@ -259,7 +272,15 @@ export function FormulaBuilder({
       if (suggestions.length > 0) {
         const selectedVar = suggestions[selectedSuggestion];
         if (updateVariables && !variables.some((v) => v.id === selectedVar.id)) {
-          updateVariables([...variables, selectedVar]);
+          // Use callback to ensure we have the latest state
+          updateVariables(currentVariables => {
+            // Double-check the variable doesn't already exist
+            if (currentVariables.some(v => v.id === selectedVar.id)) {
+              return currentVariables; // No change needed
+            }
+            return [...currentVariables, selectedVar]; 
+          });
+
           toast.success("Variable automatically added", {
             description: `"${selectedVar.name}" has been added to your template.`,
           });

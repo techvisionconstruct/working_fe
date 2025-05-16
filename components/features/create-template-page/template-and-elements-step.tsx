@@ -106,6 +106,16 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     null
   );
   const [newElementName, setNewElementName] = useState("");
+  
+  // Store a local copy of variables to prevent issues with autocomplete
+  const [localVariables, setLocalVariables] = useState<VariableResponse[]>([]);
+  
+  // Update local variables when data.variables changes
+  useEffect(() => {
+    if (data.variables && data.variables.length > 0) {
+      setLocalVariables(data.variables);
+    }
+  }, [data.variables]);
 
   // Use our formula hook for formula management
   const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } =
@@ -146,8 +156,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       if (response && response.data) {
         const createdVariable = response.data;
 
-        // First update the variables list
-        updateVariables([...variables, createdVariable]);
+        // Update both local and parent variables
+        const updatedVariables = [...localVariables, createdVariable];
+        setLocalVariables(updatedVariables);
+        updateVariables(updatedVariables);
 
         // Call the pending callback if it exists, with proper error handling
         try {
@@ -409,6 +421,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   // =========== EVENT HANDLERS ===========
 
   const handleSelectVariable = (variable: VariableResponse) => {
+    // Make sure we work with local variables to prevent state loss
     const newVar: VariableResponse = {
       id: variable.id.toString(),
       name: variable.name,
@@ -422,8 +435,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       updated_by: variable.updated_by,
     };
 
-    if (!variables.some((v) => v.id === newVar.id)) {
-      updateVariables([...variables, newVar]);
+    if (!localVariables.some((v) => v.id === newVar.id)) {
+      const updatedVariables = [...localVariables, newVar];
+      setLocalVariables(updatedVariables);
+      updateVariables(updatedVariables);
     }
 
     setIsSearchOpen(false);
@@ -447,11 +462,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleRemoveVariable = (variableId: string) => {
     const usedInElements = findElementsUsingVariable(variableId);
     if (usedInElements.length > 0) {
-      setVariableToRemove(variables.find((v) => v.id === variableId) || null);
+      setVariableToRemove(localVariables.find((v) => v.id === variableId) || null);
       setElementsUsingVariable(usedInElements);
       setShowRemoveVariableConfirm(true);
     } else {
-      updateVariables(variables.filter((v) => v.id !== variableId));
+      const updatedVariables = localVariables.filter((v) => v.id !== variableId);
+      setLocalVariables(updatedVariables);
+      updateVariables(updatedVariables);
     }
   };
 
@@ -631,8 +648,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   // Confirm remove
   const confirmRemoveVariable = () => {
     if (variableToRemove) {
-      // Only remove from the variable list, do NOT touch elements or formulas
-      updateVariables(variables.filter((v) => v.id !== variableToRemove.id));
+      const updatedVariables = localVariables.filter((v) => v.id !== variableToRemove.id);
+      setLocalVariables(updatedVariables);
+      updateVariables(updatedVariables);
       setShowRemoveVariableConfirm(false);
       setVariableToRemove(null);
       setElementsUsingVariable([]);
@@ -1692,8 +1710,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         onOpenChange={setShowAddElementDialog}
         onSubmit={handleAddElement}
         initialName={newElementName}
-        variables={variables}
-        updateVariables={updateVariables}
+        variables={localVariables}
+        updateVariables={(updatedVariables) => {
+          if (typeof updatedVariables === 'function') {
+            // If it's a function, compute the new value based on current localVariables
+            const newVars = updatedVariables(localVariables);
+            setLocalVariables(newVars);
+            updateVariables(newVars);
+          } else {
+            // If it's a direct value, use it directly
+            setLocalVariables(updatedVariables);
+            updateVariables(updatedVariables);
+          }
+        }}
         isSubmitting={isCreatingElement}
         dialogTitle="Add New Element"
         submitButtonText="Add Element"
@@ -1705,13 +1734,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             setNewVarName(variableName);
 
             // Store the callback to be called after creation
-            // Make sure callback is wrapped in a try/catch for safety
             const safeCallback = (newVar: VariableResponse) => {
               try {
-                if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
-                console.log(
-                  `Variable created, running callback for: ${newVar.name}`
-                );
+                if (!newVar) return;
+                console.log(`Variable created, running callback for: ${newVar.name}`);
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);
@@ -1732,8 +1758,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         onOpenChange={setShowEditElementDialog}
         onSubmit={handleUpdateElement}
         elementToEdit={elementToEdit}
-        variables={variables}
-        updateVariables={updateVariables}
+        variables={localVariables}
+        updateVariables={(updatedVariables) => {
+          if (typeof updatedVariables === 'function') {
+            // If it's a function, compute the new value based on current localVariables
+            const newVars = updatedVariables(localVariables);
+            setLocalVariables(newVars);
+            updateVariables(newVars);
+          } else {
+            // If it's a direct value, use it directly
+            setLocalVariables(updatedVariables);
+            updateVariables(updatedVariables);
+          }
+        }}
         isSubmitting={isUpdatingElement}
         dialogTitle="Edit Element"
         submitButtonText="Update Element"
@@ -1745,13 +1782,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             setNewVarName(variableName);
 
             // Store the callback to be called after creation
-            // Make sure callback is wrapped in a try/catch for safety
             const safeCallback = (newVar: VariableResponse) => {
               try {
-                if (!newVar) return; // Add null check to prevent "Cannot read property of null" errors
-                console.log(
-                  `Variable created, running callback for: ${newVar.name}`
-                );
+                if (!newVar) return;
+                console.log(`Variable created, running callback for: ${newVar.name}`);
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);

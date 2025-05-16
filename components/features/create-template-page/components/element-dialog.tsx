@@ -40,7 +40,7 @@ interface ElementDialogProps {
   elementToEdit?: ElementResponse | null;
   initialName?: string;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   isSubmitting: boolean;
   dialogTitle: string;
   submitButtonText: string;
@@ -361,7 +361,7 @@ export function ElementDialog({
         // Skip operators
         if (["+", "-", "*", "/", "(", ")", "^"].includes(variableName)) return;
 
-        // Create temporary variable
+        // Create temporary variable - make sure we preserve existing variables
         const tempVariable: VariableResponse = {
           id: `temp-${Date.now()}`,
           name: variableName,
@@ -372,7 +372,14 @@ export function ElementDialog({
           updated_at: new Date().toISOString(),
         };
 
-        updateVariables([...variables, tempVariable]);
+        // Make sure to use a callback pattern to ensure latest state
+        updateVariables((currentVariables: VariableResponse[]) => {
+          // Check again that variable doesn't already exist
+          if (currentVariables.some((v: VariableResponse) => v.name.toLowerCase() === variableName.toLowerCase())) {
+            return currentVariables;
+          }
+          return [...currentVariables, tempVariable];
+        });
         
         // IMPORTANT: Save current formulas to localStorage before setting pending variable
         saveFormulasToStorage();
