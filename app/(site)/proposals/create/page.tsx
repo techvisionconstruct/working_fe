@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { HelpCircle } from "lucide-react";
+
+// Import tour component
+import { CreateProposalTour } from "@/components/features/tour-guide/create-proposal-tour";
 
 // Import our step components
 import TemplateSelectionStep from "@/components/features/create-proposal-page/template-selection-tab";
@@ -28,6 +32,7 @@ import { set } from "date-fns";
 export default function CreateProposalPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("template");
+  const [isTourRunning, setIsTourRunning] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
   const [formData, setFormData] = useState<{
@@ -177,6 +182,81 @@ export default function CreateProposalPage() {
     updateTemplateMutation({ templateId, template: tradesAndVariables });
   };
 
+  // Update startTour function with improved class identification
+  const startTour = () => {
+    try {
+      // First ensure we're on the template tab
+      setCurrentStep("template");
+      
+      console.log("[Tour] Preparing to start proposal tour");
+      
+      // Allow tab switch to happen first
+      setTimeout(() => {
+        try {
+          console.log("[Tour] Adding CSS classes for tour targeting");
+          
+          // Add CSS classes for steps and make elements focusable
+          document.querySelectorAll('[role="tab"]').forEach((tab) => {
+            try {
+              const value = tab.getAttribute("data-value") || tab.getAttribute("value");
+              if (value) {
+                tab.classList.add("tab-trigger");
+                tab.setAttribute("data-value", value);
+                tab.setAttribute("tabindex", "0");
+                console.log(`[Tour] Found tab: ${value}`);
+              }
+            } catch (e) {
+              console.error("[Tour] Error processing tab", e);
+            }
+          });
+
+          // Add classes to tab contents for targeting
+          document.querySelectorAll('[role="tabpanel"]').forEach((content) => {
+            try {
+              const tabId = content.getAttribute("id") || content.getAttribute("data-state");
+              if (tabId) {
+                const tabValue = tabId.replace("content-", "").replace("-tabpanel", "");
+                content.classList.add(`${tabValue}-tab-content`);
+                console.log(`[Tour] Found tab content: ${tabValue}`);
+              }
+            } catch (e) {
+              console.error("[Tour] Error processing tab content", e);
+            }
+          });
+
+          // Ensure trade and variable columns are properly marked
+          document.querySelector('.lg\\:col-span-2')?.classList.add('trade-column');
+          document.querySelector('.lg\\:col-span-2')?.setAttribute("tabindex", "0");
+          
+          document.querySelector('.variable-column, .lg\\:col-span-1')?.setAttribute("tabindex", "0");
+          
+          // If trade column wasn't found by the selector above, try more generic approach
+          if (!document.querySelector('.trade-column')) {
+            const columns = document.querySelectorAll('.grid.grid-cols-1.lg\\:grid-cols-3 > div');
+            if (columns.length > 0) {
+              columns[0].classList.add('trade-column');
+              columns[0].setAttribute("tabindex", "0");
+              console.log("[Tour] Added class to trade column (alternate selector)");
+            }
+            
+            if (columns.length > 1 && !document.querySelector('.variable-column')) {
+              columns[1].classList.add('variable-column');
+              columns[1].setAttribute("tabindex", "0");
+              console.log("[Tour] Added class to variable column (alternate selector)");
+            }
+          }
+          
+          console.log("[Tour] Starting proposal tour");
+          setIsTourRunning(true);
+        } catch (error) {
+          console.error("[Tour] Error preparing tour:", error);
+        }
+      }, 500); // Give more time for the DOM to be ready
+    } catch (error) {
+      console.error("[Tour] Error in startTour:", error);
+    }
+  };
+
   return (
     <div className="container">
       <div className="mb-4">
@@ -205,7 +285,7 @@ export default function CreateProposalPage() {
         </div>
 
         <Tabs value={currentStep} className="w-full">
-          <TabsContent value="template" className="p-6">
+          <TabsContent value="template" className="p-6 template-tab-content">
             <TemplateSelectionStep
               data={formData.template}
               updateData={(template) => updateFormData({ template })}
@@ -215,7 +295,7 @@ export default function CreateProposalPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="details" className="p-6">
+          <TabsContent value="details" className="p-6 details-tab-content">
             <ProposalDetailsStep
               data={{
                 name: formData.name,
@@ -240,7 +320,15 @@ export default function CreateProposalPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="trades" className="p-6">
+          <TabsContent value="trades" className="p-6 trades-tab-content">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 trade-column">
+                {/* Trade column contents */}
+              </div>
+              <div className="variable-column">
+                {/* Variable column contents */}
+              </div>
+            </div>
             <TradesAndElementsStep
               data={{
                 trades: tradeObjects,
@@ -268,25 +356,28 @@ export default function CreateProposalPage() {
               <Button onClick={handleUpdateTemplate}>Save Proposal</Button>
             </div>
           </TabsContent>
-
-          <TabsContent value="preview" className="p-6">
-            {/* <PreviewStep formData={formData} /> */}
-            <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack}>
-                Back
-              </Button>
-              {/* <Button
-                onClick={handleSubmit}
-                disabled={createProposalMutation.isPending}
-              >
-                {createProposalMutation.isPending
-                  ? "Submitting..."
-                  : "Create Proposal"}
-              </Button> */}
-            </div>
-          </TabsContent>
         </Tabs>
       </Card>
+
+      {/* Tour component */}
+      <CreateProposalTour
+        isRunning={isTourRunning}
+        setIsRunning={setIsTourRunning}
+        activeTab={currentStep}
+        setActiveTab={setCurrentStep}
+      />
+
+      {/* Help button to start tour */}
+      <div className="fixed bottom-6 right-6">
+        <Button
+          onClick={startTour}
+          variant="secondary"
+          className="rounded-full w-12 h-12 shadow-lg bg-white text-gray-800 hover:bg-gray-100 border border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 dark:text-gray-200"
+          aria-label="Start tour guide"
+        >
+          <HelpCircle size={24} />
+        </Button>
+      </div>
     </div>
   );
 }
