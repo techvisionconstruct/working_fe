@@ -22,15 +22,14 @@ type ProposalTourProps = {
 export function ProposalTour({ isRunning, setIsRunning }: ProposalTourProps) {
   const router = useRouter();
 
-  // Helper to end the tour
+  // Helper to end the tour - removed localStorage dependency
   const endTour = () => {
-    localStorage.setItem("hasSeenProposalsTour", "true");
     setIsRunning(false);
-    // No navigation changes when skipping
   };
 
   // Function to redirect to proposal creation page
   const redirectToCreateProposal = () => {
+    setIsRunning(false);
     router.push("/proposals/create");
   };
 

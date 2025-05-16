@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { LoaderCircle, HelpCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+// Import tour component
+import { CreateTemplateTour } from "@/components/features/tour-guide/create-template-tour";
+
 import TemplateDetailsStep from "@/components/features/create-template-page/template-details-step";
 import TradesAndElementsStep from "@/components/features/create-template-page/template-and-elements-step";
 import PreviewStep from "@/components/features/create-template-page/preview-step";
@@ -17,14 +23,13 @@ import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { createTemplate } from "@/api/templates/create-template";
 import { updateTemplate } from "@/api/templates/update-template";
-import { useRouter } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
 
 export default function CreateTemplate() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("details");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTourRunning, setIsTourRunning] = useState(false);
   const [formData, setFormData] = useState<TemplateCreateRequest>({
     name: "",
     description: "",
@@ -364,6 +369,79 @@ export default function CreateTemplate() {
     return true;
   }
 
+  // Update startTour function with better CSS class identification
+  const startTour = () => {
+    try {
+      // First ensure we're on the details tab
+      setCurrentStep("details");
+      
+      console.log("[Tour] Preparing to start template tour");
+
+      // Allow tab switch to happen first
+      setTimeout(() => {
+        try {
+          console.log("[Tour] Adding CSS classes for tour targeting");
+          
+          // Add CSS classes for steps and make elements focusable
+          document.querySelectorAll('[role="tab"]').forEach((tab) => {
+            try {
+              const value = tab.getAttribute("data-value") || tab.getAttribute("value");
+              if (value) {
+                tab.classList.add("tab-trigger");
+                tab.setAttribute("data-value", value);
+                tab.setAttribute("tabindex", "0");
+                console.log(`[Tour] Found tab: ${value}`);
+              }
+            } catch (e) {
+              console.error("[Tour] Error processing tab", e);
+            }
+          });
+
+          // Add classes to tab contents for targeting
+          document.querySelectorAll('[role="tabpanel"]').forEach((content) => {
+            try {
+              const tabId = content.getAttribute("id") || content.getAttribute("data-state");
+              if (tabId) {
+                const tabValue = tabId.replace("content-", "").replace("-tabpanel", "");
+                content.classList.add(`${tabValue}-tab-content`);
+                console.log(`[Tour] Found tab content: ${tabValue}`);
+              }
+            } catch (e) {
+              console.error("[Tour] Error processing tab content", e);
+            }
+          });
+
+          // Find and add class to trade section
+          const tradeSection = document.querySelector('.lg\\:col-span-8');
+          if (tradeSection) {
+            tradeSection.classList.add('trade-section');
+            tradeSection.setAttribute("tabindex", "0");
+            console.log("[Tour] Added class to trade section");
+          } else {
+            console.warn("[Tour] Trade section not found");
+          }
+          
+          // Find and add class to variable section
+          const variableSection = document.querySelector('.lg\\:col-span-4');
+          if (variableSection) {
+            variableSection.classList.add('variable-section');
+            variableSection.setAttribute("tabindex", "0");
+            console.log("[Tour] Added class to variable section");
+          } else {
+            console.warn("[Tour] Variable section not found");
+          }
+          
+          console.log("[Tour] Starting template tour");
+          setIsTourRunning(true);
+        } catch (error) {
+          console.error("[Tour] Error preparing tour:", error);
+        }
+      }, 500); // Give more time for the DOM to be ready
+    } catch (error) {
+      console.error("[Tour] Error in startTour:", error);
+    }
+  };
+
   return (
     <div className="container">
       <div className="mb-4">
@@ -384,7 +462,7 @@ export default function CreateTemplate() {
         </div>
 
         <Tabs value={currentStep} className="w-full">
-          <TabsContent value="details" className="p-6">
+          <TabsContent value="details" className="p-6 details-tab-content">
             <TemplateDetailsStep
               data={{
                 name: formData.name,
@@ -416,7 +494,15 @@ export default function CreateTemplate() {
             </div>
           </TabsContent>
 
-          <TabsContent value="trades" className="p-6">
+          <TabsContent value="trades" className="p-6 trades-tab-content">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-8 trade-section">
+                {/* Trade section for highlighting */}
+              </div>
+              <div className="lg:col-span-4 variable-section">
+                {/* Variable section for highlighting */}
+              </div>
+            </div>
             <TradesAndElementsStep
               data={{
                 trades: tradeObjects,
@@ -454,7 +540,7 @@ export default function CreateTemplate() {
             </div>
           </TabsContent>
 
-          <TabsContent value="preview" className="p-6">
+          <TabsContent value="preview" className="p-6 preview-tab-content">
             <PreviewStep
               data={formData}
               tradeObjects={tradeObjects}
@@ -731,6 +817,26 @@ export default function CreateTemplate() {
           </div>
         </div>
       )}
+
+      {/* Tour component */}
+      <CreateTemplateTour
+        isRunning={isTourRunning}
+        setIsRunning={setIsTourRunning}
+        activeTab={currentStep}
+        setActiveTab={setCurrentStep}
+      />
+
+      {/* Help button to start tour */}
+      <div className="fixed bottom-6 right-6">
+        <Button
+          onClick={startTour}
+          variant="secondary"
+          className="rounded-full w-12 h-12 shadow-lg bg-white text-gray-800 hover:bg-gray-100 border border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 dark:text-gray-200"
+          aria-label="Start tour guide"
+        >
+          <HelpCircle size={24} />
+        </Button>
+      </div>
     </div>
   );
 }

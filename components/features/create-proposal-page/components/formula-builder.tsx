@@ -130,9 +130,11 @@ export function FormulaBuilder({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Fix the useQuery implementation to properly handle parameters
   const { data: apiVariables } = useQuery({
     queryKey: ["variables"],
-    queryFn: getAllVariables,
+    // Wrap the getAllVariables call in a function that matches the expected signature
+    queryFn: () => getAllVariables(),
   });
 
   const templateVariables = useMemo(() => {

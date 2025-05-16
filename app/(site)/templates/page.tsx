@@ -8,7 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Tabs,
   TabsList,
@@ -40,24 +40,19 @@ export default function TemplatesPage() {
     },
   });
 
-  useEffect(() => {
-    const hasSeenTour = localStorage.getItem("hasSeenTemplatesTour") === "true";
-    if (!hasSeenTour && templates?.data && templates.data.length > 0) {
-      setIsTourRunning(true);
-    }
-  }, [templates]);
-
   const startTour = () => {
     setIsTourRunning(true);
   };
 
   if (isPending) {
     return <TemplateLoader />;
-  };
+  }
 
   if (isError) {
     return <AlertError resource="templates" />;
   }
+
+  const templateData = templates?.data || [];
 
   return (
     <div id="content">
@@ -103,12 +98,12 @@ export default function TemplatesPage() {
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
           <TemplateGridView
-            templates={templates.data}
+            templates={templateData}
             onDeleteTemplate={deleteTemplateMutation}
           />
         </TabsContent>
         <TabsContent value="list">
-          <TemplateList templates={templates.data} />
+          <TemplateList templates={templateData} />
         </TabsContent>
       </Tabs>
 
