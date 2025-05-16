@@ -47,6 +47,11 @@ interface ContractDetailsProps {
 
 export function ContractDetails({ proposal }: ContractDetailsProps) {
   const [isSending, setIsSending] = useState(false);
+  // Add local contract state
+  const [localContract, setLocalContract] = useState(proposal.contract);
+  // Use localContract if available, otherwise fallback to proposal.contract
+  const contract = localContract || proposal.contract;
+
   const parseTermsAndConditions = (termsString: string): TermSection[] => {
     if (!termsString) return [];
 
@@ -213,11 +218,11 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
   // State for terms and conditions - parse from termsAndConditions string if available
   const [termsSections, setTermsSections] = useState<TermSection[]>(() => {
-    if (proposal?.contract?.terms) {
-      if (typeof proposal.contract.terms === "string") {
-        return parseTermsAndConditions(proposal.contract.terms);
+    if (contract?.terms) {
+      if (typeof contract.terms === "string") {
+        return parseTermsAndConditions(contract.terms);
       } else {
-        return proposal.contract.terms as TermSection[];
+        return contract.terms as TermSection[];
       }
     } else {
       return [
@@ -243,19 +248,19 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
     contractor: Signature;
   }>(() => {
     if (
-      proposal?.contract?.client_initials !== undefined ||
-      proposal?.contract?.client_signature !== undefined ||
-      proposal?.contract?.contractor_initials !== undefined ||
-      proposal?.contract?.contractor_signature !== undefined
+      contract?.client_initials !== undefined ||
+      contract?.client_signature !== undefined ||
+      contract?.contractor_initials !== undefined ||
+      contract?.contractor_signature !== undefined
     ) {
       return {
         client: getSignatureData(
-          proposal.contract.client_initials ?? null,
-          proposal.contract.client_signature ?? null
+          contract.client_initials ?? null,
+          contract.client_signature ?? null
         ),
         contractor: getSignatureData(
-          proposal.contract.contractor_initials ?? null,
-          proposal.contract.contractor_signature ?? null
+          contract.contractor_initials ?? null,
+          contract.contractor_signature ?? null
         ),
       };
     } else {
@@ -276,9 +281,8 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
   // Check if contract is already signed by client
   const isContractSigned = !!(
-    proposal?.contract?.client_signature ||
-    (proposal?.contract?.client_initials &&
-      proposal?.contract?.client_initials.trim() !== "")
+    contract?.client_signature ||
+    (contract?.client_initials && contract?.client_initials.trim() !== "")
   );
 
   // State to track if editing mode is active - disabled if contract is signed
@@ -290,6 +294,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
       createContract(contractData),
     onSuccess: (data) => {
       toast.success("Contract created successfully!");
+      setLocalContract(data); // Update local contract state
       setIsEditing(false);
     },
     onError: (error: any) => {
@@ -397,7 +402,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
 
   return (
     <div className="w-full mx-auto">
-      {proposal.contract == null && (
+      {contract == null && (
         <Alert className="mb-4 border-yellow-300 bg-yellow-50 text-yellow-900 flex items-center gap-3">
           <AlertTriangle
             color="#f0b000"
@@ -982,7 +987,7 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                   isSending ||
                   !proposal.client_email ||
                   isContractSigned ||
-                  !proposal.contract
+                  !contract
                 }
                 onClick={sendProposalToClient}
               >
@@ -1026,24 +1031,50 @@ export function ContractDetails({ proposal }: ContractDetailsProps) {
                 Print Contract (Not Working)
               </Button>
 
-              {!proposal.contract && (
+              {!contract && (
                 <Button
                   variant="default"
                   className="w-full mt-2 flex items-center justify-center gap-2"
                   onClick={handleSubmit}
+                  disabled={createContractMutation.isPending}
                 >
-                  <Save className="w-4 h-4" />
-                  Save Contract
+                  {createContractMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Contract
+                    </>
+                  )}
                 </Button>
               )}
-              {isEditing && proposal.contract && proposal.contract.id && (
+              {isEditing && contract && contract.id && (
                 <Button
                   variant="default"
                   className="w-full mt-2 flex items-center justify-center gap-2"
                   onClick={handleSubmit}
+                  disabled={updateContractMutation.isPending}
                 >
-                  <RefreshCcw className="w-4 h-4" />
-                  Update Contract
+                  {updateContractMutation.isPending ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCcw className="w-4 h-4" />
+                      Update Contract
+                    </>
+                  )}
                 </Button>
               )}
               <Separator className="my-2" />
