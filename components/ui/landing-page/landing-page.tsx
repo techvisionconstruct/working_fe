@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Calendar,
   Clock,
   Flame,
   Lightbulb,
@@ -11,9 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Sparkles,
   BarChart3,
-  Briefcase,
   Target,
   Users,
   Zap,
@@ -40,14 +38,10 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
 } from "@/components/shared";
 import { motion } from "framer-motion";
-import { FontCombobox } from "@/components/font-combobox";
-import { ThemeProvider, useTheme } from "@/components/contexts/theme-context";
+import { FontCombobox } from "./contexts/font-combobox";
+import { ThemeProvider, useTheme } from "./contexts/theme-context";
 
 export default function Page() {
   return (
@@ -68,7 +62,8 @@ function Header() {
   const [minimized, setMinimized] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement>(null);
-  const { colors, theme, setTheme, setFonts, swatch, setSwatch } = useTheme();
+  const { colors, theme, setTheme, setFonts, palette, setPalette } = useTheme();
+  const router = useRouter();
 
   // Close menu on outside click
   useEffect(() => {
@@ -229,7 +224,12 @@ function Header() {
                     <label className="block text-xs font-semibold mb-1">
                       PALETTE
                     </label>
-                    <Select value={swatch} onValueChange={setSwatch}>
+                    <Select
+                      value={palette}
+                      onValueChange={(value) =>
+                        setPalette(value as "red" | "blue" | "green" | "dark")
+                      }
+                    >
                       <SelectTrigger
                         className="w-full hover:ring-2 hover:ring-opacity-50 transition-all duration-300"
                         style={{
@@ -286,7 +286,14 @@ function Header() {
                     <label className="block text-xs font-semibold mb-1">
                       FONT
                     </label>
-                    <FontCombobox />
+                    <FontCombobox
+                      value={""}
+                      onFontChange={function (font: {
+                        fontFamily: string;
+                      }): void {
+                        throw new Error("Function not implemented.");
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -303,6 +310,7 @@ function Header() {
                 color: theme === "dark" ? "#fff" : "#191919",
                 borderColor: theme === "dark" ? "#333" : "#e5e7eb",
               }}
+              onClick={() => router.push("/signin")}
             >
               Sign In
             </Button>
@@ -1247,7 +1255,7 @@ function BlogSection() {
                 required
               />
               <Button className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md">
-                Subscribe Now
+                Get Started Now!
               </Button>
             </form>
           </div>
@@ -1514,8 +1522,8 @@ function Footer() {
               size="icon"
               className={`rounded-full border-1 transition-colors ${
                 theme === "dark"
-                  ? "border-gray-700 text-white hover:text-red-600 hover:border-red-600"
-                  : "border-gray-900 text-black hover:text-red-600 hover:border-red-600"
+                  ? "border-gray-700 bg-black hover:bg-white text-white hover:text-red-600 hover:border-red-600"
+                  : "border-gray-900 bg-white hover:bg-black text-black hover:text-red-600 hover:border-red-600"
               }`}
             >
               <Users className="h-4 w-4" />
@@ -1525,8 +1533,8 @@ function Footer() {
               size="icon"
               className={`rounded-full border-1 transition-colors ${
                 theme === "dark"
-                  ? "border-gray-700 text-white hover:text-red-600 hover:border-red-600"
-                  : "border-gray-900 text-black hover:text-red-600 hover:border-red-600"
+                  ? "border-gray-700 bg-black hover:bg-white text-white hover:text-red-600 hover:border-red-600"
+                  : "border-gray-900 bg-white hover:bg-black text-black hover:text-red-600 hover:border-red-600"
               }`}
             >
               <Share2 className="h-4 w-4" />
