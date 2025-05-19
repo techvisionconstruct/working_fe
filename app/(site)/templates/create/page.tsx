@@ -40,19 +40,6 @@ export default function CreateTemplate() {
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     []
   );
-  const [elementObjects, setElementObjects] = useState<ElementResponse[]>([]);
-  const [missingVariable, setMissingVariable] = useState<string | null>(null);
-  const [missingVariablesQueue, setMissingVariablesQueue] = useState<string[]>(
-    []
-  );
-  const [showMissingVariableDialog, setShowMissingVariableDialog] =
-    useState(false);
-
-  // Resolve missingVariable to its name if it's an ID
-  const missingVarObj =
-    variableObjects.find((v) => v.id === missingVariable) ||
-    variableObjects.find((v) => v.name === missingVariable);
-  const displayVariableName = missingVarObj?.name || missingVariable;
 
   const updateFormData = (field: string, data: any) => {
     setFormData((prev) => ({
@@ -135,35 +122,7 @@ export default function CreateTemplate() {
     },
   });
 
-  const validateTemplateDetails = () => {
-    if (!formData.name.trim()) {
-      toast.error("Fill up the Template Name");
-      return false;
-    }
-    return true;
-  };
-
-  const validateTradesAndElements = () => {
-    if (tradeObjects.length === 0 || variableObjects.length === 0) {
-      toast.error("Add at least one Variables, Trades, and Elements.");
-      return false;
-    }
-    // Check if at least one trade has at least one element
-    const hasAnyElement = tradeObjects.some(
-      (trade) => Array.isArray(trade.elements) && trade.elements.length > 0
-    );
-    if (!hasAnyElement) {
-      toast.error("Add at least one Element to a Trade.");
-      return false;
-    }
-    return true;
-  };
-
   const handleCreateTemplate = async () => {
-    if (!validateTemplateDetails()) {
-      return;
-    }
-
     setIsLoading(true);
 
     const templateDetails = {
@@ -202,20 +161,6 @@ export default function CreateTemplate() {
     if (!templateId) {
       toast.error("Template ID is missing");
       return Promise.reject("Template ID is missing");
-    }
-
-    if (!validateTemplateDetails()) {
-      return;
-    }
-
-    // Only validate trades/variables/elements if NOT on details step
-    if (step !== "details") {
-      if (!validateTradesAndElements()) {
-        return;
-      }
-      if (!checkForMissingVariables()) {
-        return;
-      }
     }
 
     setIsLoading(true);
@@ -262,130 +207,24 @@ export default function CreateTemplate() {
     );
   };
 
-  const extractVariablesFromFormula = (formula: string | undefined) => {
-    if (!formula) return [];
-    // Match all {Variable Name} patterns
-    const matches = formula.match(/\{([^}]+)\}/g) || [];
-    // Remove braces and trim
-    return matches.map((m) => m.replace(/[{}]/g, "").trim());
-  };
-
-  // Helper: Check for variables used in elements but missing from variableObjects
-  const checkForMissingVariables = () => {
-    const usedVariableNamesOrIds = new Set<string>();
-
-    // Gather all variable names and IDs
-    const variableNames = new Set(variableObjects.map((v) => v.name));
-    const variableIds = new Set(variableObjects.map((v) => v.id));
-
-    // Check all elements in trades
-    tradeObjects.forEach((trade) => {
-      (trade.elements || []).forEach((element) => {
-        extractVariablesFromFormula(element.material_cost_formula).forEach(
-          (nameOrId) => usedVariableNamesOrIds.add(nameOrId)
-        );
-        extractVariablesFromFormula(element.labor_cost_formula).forEach(
-          (nameOrId) => usedVariableNamesOrIds.add(nameOrId)
-        );
-      });
-    });
-
-    // Also check global elementObjects if you use them elsewhere
-    elementObjects.forEach((element) => {
-      extractVariablesFromFormula(element.material_cost_formula).forEach(
-        (nameOrId) => usedVariableNamesOrIds.add(nameOrId)
-      );
-      extractVariablesFromFormula(element.labor_cost_formula).forEach(
-        (nameOrId) => usedVariableNamesOrIds.add(nameOrId)
-      );
-    });
-
-    // Only consider as missing if not a name and not an ID
-    // AND only prompt to create if it looks like a name (not an ID)
-    const missing = Array.from(usedVariableNamesOrIds).filter((nameOrId) => {
-      // If it's a variable name, it's fine
-      if (variableNames.has(nameOrId)) return false;
-      // If it's a variable ID, it's fine
-      if (variableIds.has(nameOrId)) return false;
-      // If it looks like an ID (all numbers or a UUID), skip it
-      // You can adjust this regex to match your ID format
-      if (/^[a-f0-9\-]{8,}$/.test(nameOrId)) return false;
-      // Otherwise, it's missing
-      return true;
-    });
-
-    if (missing.length > 0) {
-      setMissingVariablesQueue(missing);
-      setMissingVariable(missing[0]);
-      setShowMissingVariableDialog(true);
-      return false;
-    }
-    return true;
-  };
-
-  const [pendingVariableToAdd, setPendingVariableToAdd] = useState<
-    string | null
-  >(null);
-  const [showAddVariableDialog, setShowAddVariableDialog] = useState(false);
-
-  function ensureVariablesExistInList(element: ElementResponse) {
-    const usedVars = [
-      ...(element.material_formula_variables || []),
-      ...(element.labor_formula_variables || []),
-    ];
-    const missingVars = usedVars.filter(
-      (v) => !variableObjects.some((obj) => obj.name === v.name)
-    );
-    if (missingVars.length > 0) {
-      setVariableObjects((prev) => [
-        ...prev,
-        ...missingVars.map((v) => ({
-          id: Date.now().toString() + Math.random(),
-          name: v.name,
-          description: "",
-          value: 0,
-          is_global: false,
-          variable_type: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })),
-      ]);
-    }
-  }
-
-  function checkAndPromptForMissingVariables(element: ElementResponse) {
-    const usedVars = [
-      ...(element.material_formula_variables || []),
-      ...(element.labor_formula_variables || []),
-    ];
-    const missingVar = usedVars.find(
-      (v) => !variableObjects.some((obj) => obj.name === v.name)
-    );
-    if (missingVar) {
-      setPendingVariableToAdd(missingVar.name);
-      setShowAddVariableDialog(true);
-      return false; // Prevent add until user decides
-    }
-    return true;
-  }
-
   // Update startTour function with better CSS class identification
   const startTour = () => {
     try {
       // First ensure we're on the details tab
       setCurrentStep("details");
-      
+
       console.log("[Tour] Preparing to start template tour");
 
       // Allow tab switch to happen first
       setTimeout(() => {
         try {
           console.log("[Tour] Adding CSS classes for tour targeting");
-          
+
           // Add CSS classes for steps and make elements focusable
           document.querySelectorAll('[role="tab"]').forEach((tab) => {
             try {
-              const value = tab.getAttribute("data-value") || tab.getAttribute("value");
+              const value =
+                tab.getAttribute("data-value") || tab.getAttribute("value");
               if (value) {
                 tab.classList.add("tab-trigger");
                 tab.setAttribute("data-value", value);
@@ -400,9 +239,13 @@ export default function CreateTemplate() {
           // Add classes to tab contents for targeting
           document.querySelectorAll('[role="tabpanel"]').forEach((content) => {
             try {
-              const tabId = content.getAttribute("id") || content.getAttribute("data-state");
+              const tabId =
+                content.getAttribute("id") ||
+                content.getAttribute("data-state");
               if (tabId) {
-                const tabValue = tabId.replace("content-", "").replace("-tabpanel", "");
+                const tabValue = tabId
+                  .replace("content-", "")
+                  .replace("-tabpanel", "");
                 content.classList.add(`${tabValue}-tab-content`);
                 console.log(`[Tour] Found tab content: ${tabValue}`);
               }
@@ -412,25 +255,25 @@ export default function CreateTemplate() {
           });
 
           // Find and add class to trade section
-          const tradeSection = document.querySelector('.lg\\:col-span-8');
+          const tradeSection = document.querySelector(".lg\\:col-span-8");
           if (tradeSection) {
-            tradeSection.classList.add('trade-section');
+            tradeSection.classList.add("trade-section");
             tradeSection.setAttribute("tabindex", "0");
             console.log("[Tour] Added class to trade section");
           } else {
             console.warn("[Tour] Trade section not found");
           }
-          
+
           // Find and add class to variable section
-          const variableSection = document.querySelector('.lg\\:col-span-4');
+          const variableSection = document.querySelector(".lg\\:col-span-4");
           if (variableSection) {
-            variableSection.classList.add('variable-section');
+            variableSection.classList.add("variable-section");
             variableSection.setAttribute("tabindex", "0");
             console.log("[Tour] Added class to variable section");
           } else {
             console.warn("[Tour] Variable section not found");
           }
-          
+
           console.log("[Tour] Starting template tour");
           setIsTourRunning(true);
         } catch (error) {
@@ -524,10 +367,17 @@ export default function CreateTemplate() {
               }}
             />
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack} disabled={isLoading}>
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={isLoading}
+              >
                 Back
               </Button>
-              <Button onClick={() => handleUpdateTemplate()} disabled={isLoading}>
+              <Button
+                onClick={() => handleUpdateTemplate()}
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
@@ -547,7 +397,11 @@ export default function CreateTemplate() {
               variableObjects={variableObjects}
             />
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack} disabled={isLoading}>
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={isLoading}
+              >
                 Back
               </Button>
               <Button onClick={handlePublishTemplate} disabled={isLoading}>
