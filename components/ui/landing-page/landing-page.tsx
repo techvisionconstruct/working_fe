@@ -21,6 +21,7 @@ import {
   SunIcon,
   MoonIcon,
   Palette,
+  Menu,
 } from "lucide-react";
 import {
   Button,
@@ -39,11 +40,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/shared";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { FontCombobox } from "./contexts/font-combobox";
 import { ThemeProvider, useTheme } from "./contexts/theme-context";
+import { PopupModal } from "react-calendly";
 
-export default function Page() {
+export default function LandingPage() {
   return (
     <ThemeProvider>
       <main className="min-h-screen overflow-hidden">
@@ -62,8 +64,24 @@ function Header() {
   const [minimized, setMinimized] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement>(null);
-  const { colors, theme, setTheme, setFonts, palette, setPalette } = useTheme();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [calendlyUrl, setCalendlyUrl] = useState("");
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    const url = process.env.NEXT_PUBLIC_CALENDLY_URL;
+    if (url) {
+      setCalendlyUrl(url);
+    }
+  }, [hasMounted]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -103,7 +121,7 @@ function Header() {
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo and Title */}
         <div className="flex items-center space-x-2">
-          <div className={`relative w-8 h-8 flex items-center justify-center`}>
+          <div className="relative w-8 h-8 flex items-center justify-center">
             <img
               src={
                 theme === "dark" ? "/icons/logo-white.png" : "/icons/logo.svg"
@@ -126,7 +144,29 @@ function Header() {
           </span>
         </div>
 
-        {/* Navigation */}
+        {/* Hamburger Menu (Mobile Only) */}
+        <button
+          className="md:hidden flex items-center justify-center p-2 rounded"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle Menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+
+        {/* Desktop Navigation */}
         <nav
           className="hidden md:flex items-center space-x-8"
           style={{
@@ -135,204 +175,268 @@ function Header() {
         >
           <a
             href="#features"
-            className="hover:text-[#e11d48] transition-colors flex items-center gap-1"
+            className="hover:text-[#e11d48] flex items-center gap-1"
           >
             <Flame className="w-4 h-4" />
             <span>Features</span>
           </a>
           <a
             href="#blog"
-            className="hover:text-[#e11d48] transition-colors flex items-center gap-1"
+            className="hover:text-[#e11d48] flex items-center gap-1"
           >
             <Lightbulb className="w-4 h-4" />
             <span>Blog</span>
           </a>
           <a
             href="#faq"
-            className="hover:text-[#e11d48] transition-colors flex items-center gap-1"
+            className="hover:text-[#e11d48] flex items-center gap-1"
           >
             <HelpCircle className="w-4 h-4" />
             <span>FAQ</span>
           </a>
         </nav>
 
-        <div className="flex items-center space-x-4">
-          {/* Theme */}
-          <div>
-            <div className="relative" ref={themeMenuRef}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full border border-gray-200 shadow hover:bg-gray-100 transition-all"
-                style={{
-                  background: theme === "dark" ? "#23272e" : "#fff",
-                  color: theme === "dark" ? "#fff" : "#191919",
-                }}
-                onClick={() => setThemeMenuOpen((v) => !v)}
-                aria-label="Open theme menu"
-              >
-                <Palette className="h-7 w-7" />
-              </Button>
-
-              {themeMenuOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-80 border border-gray-200 rounded-xl shadow-lg z-50 animate-fade-in p-4"
+        {/* Desktop Buttons */}
+        <div className="hidden md:flex items-center space-x-4">
+          <div className="flex items-center space-x-4">
+            {/* Theme */}
+            <div>
+              <div className="relative" ref={themeMenuRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full border border-gray-200 shadow hover:bg-gray-100 transition-all"
                   style={{
                     background: theme === "dark" ? "#23272e" : "#fff",
                     color: theme === "dark" ? "#fff" : "#191919",
                   }}
+                  onClick={() => setThemeMenuOpen((v) => !v)}
+                  aria-label="Open theme menu"
                 >
-                  {/* Dark Mode Toggle */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
+                  <Palette className="h-7 w-7" />
+                </Button>
+
+                {themeMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-80 border border-gray-200 rounded-xl shadow-lg z-50 animate-fade-in p-4"
+                    style={{
+                      background: theme === "dark" ? "#23272e" : "#fff",
+                      color: theme === "dark" ? "#fff" : "#191919",
+                    }}
                   >
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-3 w-full px-4 py-2 rounded-lg hover:bg-gray-50 transition mb-2 hover:opacity-80 transition-opacity"
-                      onClick={() =>
-                        setTheme(theme === "dark" ? "light" : "dark")
-                      }
-                      aria-label="Toggle dark mode"
-                      style={{
-                        color: theme === "dark" ? "#fff" : "#191919",
-                        background:
-                          theme === "dark" ? "#23272e40" : "#f8fafc40",
-                        backdropFilter: "blur(8px)",
-                        boxShadow: `0 2px 10px #e11d4815`,
-                      }}
-                    >
-                      {theme === "dark" ? (
-                        <SunIcon className="h-5 w-5 text-yellow-400" />
-                      ) : (
-                        <MoonIcon className="h-5 w-5 text-indigo-400" />
-                      )}
-                      <span className="font-medium">
-                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                      </span>
-                    </Button>
-                  </motion.div>
-
-                  <div className="text-xs text-gray-400 text-center my-2">
-                    Customize your look
-                  </div>
-
-                  {/* Palette Picker */}
-                  <div className="mb-4">
-                    <label className="block text-xs font-semibold mb-1">
-                      PALETTE
-                    </label>
-                    <Select
-                      value={palette}
-                      onValueChange={(value) =>
-                        setPalette(value as "red" | "blue" | "green" | "dark")
-                      }
-                    >
-                      <SelectTrigger
-                        className="w-full hover:ring-2 hover:ring-opacity-50 transition-all duration-300"
+                    {/* Dark Mode Toggle */}
+                    <motion.div whileHover={{ scale: 1.05 }}>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center gap-3 w-full px-4 py-2 rounded-lg hover:bg-gray-50 transition mb-2 hover:opacity-80 transition-opacity"
+                        onClick={() =>
+                          setTheme(theme === "dark" ? "light" : "dark")
+                        }
+                        aria-label="Toggle dark mode"
                         style={{
-                          background:
-                            theme === "dark" ? "#23272e70" : "#f8fafc70",
-                          borderColor:
-                            theme === "dark" ? "#33330" : "#e5e7eb30",
                           color: theme === "dark" ? "#fff" : "#191919",
-                          backdropFilter: "blur(10px)",
-                          boxShadow: `0 4px 12px #e11d4810`,
+                          background:
+                            theme === "dark" ? "#23272e40" : "#f8fafc40",
+                          backdropFilter: "blur(8px)",
+                          boxShadow: "0 2px 10px #e11d4815",
                         }}
                       >
-                        <SelectValue placeholder="Select palette" />
-                      </SelectTrigger>
-                      <SelectContent
-                        style={{
-                          background:
-                            theme === "dark" ? "#23272e90" : "#f8fafc90",
-                          borderColor: theme === "dark" ? "#333" : "#e5e7eb",
-                          color: theme === "dark" ? "#fff" : "#191919",
-                          backdropFilter: "blur(20px)",
-                        }}
-                      >
-                        <SelectItem value="red">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full bg-red-600 border border-gray-300"></span>
-                            Red
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="blue">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full bg-blue-600 border border-gray-300"></span>
-                            Blue
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="green">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full bg-green-600 border border-gray-300"></span>
-                            Green
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="dark">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full bg-neutral-900 border border-gray-300"></span>
-                            Dark
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        {theme === "dark" ? (
+                          <SunIcon className="h-5 w-5 text-yellow-400" />
+                        ) : (
+                          <MoonIcon className="h-5 w-5 text-indigo-400" />
+                        )}
+                        <span className="font-medium">
+                          {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                        </span>
+                      </Button>
+                    </motion.div>
 
-                  {/* Font Picker */}
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">
-                      FONT
-                    </label>
-                    <FontCombobox
-                      value={""}
-                      onFontChange={function (font: {
-                        fontFamily: string;
-                      }): void {
-                        throw new Error("Function not implemented.");
-                      }}
-                    />
+                    <div className="text-xs text-gray-400 text-center my-2">
+                      Customize your look
+                    </div>
+
+                    {/* Palette Picker */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-semibold mb-1">
+                        PALETTE
+                      </label>
+                      <Select>
+                        <SelectTrigger
+                          className="w-full hover:ring-2 hover:ring-opacity-50 transition-all duration-300"
+                          style={{
+                            background:
+                              theme === "dark" ? "#23272e70" : "#f8fafc70",
+                            borderColor:
+                              theme === "dark" ? "#33330" : "#e5e7eb30",
+                            color: theme === "dark" ? "#fff" : "#191919",
+                            backdropFilter: "blur(10px)",
+                            boxShadow: "0 4px 12px #e11d4810",
+                          }}
+                        >
+                          <SelectValue placeholder="Select a palette." />
+                        </SelectTrigger>
+                      </Select>
+                    </div>
+
+                    {/* Font Picker */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">
+                        FONT
+                      </label>
+                      <Select>
+                        <SelectTrigger
+                          className="w-full hover:ring-2 hover:ring-opacity-50 transition-all duration-300"
+                          style={{
+                            background:
+                              theme === "dark" ? "#23272e70" : "#f8fafc70",
+                            borderColor:
+                              theme === "dark" ? "#33330" : "#e5e7eb30",
+                            color: theme === "dark" ? "#fff" : "#191919",
+                            backdropFilter: "blur(10px)",
+                            boxShadow: "0 4px 12px #e11d4810",
+                          }}
+                        >
+                          <SelectValue placeholder="Select a font." />
+                        </SelectTrigger>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-4">
+          {/* Auth Buttons */}
+          <Button
+            variant="outline"
+            className="border-[#e5e7eb] text-[#191919] hover:bg-[#191919] hover:text-white"
+            style={{
+              background: theme === "dark" ? "#23272e" : "#fff",
+              color: theme === "dark" ? "#fff" : "#191919",
+              borderColor: theme === "dark" ? "#333" : "#e5e7eb",
+            }}
+            onClick={() => router.push("/signin")}
+          >
+            Sign In
+          </Button>
+          <Button
+            className="text-white border-none"
+            style={{
+              background: "#e11d48",
+            }}
+            onClick={() => setIsCalendlyOpen(true)}
+          >
+            Get Started
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden flex flex-col gap-4 px-6 pb-6 pt-4"
+          style={{
+            background: theme === "dark" ? "#191919" : "#fff",
+            color: theme === "dark" ? "#fff" : "#191919",
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <a
+              href="#features"
+              className="hover:text-[#e11d48] flex flex-row gap-1"
+            >
+              <Flame className="w-4 h-4" />
+              Features
+            </a>
+            <a
+              href="#blog"
+              className="hover:text-[#e11d48] flex flex-row gap-1"
+            >
+              <Lightbulb className="w-4 h-4" />
+              Blog
+            </a>
+            <a href="#faq" className="hover:text-[#e11d48] flex flex-row gap-1">
+              <HelpCircle className="w-4 h-4" />
+              FAQ
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full border border-gray-200 shadow"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? (
+                <SunIcon className="h-6 w-6 text-yellow-400" />
+              ) : (
+                <MoonIcon className="h-6 w-6 text-indigo-400" />
+              )}
+            </Button>
+            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-2">
             <Button
               variant="outline"
-              className="hidden sm:inline-flex border-[#e5e7eb] text-[#191919] hover:bg-[#191919] hover:text-white transition-colors"
+              onClick={() => router.push("/signin")}
               style={{
                 background: theme === "dark" ? "#23272e" : "#fff",
                 color: theme === "dark" ? "#fff" : "#191919",
                 borderColor: theme === "dark" ? "#333" : "#e5e7eb",
               }}
-              onClick={() => router.push("/signin")}
             >
               Sign In
             </Button>
             <Button
-              className="text-white border-none"
-              style={{
-                background: "#e11d48",
-                color: "#fff",
-                border: "none",
-              }}
+              className="text-white"
+              onClick={() => setIsCalendlyOpen(true)}
+              style={{ background: "#e11d48" }}
             >
               Get Started
             </Button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Calendly Popup */}
+      {hasMounted && calendlyUrl && (
+        <PopupModal
+          url={calendlyUrl}
+          onModalClose={() => setIsCalendlyOpen(false)}
+          open={isCalendlyOpen}
+          rootElement={
+            typeof window !== "undefined"
+              ? document.body
+              : (document.body as HTMLElement)
+          }
+        />
+      )}
     </header>
   );
 }
 
 function HeroSection() {
   const { theme } = useTheme();
+  const [showVideo, setShowVideo] = useState(false);
+  const [calendlyUrl, setCalendlyUrl] = useState("");
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    const url = process.env.NEXT_PUBLIC_CALENDLY_URL;
+    if (url) {
+      setCalendlyUrl(url);
+    }
+  }, [hasMounted]);
+
   return (
     <section
       className="pt-32 pb-20 px-4 min-h-screen flex items-center relative overflow-hidden"
@@ -410,6 +514,7 @@ function HeroSection() {
                 color: "#fff",
                 border: "none",
               }}
+              onClick={() => setIsCalendlyOpen(true)}
             >
               <span>Get started</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -421,11 +526,12 @@ function HeroSection() {
               {[1, 2, 3, 4].map((i) => (
                 <Avatar
                   key={i}
-                  className="border-2 w-8 h-8"
-                  style={{ borderColor: theme === "dark" ? "#fff" : "#191919" }}
+                  className={`border-2 w-8 h-8 rounded-full ${
+                    theme ? "border-white" : "border-black"
+                  }`}
                 >
                   <AvatarImage
-                    src={`/placeholder.svg?height=32&width=32&text=${i}`}
+                    src={`/icons/logo.svg`}
                   />
                   <AvatarFallback
                     className="text-xs"
@@ -457,24 +563,24 @@ function HeroSection() {
         </div>
 
         {/* Right Side */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="relative w-full max-w-md aspect-square">
+        <div className="flex-1 flex items-center justify-center w-full mt-8 md:mt-0">
+          <div className="relative w-full max-w-xs sm:max-w-md aspect-square mx-auto">
             <div
-              className="absolute inset-0 rounded-3xl transform rotate-6"
+              className="absolute inset-0 rounded-3xl transform rotate-6 pointer-events-none"
               style={{
                 background:
-                  "linear-gradient(135deg, #e11d4833 0%, transparent 100%)",
+                  "linear-gradient(135deg,rgb(179, 15, 51) 0%, transparent 100%)",
               }}
             ></div>
             <div
-              className="absolute inset-0 rounded-3xl transform -rotate-3"
+              className="absolute inset-0 rounded-3xl transform -rotate-3 pointer-events-none"
               style={{
                 background:
-                  "linear-gradient(45deg, #e11d481A 0%, transparent 100%)",
+                  "linear-gradient(45deg,rgb(225, 29, 71) 0%, transparent 100%)",
               }}
             ></div>
-            <div
-              className="relative border rounded-2xl shadow-2xl overflow-hidden w-full h-full flex items-center justify-center"
+            <motion.div
+              className="relative border rounded-2xl shadow-2xl overflow-hidden w-full h-full flex items-center justify-center cursor-pointer group"
               style={{
                 background:
                   theme === "dark"
@@ -482,34 +588,97 @@ function HeroSection() {
                     : "linear-gradient(135deg, #f8fafc 0%, #fff 100%)",
                 borderColor: theme === "dark" ? "#23272e" : "#e5e7eb",
               }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => setShowVideo(true)}
             >
-              <div
-                className="absolute top-0 left-0 right-0 h-1"
-                style={{
-                  background:
-                    "linear-gradient(to right, transparent, #e11d48, transparent)",
-                }}
-              ></div>
-              <div
-                className="absolute bottom-0 left-0 right-0 h-1"
-                style={{
-                  background:
-                    "linear-gradient(to right, transparent, #e11d48, transparent)",
-                }}
-              ></div>
-              <div
-                className="text-xl font-medium flex flex-col items-center gap-4"
-                style={{
-                  color: theme === "dark" ? "#bbb" : "#555",
-                }}
-              >
-                <Zap className="w-12 h-12" style={{ color: "#e11d48" }} />
-                <span>Demo Video</span>
+              <video
+                src="/template/Demo_Video.mp4"
+                className="w-full h-full object-cover"
+                muted
+                loop
+                autoPlay
+                playsInline
+                style={{ pointerEvents: "none" }}
+              />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[#e11d48] px-4 py-2 rounded-xl font-bold shadow-lg">
+                  Click to Watch
+                </span>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Video Modal */}
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            className={`fixed inset-0 z-50 flex items-center justify-center ${
+              theme === "dark" ? "bg-black/80" : "bg-black/60"
+            }`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Fiery red shadow behind the modal */}
+            <div
+              className="absolute w-[120vw] h-[120vw] max-w-4xl max-h-[60vh] rounded-full blur-3xl z-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 60% 40%, #e11d48 0%, #ff5e62 40%, transparent 80%)",
+                opacity: 0.5,
+              }}
+            ></div>
+            <motion.div
+              className={`relative w-[90vw] max-w-3xl aspect-video rounded-2xl overflow-hidden shadow-2xl z-10 ${
+                theme === "dark"
+                  ? "bg-black border border-red-500"
+                  : "bg-white border border-red-500"
+              }`}
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <button
+                className={`absolute top-2 right-2 z-10 rounded-full p-2 transition-colors ${
+                  theme === "dark"
+                    ? "hover:text-white text-[#e11d48]"
+                    : "hover:text-white text-[#e11d48]"
+                }`}
+                onClick={() => setShowVideo(false)}
+                aria-label="Close video"
+              >
+                <span className="text-xl">&times;</span>
+              </button>
+              <video
+                src="/template/Demo_Video.mp4"
+                className="w-full h-full object-contain"
+                controls
+                autoPlay
+                style={{
+                  background: theme === "dark" ? "#000" : "#fff",
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Calendly Popup */}
+      {hasMounted && calendlyUrl && (
+        <PopupModal
+          url={calendlyUrl}
+          onModalClose={() => setIsCalendlyOpen(false)}
+          open={isCalendlyOpen}
+          rootElement={
+            typeof window !== "undefined"
+              ? document.body
+              : (document.body as HTMLElement)
+          }
+        />
+      )}
     </section>
   );
 }
@@ -520,6 +689,21 @@ function FeaturesSection() {
   const [isPaused, setIsPaused] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Fix hydration: only set isMobile on client
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 1024);
+    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const features = [
     {
@@ -666,10 +850,6 @@ function FeaturesSection() {
   ];
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (!hasMounted || isPaused) return;
     intervalRef.current = setInterval(() => {
       setActiveFeature((prev) => (prev + 1) % features.length);
@@ -689,7 +869,7 @@ function FeaturesSection() {
   return (
     <section
       id="features"
-      className={`py-20 md:py-24 relative ${
+      className={`p-4 py-20 md:py-24 relative ${
         theme === "dark" ? "bg-[#191919] text-white" : "bg-white text-black"
       }`}
     >
@@ -703,6 +883,7 @@ function FeaturesSection() {
           theme === "dark" ? "bg-red-900/10" : "bg-red-900/5"
         } rounded-full blur-3xl`}
       ></div>
+
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center gap-2 mb-6">
           <div className="h-px w-12 bg-red-600"></div>
@@ -734,9 +915,9 @@ function FeaturesSection() {
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-8">
-          {/* Demo Content on the left */}
+          {/* Demo Content on the left (desktop only) */}
           <div
-            className={`relative h-[400px] md:h-[570px] flex items-center justify-center rounded-2xl border overflow-hidden ${
+            className={`relative h-[400px] md:h-[570px] items-center justify-center rounded-2xl border overflow-hidden hidden lg:flex ${
               theme === "dark"
                 ? "bg-[#23272e] border-[#333]"
                 : "bg-gray-50 border-gray-100"
@@ -751,7 +932,7 @@ function FeaturesSection() {
             )}
           </div>
 
-          {/* Feature List on the right */}
+          {/* Feature List on the right (mobile: demo appears in card) */}
           <div className="space-y-3">
             {features.map((feature, idx) => (
               <Card
@@ -762,10 +943,10 @@ function FeaturesSection() {
                       ? "border-red-900 bg-gradient-to-br from-red-900/20 to-[#23272e] shadow-sm"
                       : "border-red-200 bg-gradient-to-br from-red-50/50 to-white shadow-sm"
                     : theme === "dark"
-                    ? "border-[#333] hover:border-red-900"
+                    ? "bg-[#23272e] border-[#333] hover:border-red-900"
                     : "border-gray-200 hover:border-red-100"
                 }`}
-                onClick={() => handleUserSelect(idx)}
+                onClick={() => setActiveFeature(idx)}
               >
                 <CardHeader className="p-4 pb-2 flex flex-row items-start gap-4">
                   <div
@@ -797,6 +978,13 @@ function FeaturesSection() {
                   >
                     {feature.description}
                   </p>
+
+                  {/* Show demo below description on mobile only for active feature */}
+                  <div className="block lg:hidden mt-4">
+                    {activeFeature === idx && hasMounted && (
+                      <div className="w-full">{feature.demo}</div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -892,6 +1080,20 @@ function BlogSection() {
   // Carousel state
   const [current, setCurrent] = useState(0);
   const { theme } = useTheme();
+  const [calendlyUrl, setCalendlyUrl] = useState("");
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_CALENDLY_URL;
+    if (url) {
+      setCalendlyUrl(url);
+    }
+  }, []);
 
   const prevPost = () =>
     setCurrent((prev) => (prev === 0 ? posts.length - 1 : prev - 1));
@@ -901,7 +1103,7 @@ function BlogSection() {
   return (
     <section
       id="blog"
-      className={`py-24 relative overflow-hidden ${
+      className={`p-4 py-24 relative overflow-hidden ${
         theme === "dark" ? "bg-[#191919] text-white" : "bg-white text-black"
       }`}
     >
@@ -1247,20 +1449,37 @@ function BlogSection() {
               <Input
                 type="email"
                 placeholder="Enter your email"
-                className={`placeholder-gray-400 focus:border-red-400 focus:ring-red-100 ${
-                  theme === "dark"
-                    ? "bg-[#23272e] border-gray-700 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                }`}
-                required
+                className="flex-1 placeholder-gray-400"
+                style={{
+                  background: theme === "dark" ? "#23272e" : "#fff",
+                  borderColor: "#e11d48",
+                  color: theme === "dark" ? "#fff" : "#191919",
+                }}
               />
-              <Button className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md">
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md"
+                onClick={() => setIsCalendlyOpen(true)}
+              >
                 Get Started Now!
               </Button>
             </form>
           </div>
         </div>
       </div>
+
+      {/* Calendly Popup */}
+      {hasMounted && calendlyUrl && (
+        <PopupModal
+          url={calendlyUrl}
+          onModalClose={() => setIsCalendlyOpen(false)}
+          open={isCalendlyOpen}
+          rootElement={
+            typeof window !== "undefined"
+              ? document.body
+              : (document.body as HTMLElement)
+          }
+        />
+      )}
     </section>
   );
 }
@@ -1317,7 +1536,7 @@ function FQASection() {
   return (
     <section
       id="faq"
-      className={`py-24 relative overflow-hidden ${
+      className={`p-4 py-24 relative overflow-hidden ${
         theme === "dark" ? "bg-[#191919] text-white" : "bg-white text-black"
       }`}
     >
