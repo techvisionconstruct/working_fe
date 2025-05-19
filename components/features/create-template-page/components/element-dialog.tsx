@@ -339,6 +339,7 @@ export function ElementDialog({
       laborFormula,
       markup
     });
+    console.log(materialFormula, laborFormula);
   };
 
   const handleCreateVariable = (

@@ -50,6 +50,7 @@ import {
 import { getVariables } from "@/queryOptions/variables";
 import { getTrades } from "@/queryOptions/trades";
 import { getElements } from "@/queryOptions/elements";
+import { ProductResponse } from "@/types/products/dto";
 
 interface TradesAndElementsStepProps {
   data: {
@@ -118,7 +119,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   }, [data.variables]);
 
   // Use our formula hook for formula management
-  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } =
+  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames, replaceProductIdsWithNames } =
     useFormula();
 
   // UI state
@@ -589,14 +590,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     description: string;
     materialFormula: string;
     laborFormula: string;
+    materialFormulaProducts?: Record<string, any>[];
+    laborFormulaProducts?: Record<string, any>[];
   }) => {
     if (!data.name.trim() || !currentTradeId) return;
 
-    const materialFormula = data.materialFormula.trim()
+    // Replace variable names with IDs in material formula
+    let materialFormula = data.materialFormula.trim()
       ? replaceVariableNamesWithIds(data.materialFormula.trim(), variables)
       : undefined;
 
-    const laborFormula = data.laborFormula.trim()
+
+    // Replace variable names with IDs in labor formula
+    let laborFormula = data.laborFormula.trim()
       ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
       : undefined;
 
@@ -1800,101 +1806,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           }
         }}
       />
-
-      {/* Confirm Remove Variable Dialog */}
-      <ConfirmDialog
-        open={showRemoveVariableConfirm}
-        onOpenChange={setShowRemoveVariableConfirm}
-      >
-        <ConfirmDialogContent>
-          <ConfirmDialogHeader>
-            <ConfirmDialogTitle>
-              This variable is being used in an element
-            </ConfirmDialogTitle>
-          </ConfirmDialogHeader>
-          <div className="py-2">
-            <p>
-              <b>{variableToRemove?.name}</b> is being used in the following
-              elements:
-            </p>
-            <ul className="list-disc pl-6 mt-2 text-sm">
-              {elementsUsingVariable.map((el) => (
-                <li key={el.id}>{el.name}</li>
-              ))}
-            </ul>
-            <p className="mt-3 text-destructive">
-              Deleting it might affect these elements. Would you still like to
-              proceed?
-            </p>
-          </div>
-          <ConfirmDialogFooter>
-            <Button variant="outline" onClick={cancelRemoveVariable}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmRemoveVariable}>
-              Yes, Remove
-            </Button>
-          </ConfirmDialogFooter>
-        </ConfirmDialogContent>
-      </ConfirmDialog>
-
-      {/* Missing Variable Dialog */}
-      <ConfirmDialog
-        open={showMissingVariableDialog}
-        onOpenChange={setShowMissingVariableDialog}
-      >
-        <ConfirmDialogContent>
-          <ConfirmDialogHeader>
-            <ConfirmDialogTitle>Variable Missing from List</ConfirmDialogTitle>
-          </ConfirmDialogHeader>
-          <div className="py-2">
-            <p>
-              The variable <b>{missingVariable}</b> is currently being used in
-              an element but is not in the Variable List.
-            </p>
-            <p className="mt-2">
-              Would you like to create it or delete the variable from the
-              element?
-            </p>
-          </div>
-          <ConfirmDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowMissingVariableDialog(false);
-                // Optionally, trigger logic to create the variable
-                if (updateVariables && missingVariable) {
-                  updateVariables([
-                    ...variables,
-                    {
-                      id: Date.now().toString(),
-                      name: missingVariable,
-                      description: "",
-                      value: 0,
-                      is_global: false,
-                      variable_type: undefined,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                    },
-                  ]);
-                }
-              }}
-            >
-              Create Variable
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setShowMissingVariableDialog(false);
-                // Optionally, trigger logic to remove the variable from all elements
-                // (You may want to implement this logic as needed)
-              }}
-            >
-              Delete Variable from Element
-            </Button>
-          </ConfirmDialogFooter>
-        </ConfirmDialogContent>
-      </ConfirmDialog>
     </div>
   );
 };

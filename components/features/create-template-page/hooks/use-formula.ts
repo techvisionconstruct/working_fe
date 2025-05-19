@@ -5,7 +5,8 @@ import { VariableResponse } from "@/types/variables/dto";
 export interface FormulaToken {
   id: number;
   text: string;
-  type: 'variable' | 'operator' | 'number' | 'function';
+  displayText?: string;
+  type: 'variable' | 'operator' | 'number' | 'function' | 'product';
 }
 
 export function useFormula() {
@@ -19,7 +20,7 @@ export function useFormula() {
     errorMessage: string; isValid: boolean; error: string | null 
 } => {
     if (tokens.length === 0) {
-      return { isValid: true, error: null };
+      return { isValid: true, errorMessage: "", error: null };
     }
 
     // Basic validation logic
@@ -28,15 +29,15 @@ export function useFormula() {
       if (tokens[i].text === "(") parenthesesCount++;
       if (tokens[i].text === ")") parenthesesCount--;
       if (parenthesesCount < 0) {
-        return { isValid: false, error: "Unbalanced parentheses" };
+        return { isValid: false, error: "Unbalanced parentheses", errorMessage: "" };
       }
     }
     
     if (parenthesesCount > 0) {
-      return { isValid: false, error: "Missing closing parenthesis" };
+      return { isValid: false, error: "Missing closing parenthesis", errorMessage: "" };
     }
 
-    return { isValid: true, error: null };
+    return { isValid: true, error: null, errorMessage: "" };
   }, []);
   
   // Convert formula string to tokens
@@ -120,7 +121,7 @@ export function useFormula() {
   // Convert tokens to formula string
   const tokensToFormulaString = useCallback((tokens: FormulaToken[]): string => {
     return tokens.map(token => {
-      if (token.type === 'variable') {
+      if (token.type === 'variable' || token.type === 'product') {
         return `{${token.text}}`;
       }
       return token.text;
@@ -143,6 +144,7 @@ export function useFormula() {
 
     return backendFormula;
   }, []);
+  
 
   // Replace variable IDs with names in formula
   const replaceVariableIdsWithNames = useCallback((
@@ -169,6 +171,36 @@ export function useFormula() {
     displayFormula = displayFormula.replace(/\{([a-zA-Z0-9_-]+)\}/g, (match, id) => {
       const variable = variableList.find((v) => v.id === id);
       return variable ? `{${variable.name}}` : match;
+    });
+
+    return displayFormula;
+  }, []);
+
+  const replaceProductIdsWithNames = useCallback((
+    formula: string,
+    productList: VariableResponse[],
+    formulaProducts: Record<string, any>[] = []
+  ): string => {
+    if (!formula || !productList) return formula;
+
+    let displayFormula = formula;
+
+    // First pass: Replace using provided formulaProducts
+    formulaProducts.forEach((product) => {
+      const productName =
+        productList.find((p) => p.id === product.id)?.name ||
+        product.name ||
+        product.id;
+
+      // Replace all occurrences of {id} with {name}
+      const idPattern = new RegExp(`\\{product:${product.id}\\}`, "g");
+      displayFormula = displayFormula.replace(idPattern, `{product:${productName}}`);
+    });
+
+    // Second pass: Direct replacement for any remaining product references
+    displayFormula = displayFormula.replace(/\{product:([a-zA-Z0-9_-]+)\}/g, (match, id) => {
+      const product = productList.find((p) => p.id === id);
+      return product ? `{product:${product.name}}` : match;
     });
 
     return displayFormula;
@@ -213,6 +245,7 @@ export function useFormula() {
     tokensToFormulaString,
     replaceVariableNamesWithIds,
     replaceVariableIdsWithNames,
+    replaceProductIdsWithNames,
     isVariableInFormula,
     isNumeric,
     shouldBeVariable
