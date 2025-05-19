@@ -19,19 +19,16 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getContracts } from "@/queryOptions/contracts";
+import { getProposals } from "@/queryOptions/proposals";
 
 export default function ContractsPage() {
   const router = useRouter();
-  const contracts = useQuery({
-    queryKey: ["contracts"],
-    queryFn: getAllContracts,
-  });
-  
-  const proposals = useQuery({
-    queryKey: ["proposals"],
-    queryFn: getAllProposals,
-  });
+  const { data: contractData, contractIsError, contractIsLoading } = useQuery(getContracts());
 
+  const { data: proposalData, proposalIsError, proposalIsLoading } = useQuery(getProposals());
+  console.log("Proposal Data", proposalData);
+  console.log("Contract Data", contractData);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("grid");
   const [showTour, setShowTour] = useState(false);
@@ -44,37 +41,51 @@ export default function ContractsPage() {
     }
   }, []);
 
-  const handleContractClick = useCallback((contractUuid: string) => {
-    if (proposals.data && proposals.data.length > 0) {
-      const matchingProposal = proposals.data.find(
-        (proposal: any) => proposal.contract?.uuid === contractUuid
-      );
-      if (matchingProposal) {
-        router.push(`/proposals/${matchingProposal.id}/contract`);
-        return;
+  const handleContractClick = useCallback(
+    (contractUuid: string) => {
+      if (proposalData.data && proposalData.data.length > 0) {
+        const matchingProposal = proposalData.data.find(
+          (proposal: any) => proposal.contract?.uuid === contractUuid
+        );
+        if (matchingProposal) {
+          router.push(`/proposals/${matchingProposal.id}/contract`);
+          return;
+        }
       }
-    }
-  }, [proposals.data, router]);
-
-  const filteredContracts = (Array.isArray(contracts.data) ? contracts.data : []).filter(
-    (contract: any) => {
-      const searchMatch =
-        contract.title?.toLowerCase().includes(search.toLowerCase()) ||
-        contract.description?.toLowerCase().includes(search.toLowerCase()) ||
-        contract.clientName?.toLowerCase().includes(search.toLowerCase());
-      return searchMatch;
-    }
+    },
+    [proposalData?.data, router]
   );
+
+  const filteredContracts = (
+    Array.isArray(contractData?.data) ? contractData?.data : []
+  ).filter((contract: any) => {
+    const searchMatch =
+      contract.name?.toLowerCase().includes(search.toLowerCase()) ||
+      contract.description?.toLowerCase().includes(search.toLowerCase())
+    return searchMatch;
+  });
+
+  const filteredProposals = (
+    Array.isArray(proposalData?.data) ? proposalData?.data : []
+  ).filter((proposal: any) => {
+    const searchMatch =
+      proposal.name?.toLowerCase().includes(search.toLowerCase()) ||
+      proposal.description?.toLowerCase().includes(search.toLowerCase()) ||
+      proposal.contract?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      proposal.contract?.description?.toLowerCase().includes(search.toLowerCase())
+      proposal.client_name?.toLowerCase().includes(search.toLowerCase())
+    return searchMatch;
+  })
 
   const startTour = () => {
     setShowTour(true);
   };
 
-  if (contracts.isLoading || proposals.isLoading) {
+  if (contractIsLoading || proposalIsLoading) {
     return <ContractLoader />;
   }
 
-  if (contracts.isError) {
+  if (contractIsError || proposalIsError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-red-500">Error loading contracts</div>
@@ -86,7 +97,7 @@ export default function ContractsPage() {
     <div>
       {/* Contract Tour */}
       <ContractTour isRunning={showTour} setIsRunning={setShowTour} />
-      
+
       <div id="content">
         <div className="flex items-center justify-between">
           <div className="text-2xl font-bold">Contracts</div>
@@ -101,7 +112,8 @@ export default function ContractsPage() {
           </div>
         </div>
         <div className="text-sm text-muted-foreground">
-          Manage all your client contracts in one place. Track status, access details, and keep your agreements organized.
+          Manage all your client contracts in one place. Track status, access
+          details, and keep your agreements organized.
         </div>
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between my-4">
           <div className="relative flex-1 max-w-md w-full">
@@ -129,20 +141,21 @@ export default function ContractsPage() {
         </div>
         <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsContent value="grid">
-            <ContractGridView 
-              contracts={filteredContracts} 
+            <ContractGridView
+              contracts={filteredContracts}
+              proposals={filteredProposals}
               onContractClick={handleContractClick}
             />
           </TabsContent>
           <TabsContent value="list">
-            <ContractList 
-              contracts={filteredContracts} 
+            <ContractList
+              contracts={filteredContracts}
               onContractClick={handleContractClick}
             />
           </TabsContent>
         </Tabs>
       </div>
-      
+
       {/* Tour guide button - bottom right floating */}
       {!showTour && (
         <div className="fixed bottom-6 right-6">
