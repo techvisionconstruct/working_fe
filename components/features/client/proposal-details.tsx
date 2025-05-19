@@ -37,8 +37,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               <p className="text-lg text-muted-foreground mb-2">
                 {proposal?.description}
               </p>
-              {proposal.template?.variables &&
-                proposal.template.variables.length > 0 && (
+              {proposal?.template?.variables &&
+                proposal?.template?.variables.length > 0 && (
                   <div className="mt-4 w-full">
                     <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
                       Variables
@@ -49,7 +49,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                         string,
                         typeof proposal.template.variables
                       > = {};
-                      proposal.template.variables.forEach((variable) => {
+                      proposal?.template.variables.forEach((variable) => {
                         const typeName =
                           variable.variable_type?.name || "Other";
                         if (!groupedVariables[typeName]) {
@@ -169,13 +169,13 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               </div>
             </div>
           </div>
-          {proposal.template?.trades && proposal.template.trades.length > 0 && (
+          {proposal?.template?.trades && proposal?.template?.trades.length > 0 && (
             <div className="mt-8 w-full">
               <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
                 Trades
               </h3>
               <div className="flex flex-col gap-4 w-full">
-                {proposal.template.trades.map((trade) => {
+                {proposal?.template?.trades.map((trade) => {
                   return (
                     <div
                       key={trade.id}
