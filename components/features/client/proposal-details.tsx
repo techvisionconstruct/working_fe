@@ -164,7 +164,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                   Total Estimate
                 </h3>
                 <div className="text-3xl font-bold text-primary">
-                  $ {proposal.total_cost}
+                  $ {proposal?.total_cost}
                 </div>
               </div>
             </div>
