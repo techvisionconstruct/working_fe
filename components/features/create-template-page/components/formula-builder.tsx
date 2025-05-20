@@ -335,11 +335,13 @@ export function FormulaBuilder({
       const selectedItem = suggestions[selectedSuggestion];
 
       const isProduct = "isProduct" in selectedItem && selectedItem.isProduct;
+      console.log("isProduct", isProduct);
+      console.log("selectedItem", selectedItem);
 
       if (isProduct) {
         // Handle product selection
-
-        addFormulaToken(selectedItem.id, selectedItem.title, "product");
+        // Add "product:" prefix to the displayText for better identification
+        addFormulaToken(selectedItem.id, `product:${selectedItem.title}`, "product");
         
         return;
       }
@@ -501,7 +503,7 @@ export function FormulaBuilder({
                 e.stopPropagation();
                 removeFormulaToken(token.id);
               }}
-              aria-label={`Remove ${token.text}`}
+              aria-label={`Remove ${token.displayText}`}
             >
               <X className="w-3 h-3" />
             </button>
