@@ -35,7 +35,7 @@ export function LoginForm({
 
     try {
       await signIn({ email, password });
-      router.push("/templates");
+      router.replace("/templates");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Sign In error:", err);
