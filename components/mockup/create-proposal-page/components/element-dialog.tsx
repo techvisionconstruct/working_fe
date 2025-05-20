@@ -111,15 +111,13 @@ export function ElementDialog({
     setMaterialFormulaTokens,
     laborFormulaTokens,
     setLaborFormulaTokens,
+    materialFormulaError,
+    laborFormulaError,
     validateFormulaTokens,
     parseFormulaToTokens,
     tokensToFormulaString,
     replaceVariableIdsWithNames,
   } = useFormula();
-
-  // Add state for formula validation errors
-  const [materialFormulaError, setMaterialFormulaError] = useState<string | null>(null);
-  const [laborFormulaError, setLaborFormulaError] = useState<string | null>(null);
 
   // Local storage helper functions
   const saveFormulasToStorage = () => {
@@ -694,7 +692,6 @@ export function ElementDialog({
                 handleCreateVariable(name, "material");
               }}
               formulaType="material"
-              onValidationError={setMaterialFormulaError}
             />
           </div>
 
@@ -729,7 +726,6 @@ export function ElementDialog({
                 handleCreateVariable(name, "labor");
               }}
               formulaType="labor"
-              onValidationError={setLaborFormulaError}
             />
           </div>
 

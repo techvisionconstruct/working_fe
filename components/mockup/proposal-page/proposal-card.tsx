@@ -29,6 +29,7 @@ import {
 
 import { format } from "date-fns";
 import { ProposalResponse } from "@/types/proposals/dto";
+import Link from "next/link";
 
 interface ProposalCardProps {
   proposal: ProposalResponse;
@@ -138,9 +139,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Button variant="outline" className="w-1/2 rounded-full">
+        <Link href={`/site/proposals/${proposal.id}`} className="w-1/2">
+        <Button variant="outline" className="w-full rounded-full">
           View
         </Button>
+        </Link>
         <Button
           variant={proposal.status === "draft" ? "default" : "outline"}
           className="w-1/2 rounded-full"

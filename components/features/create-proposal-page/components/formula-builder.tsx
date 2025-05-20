@@ -27,6 +27,7 @@ interface FormulaBuilderProps {
   hasError?: boolean;
   onCreateVariable?: (name: string, formulaType?: "material" | "labor") => void;
   formulaType?: "material" | "labor";
+  onValidationError?: (error: string | null) => void; // NEW
 }
 
 // Function to validate a mathematical formula
@@ -41,7 +42,7 @@ function validateFormula(tokens: FormulaToken[]): {
   try {
     const formula = tokens
       .map((token) => {
-        if (token.type === "variable") {
+        if (token.type === "variable" || token.type === "product") {
           return "1"; // Replace variables and products with 1 for validation
         }
         return token.text;
@@ -83,6 +84,7 @@ function validateFormula(tokens: FormulaToken[]): {
         };
       }
 
+      // Only mark as invalid if the formula ENDS with an operator
       if (
         lastToken.type === "operator" &&
         ["+", "-", "*", "/", "(", "^"].includes(lastToken.text)
@@ -105,7 +107,24 @@ function validateFormula(tokens: FormulaToken[]): {
       }
     }
 
-    new Function(`return ${formula}`)();
+    // Only try to evaluate if all tokens are numbers, operators, or parentheses
+    const allSimple = tokens.every(
+      (t) =>
+        t.type === "number" ||
+        t.type === "operator" ||
+        t.text === "(" ||
+        t.text === ")"
+    );
+    const lastToken = tokens[tokens.length - 1];
+    if (
+      allSimple &&
+      !(
+        lastToken.type === "operator" &&
+        ["+", "-", "*", "/", "(", "^"].includes(lastToken.text)
+      )
+    ) {
+      new Function(`return ${formula}`)();
+    }
 
     return { isValid: true, errorMessage: "" };
   } catch (error) {
@@ -124,6 +143,7 @@ export function FormulaBuilder({
   hasError = false,
   onCreateVariable,
   formulaType,
+  onValidationError,
 }: FormulaBuilderProps) {
   const [formulaInput, setFormulaInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -171,16 +191,6 @@ export function FormulaBuilder({
         token.type !== undefined
     );
   }, [formulaTokens]);
-
-  useEffect(() => {
-    const { isValid, errorMessage } = validateFormula(validFormulaTokens);
-
-    if (!isValid && validFormulaTokens.length > 0) {
-      setValidationError(errorMessage);
-    } else {
-      setValidationError(null);
-    }
-  }, [validFormulaTokens]);
 
   const addFormulaToken = (
     text: string,
@@ -492,6 +502,15 @@ export function FormulaBuilder({
           onBlur={() => {
             setIsFocused(false);
             setTimeout(() => setShowSuggestions(false), 150);
+            // Validate formula on blur only
+            const { isValid, errorMessage } = validateFormula(validFormulaTokens);
+            if (!isValid && validFormulaTokens.length > 0) {
+              setValidationError(errorMessage);
+              if (onValidationError) onValidationError(errorMessage);
+            } else {
+              setValidationError(null);
+              if (onValidationError) onValidationError(null);
+            }
           }}
           onClick={(e) => {
             // Update cursor position on click

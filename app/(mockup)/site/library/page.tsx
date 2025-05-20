@@ -23,22 +23,31 @@ import {
   Card,
   CardContent,
 } from "@/components/shared";
-import {
-  Search,
-  Tag,
-  Puzzle,
-  Variable,
+import { 
+  Search, 
+  Tag, 
+  Puzzle, 
+  Variable, 
   PlusCircle,
-  Grid,
-  List,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function LibraryPage() {
-  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  // Pagination state
+  const [paginationState, setPaginationState] = useState({
+    trades: { page: 1, pageSize: 6 },
+    elements: { page: 1, pageSize: 6 },
+    variables: { page: 1, pageSize: 6 }
+  });
 
+  const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
@@ -51,6 +60,12 @@ export default function LibraryPage() {
     } else {
       setActiveTab("all");
     }
+    // Reset pagination to page 1 when changing tabs
+    setPaginationState(prev => ({
+      trades: { ...prev.trades, page: 1 },
+      elements: { ...prev.elements, page: 1 },
+      variables: { ...prev.variables, page: 1 }
+    }));
   }, [pathname]);
 
   const [searchQueries, setSearchQueries] = useState({
@@ -70,46 +85,44 @@ export default function LibraryPage() {
     } else if (value === "variables") {
       router.push(`/site/library/variables`);
     }
-    console.log(value);
   };
 
-  // Fetch data using React Query
-  const { data: tradesData, isLoading: tradesLoading } = useQuery(getTrades());
+  const { data: tradesData, isLoading: tradesLoading } = useQuery(
+    getTrades(
+      paginationState.trades.page, 
+      paginationState.trades.pageSize, 
+      searchQueries.trades
+    )
+  );
   const { data: elementsData, isLoading: elementsLoading } = useQuery(
-    getElements()
+    getElements(
+      paginationState.elements.page,
+      paginationState.elements.pageSize,
+      searchQueries.elements
+    )
   );
   const { data: variablesData, isLoading: variablesLoading } = useQuery(
-    getVariables()
+    getVariables(
+      paginationState.variables.page,
+      paginationState.variables.pageSize,
+      searchQueries.variables
+    )
   );
 
-  // Extract data arrays and handle potential undefined
-  const trades = tradesData?.data || [];
-  const elements = elementsData?.data || [];
-  const variables = variablesData?.data || [];
+  const trades = tradesData?.data;
+  const elements = elementsData?.data;
+  const variables = variablesData?.data;
 
-  // Filter by search query
-  const filteredTrades = trades.filter(
-    (trade: TradeResponse) =>
-      trade.origin === "original" 
-      // trade.name.toLowerCase().includes(searchQueries.trades.toLowerCase())
-  );
-
-  const filteredElements = elements.filter(
-    (element: ElementResponse) =>
-      element.origin === "original" &&
-      element.name.toLowerCase().includes(searchQueries.elements.toLowerCase())
-  );
-
-  const filteredVariables = variables.filter(
-    (variable: VariableResponse) =>
-      variable.origin === "original" &&
-      variable.name
-        .toLowerCase()
-        .includes(searchQueries.variables.toLowerCase())
-  );
-
-  console.log(trades)
-
+  // Handle page changes for each section
+  const handlePageChange = (section: 'trades' | 'elements' | 'variables', newPage: number, totalPages: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPaginationState(prev => ({
+        ...prev,
+        [section]: { ...prev[section], page: newPage }
+      }));
+    }
+  };
+  
   // Handle search query changes
   const handleSearchChange = (
     type: keyof typeof searchQueries,
@@ -119,20 +132,22 @@ export default function LibraryPage() {
       ...prev,
       [type]: value,
     }));
+    
+    // Reset to page 1 when searching
+    setPaginationState(prev => ({
+      ...prev,
+      [type]: { ...prev[type as keyof typeof prev], page: 1 }
+    }));
   };
 
   return (
     <div className="flex-1 space-y-8 p-6 pt-0">
-      {/* Page Header */}
-
       <Header
         title="Component Library"
         description="Browse and manage all your trades, elements, and variables in one place."
         viewMode={viewMode}
         setViewMode={setViewMode}
       />
-
-      {/* Main Content */}
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
@@ -145,10 +160,7 @@ export default function LibraryPage() {
           <TabsTrigger value="elements">Elements</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
         </TabsList>
-
-        {/* All Components Tab */}
         <TabsContent value="all" className="space-y-10">
-          {/* Trades Section */}
           <Section
             title="Trades"
             description="Industry-specific categorizations for your elements and variables."
@@ -179,17 +191,67 @@ export default function LibraryPage() {
           >
             {tradesLoading ? (
               <div className="text-center py-8">Loading trades...</div>
-            ) : filteredTrades.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredTrades.map((trade: TradeResponse) => (
-                  <TradeCard key={trade.id} trade={trade as any} />
-                ))}
+            ) : trades?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {trades.map((trade: TradeResponse) => (
+                    <TradeCard key={trade.id} trade={trade as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {tradesData?.meta && tradesData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(tradesData.meta.current_page - 1) * tradesData.meta.page_size + 1} to{' '}
+                      {Math.min(tradesData.meta.current_page * tradesData.meta.page_size, tradesData.meta.total_count)} of{' '}
+                      {tradesData.meta.total_count} trades
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === 1 || tradesLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.current_page - 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === 1 || tradesLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {tradesData.meta.current_page} of {tradesData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.current_page + 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === tradesData.meta.total_pages || tradesLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.total_pages, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === tradesData.meta.total_pages || tradesLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">
@@ -202,8 +264,6 @@ export default function LibraryPage() {
               </Card>
             )}
           </Section>
-
-          {/* Elements Section */}
           <Section
             title="Elements"
             description="Reusable components for creating templates and proposals."
@@ -234,17 +294,67 @@ export default function LibraryPage() {
           >
             {elementsLoading ? (
               <div className="text-center py-8">Loading elements...</div>
-            ) : filteredElements.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredElements.map((element: ElementResponse) => (
-                  <ElementCard key={element.id} element={element as any} />
-                ))}
+            ) : elements?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {elements.map((element: ElementResponse) => (
+                    <ElementCard key={element.id} element={element as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {elementsData?.meta && elementsData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(elementsData.meta.current_page - 1) * elementsData.meta.page_size + 1} to{' '}
+                      {Math.min(elementsData.meta.current_page * elementsData.meta.page_size, elementsData.meta.total_count)} of{' '}
+                      {elementsData.meta.total_count} elements
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === 1 || elementsLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.current_page - 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === 1 || elementsLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {elementsData.meta.current_page} of {elementsData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.current_page + 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === elementsData.meta.total_pages || elementsLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.total_pages, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === elementsData.meta.total_pages || elementsLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">
@@ -257,8 +367,6 @@ export default function LibraryPage() {
               </Card>
             )}
           </Section>
-
-          {/* Variables Section */}
           <Section
             title="Variables"
             description="Dynamic values that can be customized in your templates."
@@ -289,17 +397,67 @@ export default function LibraryPage() {
           >
             {variablesLoading ? (
               <div className="text-center py-8">Loading variables...</div>
-            ) : filteredVariables.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredVariables.map((variable: VariableResponse) => (
-                  <VariableCard key={variable.id} variable={variable as any} />
-                ))}
+            ) : variables?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {variables.map((variable: VariableResponse) => (
+                    <VariableCard key={variable.id} variable={variable as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {variablesData?.meta && variablesData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(variablesData.meta.current_page - 1) * variablesData.meta.page_size + 1} to{' '}
+                      {Math.min(variablesData.meta.current_page * variablesData.meta.page_size, variablesData.meta.total_count)} of{' '}
+                      {variablesData.meta.total_count} variables
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === 1 || variablesLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.current_page - 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === 1 || variablesLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {variablesData.meta.current_page} of {variablesData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.current_page + 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === variablesData.meta.total_pages || variablesLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.total_pages, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === variablesData.meta.total_pages || variablesLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">
@@ -314,7 +472,6 @@ export default function LibraryPage() {
           </Section>
         </TabsContent>
 
-        {/* Trades Tab */}
         <TabsContent value="trades" className="space-y-6">
           <Section
             title="Trades"
@@ -346,17 +503,67 @@ export default function LibraryPage() {
           >
             {tradesLoading ? (
               <div className="text-center py-8">Loading trades...</div>
-            ) : filteredTrades.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredTrades.map((trade: TradeResponse) => (
-                  <TradeCard key={trade.id} trade={trade as any} />
-                ))}
+            ) : trades?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {trades.map((trade: TradeResponse) => (
+                    <TradeCard key={trade.id} trade={trade as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {tradesData?.meta && tradesData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(tradesData.meta.current_page - 1) * tradesData.meta.page_size + 1} to{' '}
+                      {Math.min(tradesData.meta.current_page * tradesData.meta.page_size, tradesData.meta.total_count)} of{' '}
+                      {tradesData.meta.total_count} trades
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === 1 || tradesLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.current_page - 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === 1 || tradesLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {tradesData.meta.current_page} of {tradesData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.current_page + 1, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === tradesData.meta.total_pages || tradesLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('trades', tradesData.meta.total_pages, tradesData.meta.total_pages)}
+                        disabled={tradesData.meta.current_page === tradesData.meta.total_pages || tradesLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">
@@ -371,7 +578,6 @@ export default function LibraryPage() {
           </Section>
         </TabsContent>
 
-        {/* Elements Tab */}
         <TabsContent value="elements" className="space-y-6">
           <Section
             title="Elements"
@@ -403,17 +609,67 @@ export default function LibraryPage() {
           >
             {elementsLoading ? (
               <div className="text-center py-8">Loading elements...</div>
-            ) : filteredElements.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredElements.map((element: ElementResponse) => (
-                  <ElementCard key={element.id} element={element as any} />
-                ))}
+            ) : elements?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {elements.map((element: ElementResponse) => (
+                    <ElementCard key={element.id} element={element as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {elementsData?.meta && elementsData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(elementsData.meta.current_page - 1) * elementsData.meta.page_size + 1} to{' '}
+                      {Math.min(elementsData.meta.current_page * elementsData.meta.page_size, elementsData.meta.total_count)} of{' '}
+                      {elementsData.meta.total_count} elements
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === 1 || elementsLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.current_page - 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === 1 || elementsLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {elementsData.meta.current_page} of {elementsData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.current_page + 1, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === elementsData.meta.total_pages || elementsLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('elements', elementsData.meta.total_pages, elementsData.meta.total_pages)}
+                        disabled={elementsData.meta.current_page === elementsData.meta.total_pages || elementsLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">
@@ -428,7 +684,6 @@ export default function LibraryPage() {
           </Section>
         </TabsContent>
 
-        {/* Variables Tab */}
         <TabsContent value="variables" className="space-y-6">
           <Section
             title="Variables"
@@ -460,17 +715,67 @@ export default function LibraryPage() {
           >
             {variablesLoading ? (
               <div className="text-center py-8">Loading variables...</div>
-            ) : filteredVariables.length > 0 ? (
-              <div
-                className={`grid ${
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1"
-                } gap-4`}
-              >
-                {filteredVariables.map((variable: VariableResponse) => (
-                  <VariableCard key={variable.id} variable={variable as any} />
-                ))}
+            ) : variables?.length > 0 ? (
+              <div className="space-y-4">
+                <div
+                  className={`grid ${
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  } gap-4`}
+                >
+                  {variables.map((variable: VariableResponse) => (
+                    <VariableCard key={variable.id} variable={variable as any} />
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {variablesData?.meta && variablesData.meta.total_pages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(variablesData.meta.current_page - 1) * variablesData.meta.page_size + 1} to{' '}
+                      {Math.min(variablesData.meta.current_page * variablesData.meta.page_size, variablesData.meta.total_count)} of{' '}
+                      {variablesData.meta.total_count} variables
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === 1 || variablesLoading}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.current_page - 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === 1 || variablesLoading}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        Page {variablesData.meta.current_page} of {variablesData.meta.total_pages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.current_page + 1, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === variablesData.meta.total_pages || variablesLoading}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange('variables', variablesData.meta.total_pages, variablesData.meta.total_pages)}
+                        disabled={variablesData.meta.current_page === variablesData.meta.total_pages || variablesLoading}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="bg-muted/40">

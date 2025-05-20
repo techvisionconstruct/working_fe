@@ -99,6 +99,14 @@ export function ElementDialog({
     formulaType: null,
   });
 
+  // Add state for formula validation errors
+  const [materialFormulaError, setMaterialFormulaError] = useState<
+    string | null
+  >(null);
+  const [laborFormulaError, setLaborFormulaError] = useState<string | null>(
+    null
+  );
+
   // Filter variables to only include those relevant to this template
   const filteredVariables = useMemo(() => {
     if (!variables) return [];
@@ -119,8 +127,6 @@ export function ElementDialog({
     setMaterialFormulaTokens,
     laborFormulaTokens,
     setLaborFormulaTokens,
-    materialFormulaError,
-    laborFormulaError,
     validateFormulaTokens,
     parseFormulaToTokens,
     tokensToFormulaString,
@@ -737,6 +743,7 @@ export function ElementDialog({
                 handleCreateVariable(name, "material");
               }}
               formulaType="material"
+              onValidationError={setMaterialFormulaError} // NEW
             />
           </div>
 
@@ -773,6 +780,7 @@ export function ElementDialog({
                 handleCreateVariable(name, "labor");
               }}
               formulaType="labor"
+              onValidationError={setLaborFormulaError} // NEW
             />
           </div>
 

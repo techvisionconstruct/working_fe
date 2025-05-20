@@ -1,14 +1,17 @@
-import { Button, Separator } from "@/components/shared";
-import { PlusCircle } from "lucide-react";
-import Link from "next/link";
 import React from "react";
+import { Separator, Button } from "@/components/shared";
+import { PlusCircle, SaveAll } from "lucide-react";
+import Link from "next/link";
 
-interface HeaderProps {
+interface TemplateHeaderProps {
   title: string;
   description: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, description }) => {
+export const Header: React.FC<TemplateHeaderProps> = ({
+  title,
+  description,
+}) => {
   return (
     <div className="flex flex-col space-y-2">
       <div className="flex items-center justify-between">
@@ -17,12 +20,10 @@ export const Header: React.FC<HeaderProps> = ({ title, description }) => {
           <p className="text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Link href={"/site/proposals/create"}>
-            <Button className="rounded-full">
-              <PlusCircle className="h-4 w-4" />
-              New Proposal
-            </Button>
-          </Link>
+          <Button className="rounded-full">
+            <SaveAll className="h-4 w-4" />
+            Save as Draft
+          </Button>
         </div>
       </div>
       <Separator />
