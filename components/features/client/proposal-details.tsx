@@ -169,91 +169,72 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               </div>
             </div>
           </div>
-          {proposal?.template?.trades && proposal?.template?.trades.length > 0 && (
-            <div className="mt-8 w-full">
-              <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-                Trades
-              </h3>
-              <div className="flex flex-col gap-4 w-full">
-                {proposal?.template?.trades.map((trade) => {
-                  return (
-                    <div
-                      key={trade.id}
-                      className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
-                    >
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium text-base mb-1">
-                          {trade.name}
-                        </h4>
-                        <div className="text-sm font-medium">Subtotal:</div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {trade.description}
-                      </p>
-                      {trade.elements && trade.elements.length > 0 && (
-                        <div className="mt-2 w-full">
-                          <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                            Elements
-                          </div>
-                          <div className="flex flex-col gap-1 w-full">
-                            {trade.elements.map((element) => {
-                              return (
-                                <div
-                                  key={element.id}
-                                  className="flex flex-col p-4 rounded border bg-background w-full"
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm">
-                                        {element.name}
+          {proposal?.template?.trades &&
+            proposal?.template?.trades.length > 0 && (
+              <div className="mt-8 w-full">
+                <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+                  Trades
+                </h3>
+                <div className="flex flex-col gap-4 w-full">
+                  {proposal?.template?.trades.map((trade) => {
+                    return (
+                      <div
+                        key={trade.id}
+                        className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
+                      >
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-medium text-base mb-1">
+                            {trade.name}
+                          </h4>
+                          <div className="text-sm font-medium">Subtotal:</div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {trade.description}
+                        </p>
+                        {trade.elements && trade.elements.length > 0 && (
+                          <div className="mt-2 w-full">
+                            <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
+                              Elements
+                            </div>
+                            <div className="flex flex-col gap-1 w-full">
+                              {trade.elements.map((element) => {
+                                return (
+                                  <div
+                                    key={element.id}
+                                    className="flex flex-col p-4 rounded border bg-background w-full"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-sm">
+                                          {element.name}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground line-clamp-1">
+                                          {element.description}
+                                        </div>
                                       </div>
-                                      <div className="text-xs text-muted-foreground line-clamp-1">
-                                        {element.description}
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1.5 ml-2">
-                                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
-                                          Material: $
-                                          {Number(
-                                            element.material_cost || 0
-                                          ).toFixed(2)}
-                                        </span>
-                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
-                                          Labor: $
-                                          {Number(
-                                            element.labor_cost || 0
-                                          ).toFixed(2)}
-                                        </span>
-                                        <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
-                                          Markup: {element.markup || 0}%
-                                        </span>
-                                        <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
-                                          Total: $
-                                          {(
-                                            (Number(
+                                      <div className="flex flex-col items-end gap-1.5 ml-2">
+                                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                                          <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
+                                            Total: $
+                                            {Number(
                                               element.material_cost || 0
-                                            ) +
-                                              Number(element.labor_cost || 0)) *
-                                            (1 +
-                                              Number(element.markup || 0) / 100)
-                                          ).toFixed(2)}
-                                        </span>
+                                            ) + Number(element.labor_cost || 0)}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </>
