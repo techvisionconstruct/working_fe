@@ -41,7 +41,7 @@ function validateFormula(tokens: FormulaToken[]): {
   try {
     const formula = tokens
       .map((token) => {
-        if (token.type === "variable" || token.type === "product") {
+        if (token.type === "variable") {
           return "1"; // Replace variables and products with 1 for validation
         }
         return token.text;
@@ -220,34 +220,6 @@ export function FormulaBuilder({
     setFormulaTokens(newTokens);
   };
 
-  const handleAddApiVariableToFormula = (variable: VariableResponse) => {
-    // Never call updateVariables with a brand new array directly
-    // Instead, check if the variable exists and then add it if it doesn't
-    if (
-      updateVariables &&
-      !templateVariables.some((v) => v.id === variable.id)
-    ) {
-      // Use a callback pattern to ensure access to the latest state
-      updateVariables((currentVariables) => {
-        // Check again to make sure this variable doesn't already exist
-        if (currentVariables.some((v) => v.id === variable.id)) {
-          return currentVariables; // No change needed
-        }
-
-        const updatedVariables = [...currentVariables, variable];
-
-        toast.success("Variable automatically added", {
-          position: "top-center",
-          description: `"${variable.name}" was added because it's used in your formula.`,
-        });
-
-        return updatedVariables;
-      });
-    }
-
-    addFormulaToken(variable.name, variable.name, "variable");
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormulaInput(e.target.value);
     setCursorPosition(e.target.selectionStart);
@@ -382,9 +354,7 @@ export function FormulaBuilder({
       return;
     }
 
-    const alreadyInFormula = validFormulaTokens
-      .filter((token) => token.type === "variable" || token.type === "product")
-      .some((token) => token.text.toLowerCase() === formulaInput.toLowerCase());
+
 
     let templateMatches = templateVariables.filter(
       (v) =>

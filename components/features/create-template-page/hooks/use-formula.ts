@@ -230,44 +230,7 @@ export function useFormula() {
     []
   );
 
-  const replaceProductIdsWithNames = useCallback(
-    (
-      formula: string,
-      productList: VariableResponse[],
-      formulaProducts: Record<string, any>[] = []
-    ): string => {
-      if (!formula || !productList) return formula;
 
-      let displayFormula = formula;
-
-      // First pass: Replace using provided formulaProducts
-      formulaProducts.forEach((product) => {
-        const productName =
-          productList.find((p) => p.id === product.id)?.name ||
-          product.name ||
-          product.id;
-
-        // Replace all occurrences of {id} with {name}
-        const idPattern = new RegExp(`\\{product:${product.id}\\}`, "g");
-        displayFormula = displayFormula.replace(
-          idPattern,
-          `{product:${productName}}`
-        );
-      });
-
-      // Second pass: Direct replacement for any remaining product references
-      displayFormula = displayFormula.replace(
-        /\{product:([a-zA-Z0-9_-]+)\}/g,
-        (match, id) => {
-          const product = productList.find((p) => p.id === id);
-          return product ? `{product:${product.name}}` : match;
-        }
-      );
-
-      return displayFormula;
-    },
-    []
-  );
 
   // Check if a variable is already in the formula
   const isVariableInFormula = useCallback(
@@ -315,7 +278,6 @@ export function useFormula() {
     tokensToFormulaString,
     replaceVariableNamesWithIds,
     replaceVariableIdsWithNames,
-    replaceProductIdsWithNames,
     isVariableInFormula,
     isNumeric,
     shouldBeVariable,

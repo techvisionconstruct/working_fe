@@ -18,6 +18,9 @@ import { ElementResponse } from "@/types/elements/dto";
 import { FormulaBuilder } from "./formula-builder";
 import { FormulaToken, useFormula } from "../hooks/use-formula";
 import { toast } from "sonner";
+import { ProductResponse } from "@/types/products/dto";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/queryOptions/products";
 
 // Storage keys for formulas - make them unique to avoid conflicts
 const STORAGE_PREFIX = 'proposal_element_dialog_';
@@ -40,7 +43,7 @@ interface ElementDialogProps {
   elementToEdit?: ElementResponse | null;
   initialName?: string;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   isSubmitting: boolean;
   dialogTitle: string;
   submitButtonText: string;
@@ -82,6 +85,9 @@ export function ElementDialog({
   const [name, setName] = useState(elementToEdit?.name || initialName);
   const [description, setDescription] = useState(elementToEdit?.description || "");
   const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
+
+  const { data: productsData } = useQuery(getProducts(1, 999));
+
   
   // Store pending variable information to be processed after creation
   const pendingVariableRef = useRef<{
@@ -155,82 +161,200 @@ export function ElementDialog({
     }
   };
 
-  // Initialize form when opening/editing
-  useEffect(() => {
-    if (isOpen) {
-      // Reset initial render flag when dialog opens
-      initialRenderRef.current = true;
-      
-      // Always update the name to match either elementToEdit.name or initialName when dialog opens
-      if (elementToEdit) {
-        setName(elementToEdit.name);
-      } else {
-        setName(initialName);
-      }
-      
-      const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === 'true';
-      
-      if (wasOpen) {
-        // Dialog was previously open - restore from localStorage
-        const { materialTokens, laborTokens } = getFormulasFromStorage();
-        if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
-        if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
-        console.log('Restored formulas from localStorage');
-      } else if (elementToEdit) {
-        // Initialize from element to edit
-        setDescription(elementToEdit.description || "");
-        setMarkup(elementToEdit.markup || 0);
-        
-        if (elementToEdit.material_cost_formula) {
-          const displayFormula = replaceVariableIdsWithNames(
-            elementToEdit.material_cost_formula,
-            filteredVariables,
-            elementToEdit.material_formula_variables || []
-          );
-          setMaterialFormulaTokens(parseFormulaToTokens(displayFormula));
+    useEffect(() => {
+      if (isOpen) {
+        // Reset initial render flag when dialog opens
+        initialRenderRef.current = true;
+  
+        // Always update the name to match either elementToEdit.name or initialName when dialog opens
+        if (elementToEdit) {
+          setName(elementToEdit.name);
         } else {
+          setName(initialName);
+        }
+  
+        const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === "true";
+  
+        if (wasOpen) {
+          // Dialog was previously open - restore formulas from localStorage
+          const { materialTokens, laborTokens } = getFormulasFromStorage();
+          if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
+          if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
+        } else if (elementToEdit) {
+          // Initialize from element to edit
+          setDescription(elementToEdit.description || "");
+          setMarkup(elementToEdit.markup || 0);
+  
+          let materialTokens = [],
+            laborTokens = [];
+  
+          if (elementToEdit.material_cost_formula) {
+            // For variables, we want to display names instead of IDs for better user experience
+            let displayFormula = replaceVariableIdsWithNames(
+              elementToEdit.material_cost_formula,
+              filteredVariables,
+              elementToEdit.material_formula_variables || []
+            );
+  
+            // But for products, we need to preserve the original IDs for proper submission
+            // So we don't call replaceProductIdsWithNames here
+  
+            materialTokens = parseFormulaToTokens(displayFormula);
+            console.log("displayFormula", displayFormula);
+            console.log("Initial material tokens:", materialTokens);
+            console.log(
+              "Material formula variables:",
+              elementToEdit.material_formula_variables
+            );
+  
+            // After parsing, ensure all product references are correctly identified
+            materialTokens = materialTokens.map((token) => {
+              // Strategy 1: Check if this token appears in material_formula_variables as a product
+              if (
+                elementToEdit.material_formula_variables &&
+                elementToEdit.material_formula_variables.length > 0
+              ) {
+                const productVariable =
+                  elementToEdit.material_formula_variables.find(
+                    (variable: any) =>
+                      (variable.name === token.text ||
+                        variable.name === token.displayText) &&
+                      variable.type === "product"
+                  );
+  
+                if (productVariable) {
+                  console.log(
+                    "Found product in material_formula_variables:",
+                    productVariable
+                  );
+                  return {
+                    ...token,
+                    type: "product" as const,
+                    // Store the ID in text for API submission
+                    text: productVariable.id,
+                    // Use displayText for UI with product: prefix
+                    displayText: `${productVariable.name || token.text}`,
+                  };
+                }
+              }
+  
+              const matchedProduct = productsData.data.find(
+                (product: ProductResponse) =>
+                  product.title.toLowerCase() === token.text.toLowerCase() ||
+                  token.text.includes(product.id)
+              );
+  
+              if (matchedProduct) {
+                console.log(
+                  "Found matching product in API data:",
+                  matchedProduct
+                );
+                return {
+                  ...token,
+                  type: "product" as const,
+                  // Store the ID in text for API submission
+                  text: matchedProduct.id,
+                  // Use displayText for UI with product: prefix
+                  displayText: `${matchedProduct.title}`,
+                };
+              }
+  
+              return token;
+            });
+  
+            console.log("Final processed material tokens:", materialTokens);
+  
+            setMaterialFormulaTokens(materialTokens);
+  
+            // Immediately save to localStorage instead of waiting for the useEffect
+            localStorage.setItem(
+              storageKeys.MATERIAL_KEY,
+              JSON.stringify(materialTokens)
+            );
+          } else {
+            setMaterialFormulaTokens([]);
+          }
+  
+          if (elementToEdit.labor_cost_formula) {
+            // For variables, we want to display names instead of IDs for better user experience
+            let displayFormula = replaceVariableIdsWithNames(
+              elementToEdit.labor_cost_formula,
+              filteredVariables,
+              elementToEdit.labor_formula_variables || []
+            );
+  
+            // But for products, we need to preserve the original IDs for proper submission
+            // So we don't call replaceProductIdsWithNames here
+  
+            laborTokens = parseFormulaToTokens(displayFormula);
+  
+            // After parsing, ensure all product references are correctly identified in labor formula
+            laborTokens = laborTokens.map((token) => {
+              // Method 1: Check if displayText starts with "product:" (new method)
+              if (
+                token.displayText?.startsWith("product:") &&
+                token.type !== "product"
+              ) {
+                return {
+                  ...token,
+                  type: "product" as const,
+                  // Preserve the original text (which should contain the ID)
+                };
+              }
+  
+              // Method 2: Check if text property starts with "product:" for backward compatibility
+            
+  
+              return token;
+            });
+  
+            setLaborFormulaTokens(laborTokens);
+  
+            // Immediately save to localStorage instead of waiting for the useEffect
+            localStorage.setItem(
+              storageKeys.LABOR_KEY,
+              JSON.stringify(laborTokens)
+            );
+          } else {
+            setLaborFormulaTokens([]);
+          }
+  
+          // Initial save to localStorage
+          setTimeout(() => {
+            saveFormulasToStorage();
+          }, 100);
+        } else {
+          // New element, initialize with proper values
+          setDescription("");
+          setMarkup(initialMarkup);
           setMaterialFormulaTokens([]);
-        }
-        
-        if (elementToEdit.labor_cost_formula) {
-          const displayFormula = replaceVariableIdsWithNames(
-            elementToEdit.labor_cost_formula,
-            filteredVariables,
-            elementToEdit.labor_formula_variables || []
-          );
-          setLaborFormulaTokens(parseFormulaToTokens(displayFormula));
-        } else {
           setLaborFormulaTokens([]);
+  
+          // Initial save to localStorage
+          setTimeout(() => {
+            saveFormulasToStorage();
+          }, 100);
         }
-        
-        // Initial save to localStorage
-        setTimeout(() => {
-          saveFormulasToStorage();
-        }, 100);
       } else {
-        // New element, initialize with proper values
-        setDescription("");
-        setMarkup(initialMarkup);
-        setMaterialFormulaTokens([]);
-        setLaborFormulaTokens([]);
-        
-        // Initial save to localStorage
-        setTimeout(() => {
-          saveFormulasToStorage();
-        }, 100);
-      }
-    } else {
-      // Dialog is closing, clear storage
-      clearFormulaStorage();
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      if (!isOpen) {
+        // Dialog is closing, clear storage
         clearFormulaStorage();
       }
-    };
-  }, [isOpen, elementToEdit, initialName, initialMarkup, filteredVariables, parseFormulaToTokens, replaceVariableIdsWithNames]);
+  
+      // Cleanup on unmount
+      return () => {
+        if (!isOpen) {
+          clearFormulaStorage();
+        }
+      };
+    }, [
+      isOpen,
+      elementToEdit,
+      initialName,
+      initialMarkup,
+      filteredVariables,
+      parseFormulaToTokens,
+      replaceVariableIdsWithNames,
+    ]);
 
   // Save formulas to localStorage whenever they change
   useEffect(() => {

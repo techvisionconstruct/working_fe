@@ -119,7 +119,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   }, [data.variables]);
 
   // Use our formula hook for formula management
-  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames, replaceProductIdsWithNames } =
+  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } =
     useFormula();
 
   // UI state
