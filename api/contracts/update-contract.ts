@@ -15,6 +15,8 @@ export const updateContract = async (id: string, contract: Partial<ContractUpdat
     if (contract.terms) payload.terms = contract.terms;
     if (contract.contractor_initials) payload.contractor_initials = contract.contractor_initials;
     if (contract.contractor_signature) payload.contractor_signature = contract.contractor_signature;
+    if (contract.service_agreement_id) payload.service_agreement_id = contract.service_agreement_id;
+    if (contract.service_agreement_content) payload.service_agreement_content = contract.service_agreement_content;
     
     const response = await fetch(`${API_URL}/v1/contracts/update/${id}/`, {
       method: 'PUT',

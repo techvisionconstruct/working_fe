@@ -119,7 +119,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   }, [data.variables]);
 
   // Use our formula hook for formula management
-  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames, replaceProductIdsWithNames } =
+  const { replaceVariableNamesWithIds, replaceVariableIdsWithNames } =
     useFormula();
 
   // UI state
@@ -385,8 +385,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         )
       : [];
 
-  console.log("filteredVariables", filteredVariables);
-
   const filteredTrades =
     tradeSearchQuery === ""
       ? []
@@ -643,6 +641,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       description: data.description.trim() || undefined,
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
+      markup: 1,
     };
 
     updateElementMutation({
@@ -1601,7 +1600,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                       Material:
                                                     </span>
                                                     <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                                      {replaceVariableIdsWithNames(
+                                                    {replaceVariableIdsWithNames(
                                                         element.material_cost_formula,
                                                         variables,
                                                         element.material_formula_variables ||
