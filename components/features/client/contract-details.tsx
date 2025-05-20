@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -122,30 +122,108 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
     signContractMutation.mutate(contractData);
   };
 
-  const [agreementTitle] = useState(
-    proposal?.contract?.contractName || "SERVICE AGREEMENT"
-  );
-  // State for terms and conditions
-  const [termsSections] = useState<TermSection[]>(() => {
-    const terms = proposal?.contract?.terms;
-    if (Array.isArray(terms)) {
-      return terms;
-    } else {
-      return [
-        {
-          id: 1,
-          title: "Payment Procedures",
-          description:
-            "The payment is due within 30 days of invoice receipt. Late payments are subject to a 1.5% monthly interest charge.",
-        },
-        {
-          id: 2,
-          title: "Agreement",
-          description:
-            "By signing this document, both parties agree to the terms and conditions outlined in this contract.",
-        },
-      ];
+  // Enhanced service agreement retrieval with better fallbacks
+  const defaultServiceAgreement = `SERVICE AGREEMENT
+  
+This Service Agreement is entered into as of the date of signing, by and between:
+
+Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
+Client: ${proposal?.client_name || "[CLIENT NAME]"}, with a primary address at ${proposal?.client_address || "[CLIENT ADDRESS]"}.
+
+1. SCOPE OF SERVICES:
+The Service Provider agrees to perform the services as outlined in the attached Proposal.
+
+2. PAYMENT TERMS:
+Payment is due within 30 days of invoice receipt. Late payments are subject to a 1.5% monthly interest charge.
+
+3. TERM AND TERMINATION:
+This Agreement shall commence on the date of signing and shall continue until the services are completed.`;
+
+  const serviceAgreementContent =
+    proposal?.contract?.service_agreement_content ||
+    proposal?.contract?.service_agreement?.content ||
+    defaultServiceAgreement;
+
+  // Extract title and content from serviceAgreementContent
+  const { title, content } = useMemo(() => {
+    const lines = serviceAgreementContent.split("\n");
+    let extractedTitle = lines[0].trim();
+    // If first line is empty, use second line
+    if (!extractedTitle && lines.length > 1) {
+      extractedTitle = lines[1].trim();
     }
+    // Default title if none found
+    if (!extractedTitle) extractedTitle = "SERVICE AGREEMENT";
+
+    // Content is everything after the first non-empty line
+    const extractedContent = lines.slice(1).join("\n").trim();
+
+    return {
+      title: extractedTitle,
+      content: extractedContent,
+    };
+  }, [serviceAgreementContent]);
+
+  // Parse terms and conditions - adding the same parser from main contract-details
+  const parseTermsAndConditions = (termsString: string): TermSection[] => {
+    if (!termsString) return [];
+
+    const lines = termsString.split(/\r?\n/);
+    const sections: TermSection[] = [];
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine === "") return;
+
+      const colonIndex = line.indexOf(":");
+
+      if (colonIndex > 0 && colonIndex < line.length - 1) {
+        const title = line.substring(0, colonIndex).trim();
+        const description = line.substring(colonIndex + 1).trim();
+
+        sections.push({
+          id: sections.length + 1,
+          title,
+          description,
+        });
+      } else {
+        sections.push({
+          id: sections.length + 1,
+          title: `Section ${sections.length + 1}`,
+          description: trimmedLine,
+        });
+      }
+    });
+
+    return sections;
+  };
+
+  // Update termsSections state to use the same initialization logic as the main component
+  const [termsSections] = useState<TermSection[]>(() => {
+    if (proposal?.contract?.terms) {
+      if (typeof proposal.contract.terms === "string") {
+        return parseTermsAndConditions(proposal.contract.terms);
+      } else if (Array.isArray(proposal.contract.terms)) {
+        return proposal.contract.terms;
+      }
+    }
+
+    // Default terms if none provided
+    return [
+      {
+        id: 1,
+        title: "Payment Procedures",
+        description:
+          "The payment is due within 30 days of invoice receipt. Late payments are subject to a 1.5% monthly interest charge.",
+      },
+      {
+        id: 2,
+        title: "Agreement",
+        description:
+          "By signing this document, both parties agree to the terms and conditions outlined in this contract.",
+      },
+    ];
   });
 
   // State for signatures - use contract signature data if available
@@ -280,7 +358,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
   return (
     <div className="w-full mx-auto">
       {!proposal.contract ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-8 text-center my-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-8 text-center my-6 max-w-3xl mx-auto">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="48"
@@ -297,50 +375,48 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <h2 className="text-2xl font-semibold text-amber-800 mb-3">No Contract Available</h2>
-          <p className="text-amber-700 text-lg mb-4">This proposal doesn't have a contract attached to it yet.</p>
-          <p className="text-amber-600">Please contact your contractor to set up a contract for this proposal.</p>
+          <h2 className="text-2xl font-semibold text-amber-800 mb-3">
+            No Contract Available
+          </h2>
+          <p className="text-amber-700 text-lg mb-4">
+            This proposal doesn't have a contract attached to it yet.
+          </p>
+          <p className="text-amber-600">
+            Please contact your contractor to set up a contract for this proposal.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
-            <div className="p-6 rounded-lg border bg-muted/30 w-full">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold mt-2 mb-4 uppercase text-center">
-                  {agreementTitle}
+            <div className="p-6 md:p-10 rounded-lg border bg-muted/30 w-full">
+              <div className="mb-12 max-w-4xl mx-auto text-center">
+                {/* Display extracted title */}
+                <h1 className="text-3xl font-bold mt-2 mb-8 uppercase text-center">
+                  {title}
                 </h1>
-                <div className="space-y-0 text-muted-foreground text-center">
-                  <p className="text-md">
-                    This Service Agreement is entered into as of April 25, 2025,
-                    by and between:
-                  </p>
-                  <p className="text-md">
-                    Service Provider: Simple ProjeX, with its principal place of
-                    business at Irvine, California, and
-                  </p>
-                  <p className="text-md">
-                    Client: {proposal.client_name || "Client Name"}, with a
-                    primary address at{" "}
-                    {proposal.client_address || "[Client Address]"} .
-                  </p>
+
+                {/* Display content */}
+                <div className="space-y-4 text-muted-foreground whitespace-pre-line max-w-3xl mx-auto text-left">
+                  {content}
                 </div>
               </div>
 
-              <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider">
+              <h2 className="text-2xl font-bold mb-8 text-primary uppercase tracking-wider text-center">
                 Contract Details
               </h2>
 
+              {/* Rest of the component with centered elements */}
               {proposal ? (
-                <div className="space-y-8 w-full">
+                <div className="space-y-8 w-full max-w-5xl mx-auto">
                   {/* Contract Header */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-center">
                     <h3 className="text-xl font-semibold">
                       {proposal.name || "Unnamed Project"}
                     </h3>
-                    <p className="text-muted-foreground whitespace-pre-line">
+                    <p className="text-muted-foreground whitespace-pre-line max-w-3xl mx-auto">
                       {proposal.description}
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
                       {proposal.project_modules?.map((module: any) => (
                         <Badge
                           key={module.id}
@@ -353,7 +429,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="my-8" />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Client Information */}
@@ -849,14 +925,14 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
                   </div>
                 </div>
               ) : (
-                <div className="text-base text-muted-foreground">
+                <div className="text-base text-muted-foreground text-center">
                   No contract details available.
                 </div>
               )}
             </div>
           </div>
 
-          {/* Client Actions - Right Side (Narrower) */}
+          {/* Client Actions - Right Side */}
           <div className="lg:col-span-1">
             <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
               <h3 className="text-lg font-semibold mb-4">Contract Actions</h3>
@@ -976,7 +1052,7 @@ export function ContractDetails({ proposal }: ClientContractViewProps) {
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                     <rect width="12" height="8" x="6" y="14" />
                   </svg>
-                  Print Contract (Not Working) 
+                  Print Contract (Not Working)
                 </Button>
 
                 <Card className="mt-4">
