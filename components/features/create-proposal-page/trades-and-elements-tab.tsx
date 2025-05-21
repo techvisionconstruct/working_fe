@@ -1111,6 +1111,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setEditingMarkupElementId(null);
   };
 
+  // Add this helper function to extract variable names from formulas
+  const extractVariableNamesFromFormula = (formula: string): string[] => {
+    if (!formula) return [];
+    const variableNameRegex = /\{([^}]+)\}/g;
+    const matches = formula.match(variableNameRegex);
+    if (!matches) return [];
+    return matches.map(match => match.substring(1, match.length - 1));
+  };
+
   const handleSelectTrade = (trade: TradeResponse) => {
     const newTrade: TradeResponse = {
       id: trade.id.toString(),
@@ -1126,6 +1135,81 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     if (!trades.some((t) => t.id === newTrade.id)) {
       updateTrades([...trades, newTrade]);
+      
+      // Auto-import variables from element formulas
+      if (newTrade.elements && newTrade.elements.length > 0) {
+        // Collect all variable names from element formulas
+        const variablesToAdd: VariableResponse[] = [];
+        
+        newTrade.elements.forEach(element => {
+          // Extract variable names from material formula
+          if (element.material_cost_formula) {
+            const materialFormulaVariableNames = extractVariableNamesFromFormula(
+              replaceVariableIdsWithNames(
+                element.material_cost_formula,
+                variables,  
+                element.material_formula_variables || []
+              )
+            );
+            
+            materialFormulaVariableNames.forEach(varName => {
+              // Find in available variables but not in current variables
+              const availableVariable = variablesData?.data?.find(
+                (v: VariableResponse) => 
+                  v.name === varName && 
+                  !variables.some(existingVar => existingVar.name === varName)
+              );
+              
+              if (availableVariable && !variablesToAdd.some(v => v.id === availableVariable.id)) {
+                variablesToAdd.push(availableVariable);
+              }
+            });
+          }
+          
+          // Extract variable names from labor formula
+          if (element.labor_cost_formula) {
+            const laborFormulaVariableNames = extractVariableNamesFromFormula(
+              replaceVariableIdsWithNames(
+                element.labor_cost_formula,
+                variables,
+                element.labor_formula_variables || []
+              )
+            );
+            
+            laborFormulaVariableNames.forEach(varName => {
+              // Find in available variables but not in current variables
+              const availableVariable = variablesData?.data?.find(
+                (v: VariableResponse) => 
+                  v.name === varName && 
+                  !variables.some(existingVar => existingVar.name === varName)
+              );
+              
+              if (availableVariable && !variablesToAdd.some(v => v.id === availableVariable.id)) {
+                variablesToAdd.push(availableVariable);
+              }
+            });
+          }
+        });
+        
+        // Add the variables to local variables
+        if (variablesToAdd.length > 0) {
+          const updatedVariables = [...variables, ...variablesToAdd];
+          updateVariables(updatedVariables);
+          
+          // Update template if needed
+          if (templateId) {
+            updateTemplateMutation({
+              templateId: templateId,
+              data: { variables: updatedVariables.map((v) => v.id) },
+            });
+          }
+          
+          toast.success(`${variablesToAdd.length} variables automatically added`, {
+            position: "top-center",
+            description: `Required variables for formulas have been imported.`,
+          });
+        }
+      }
     }
 
     setIsTradeSearchOpen(false);
