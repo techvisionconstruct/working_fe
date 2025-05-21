@@ -5,7 +5,7 @@ import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Send, Save } from "lucide-react";
 
 // Import tour component
 import { CreateProposalTour } from "@/components/features/tour-guide/create-proposal-tour";
@@ -28,13 +28,23 @@ import {
   TemplateUpdateRequest,
 } from "@/types/templates/dto";
 import { set } from "date-fns";
+import { ProposalResponse } from "@/types/proposals/dto";
+import { CreateContract } from "@/components/features/create-proposal-page/create-contract";
+import { createContract } from "@/api/contracts/create-contract";
+import { ContractCreateRequest } from "@/types/contracts/dto";
 
-export default function CreateProposalPage() {
+interface ProposalDetailsProps {
+  proposal?: ProposalResponse; // Make proposal optional
+}
+
+export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("template");
   const [isTourRunning, setIsTourRunning] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
+  const [createdProposal, setCreatedProposal] =
+    useState<ProposalResponse | null>(proposal || null); // Initialize with proposal if available
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -48,22 +58,29 @@ export default function CreateProposalPage() {
     status: string;
     template: TemplateResponse | null;
   }>({
-    name: "",
-    description: "",
-    image: "",
-    client_name: "",
-    client_email: "",
-    client_phone: "",
-    client_address: "",
-    valid_until: "",
+    name: proposal?.name || "",
+    description: proposal?.description || "",
+    image: proposal?.image || "",
+    client_name: proposal?.client_name || "",
+    client_email: proposal?.client_email || "",
+    client_phone: proposal?.client_phone || "",
+    client_address: proposal?.client_address || "",
+    valid_until:
+      proposal?.valid_until
+        ? typeof proposal.valid_until === "string"
+          ? proposal.valid_until
+          : proposal.valid_until.toISOString()
+        : "",
     location: "",
-    status: "draft",
-    template: null,
+    status: proposal?.status || "draft",
+    template: proposal?.template || null,
   });
 
-  const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>([]);
+  const [tradeObjects, setTradeObjects] = useState<TradeResponse[]>(
+    proposal?.template?.trades || []
+  );
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
-    []
+    proposal?.template?.variables || []
   );
 
   const updateFormData = (data: any) => {
@@ -79,7 +96,7 @@ export default function CreateProposalPage() {
     } else if (currentStep === "details") {
       setCurrentStep("trades");
     } else if (currentStep === "trades") {
-      setCurrentStep("preview");
+      setCurrentStep("contract");
     }
   };
 
@@ -88,7 +105,7 @@ export default function CreateProposalPage() {
       setCurrentStep("template");
     } else if (currentStep === "trades") {
       setCurrentStep("details");
-    } else if (currentStep === "preview") {
+    } else if (currentStep === "contract") {
       setCurrentStep("trades");
     }
   };
@@ -119,8 +136,6 @@ export default function CreateProposalPage() {
         toast.success("Template updated successfully!", {
           description: "Your proposal has been saved",
         });
-        // Navigate to proposals list after successful save
-        router.push("/proposals");
       },
       onError: (error: any) => {
         toast.error("Failed to update template", {
@@ -130,7 +145,7 @@ export default function CreateProposalPage() {
       },
     });
 
-  const handleCreateProposal = async () => {
+  const handleCreateProposalAndContract = async () => {
     const templateId = formData.template ? formData.template.id : null;
 
     const proposalDetails = {
@@ -149,13 +164,55 @@ export default function CreateProposalPage() {
 
     return new Promise((resolve, reject) => {
       createProposalMutation.mutate(proposalDetails, {
-        onSuccess: (data) => {
-          resolve(data);
-          toast.success("Proposal created successfully!");
-          setTradeObjects(data.data.template.trades);
-          setVariableObjects(data.data.template.variables);
-          setTemplate(data.data.template);
-          setTemplateId(data.data.template.id);
+        onSuccess: async (proposalData) => {
+          try {
+            // Set proposal data first
+            setTradeObjects(proposalData.data.template.trades);
+            setVariableObjects(proposalData.data.template.variables);
+            setTemplate(proposalData.data.template);
+            setTemplateId(proposalData.data.template.id);
+            setCreatedProposal(proposalData.data);
+
+            toast.success("Proposal created successfully!");
+
+            // Now create the contract
+            const contractPayload: ContractCreateRequest = {
+              name: proposalData.data.name || "",
+              description: proposalData.data.description || "",
+              status: undefined,
+              contractor_initials: undefined,
+              contractor_signature: undefined,
+              terms: "",
+              service_agreement_content: "",
+              proposal_id: proposalData.data.id,
+            };
+
+            // Create contract using the mutation
+            createContractMutation.mutate(contractPayload, {
+              onSuccess: (contractData) => {
+                setContract(contractData);
+                toast.success("Contract created successfully!");
+                resolve(proposalData);
+                handleNext(); // Move to trades step
+              },
+              onError: (contractError) => {
+                // Even if contract creation fails, we still have the proposal
+                toast.error("Proposal created but contract creation failed", {
+                  description:
+                    contractError instanceof Error
+                      ? contractError.message
+                      : "Contract will be created later",
+                });
+                resolve(proposalData);
+                handleNext(); // Still move to trades step
+              },
+            });
+          } catch (error) {
+            // If anything goes wrong with contract creation, still proceed
+            toast.error("Proposal created but contract creation failed");
+            resolve(proposalData);
+            handleNext();
+          }
         },
         onError: (error) => {
           reject(error);
@@ -187,18 +244,19 @@ export default function CreateProposalPage() {
     try {
       // First ensure we're on the template tab
       setCurrentStep("template");
-      
+
       console.log("[Tour] Preparing to start proposal tour");
-      
+
       // Allow tab switch to happen first
       setTimeout(() => {
         try {
           console.log("[Tour] Adding CSS classes for tour targeting");
-          
+
           // Add CSS classes for steps and make elements focusable
           document.querySelectorAll('[role="tab"]').forEach((tab) => {
             try {
-              const value = tab.getAttribute("data-value") || tab.getAttribute("value");
+              const value =
+                tab.getAttribute("data-value") || tab.getAttribute("value");
               if (value) {
                 tab.classList.add("tab-trigger");
                 tab.setAttribute("data-value", value);
@@ -213,9 +271,13 @@ export default function CreateProposalPage() {
           // Add classes to tab contents for targeting
           document.querySelectorAll('[role="tabpanel"]').forEach((content) => {
             try {
-              const tabId = content.getAttribute("id") || content.getAttribute("data-state");
+              const tabId =
+                content.getAttribute("id") ||
+                content.getAttribute("data-state");
               if (tabId) {
-                const tabValue = tabId.replace("content-", "").replace("-tabpanel", "");
+                const tabValue = tabId
+                  .replace("content-", "")
+                  .replace("-tabpanel", "");
                 content.classList.add(`${tabValue}-tab-content`);
                 console.log(`[Tour] Found tab content: ${tabValue}`);
               }
@@ -225,27 +287,42 @@ export default function CreateProposalPage() {
           });
 
           // Ensure trade and variable columns are properly marked
-          document.querySelector('.lg\\:col-span-2')?.classList.add('trade-column');
-          document.querySelector('.lg\\:col-span-2')?.setAttribute("tabindex", "0");
-          
-          document.querySelector('.variable-column, .lg\\:col-span-1')?.setAttribute("tabindex", "0");
-          
+          document
+            .querySelector(".lg\\:col-span-2")
+            ?.classList.add("trade-column");
+          document
+            .querySelector(".lg\\:col-span-2")
+            ?.setAttribute("tabindex", "0");
+
+          document
+            .querySelector(".variable-column, .lg\\:col-span-1")
+            ?.setAttribute("tabindex", "0");
+
           // If trade column wasn't found by the selector above, try more generic approach
-          if (!document.querySelector('.trade-column')) {
-            const columns = document.querySelectorAll('.grid.grid-cols-1.lg\\:grid-cols-3 > div');
+          if (!document.querySelector(".trade-column")) {
+            const columns = document.querySelectorAll(
+              ".grid.grid-cols-1.lg\\:grid-cols-3 > div"
+            );
             if (columns.length > 0) {
-              columns[0].classList.add('trade-column');
+              columns[0].classList.add("trade-column");
               columns[0].setAttribute("tabindex", "0");
-              console.log("[Tour] Added class to trade column (alternate selector)");
+              console.log(
+                "[Tour] Added class to trade column (alternate selector)"
+              );
             }
-            
-            if (columns.length > 1 && !document.querySelector('.variable-column')) {
-              columns[1].classList.add('variable-column');
+
+            if (
+              columns.length > 1 &&
+              !document.querySelector(".variable-column")
+            ) {
+              columns[1].classList.add("variable-column");
               columns[1].setAttribute("tabindex", "0");
-              console.log("[Tour] Added class to variable column (alternate selector)");
+              console.log(
+                "[Tour] Added class to variable column (alternate selector)"
+              );
             }
           }
-          
+
           console.log("[Tour] Starting proposal tour");
           setIsTourRunning(true);
         } catch (error) {
@@ -257,13 +334,147 @@ export default function CreateProposalPage() {
     }
   };
 
+  const [isSending, setIsSending] = useState(false);
+  const sendProposalToClient = async () => {
+    const proposalToSend = createdProposal || proposal;
+    if (!proposalToSend?.id) return;
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    setIsSending(true);
+    try {
+      const response = await fetch(`${API_URL}/v1/proposals/send/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          proposal_id: proposalToSend.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send proposal");
+      }
+
+      alert("Proposal has been sent to the client successfully.");
+
+      router.push('/proposals');
+
+    } catch (error) {
+      console.error("Error sending proposal:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending the proposal."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Safe contract initialization
+  const [contract, setContract] = useState(proposal?.contract || null);
+
+  const createContractMutation = useMutation({
+    mutationFn: (contractData: ContractCreateRequest) =>
+      createContract(contractData),
+    onSuccess: (data) => {
+      setContract(data);
+      toast.success("Contract created successfully!");
+      handleNext(); // Move to next step after contract creation
+    },
+    onError: (error: any) => {
+      toast.error(
+        `Failed to create contract: ${error.message || "Unknown error"}`
+      );
+    },
+  });
+
+  // Function to handle contract creation (copy logic from CreateContract)
+  const handleCreateContract = () => {
+    const proposalToUse = createdProposal || proposal;
+    if (!proposalToUse) return;
+
+    const payload: ContractCreateRequest = {
+      name: proposalToUse?.name || "",
+      description: proposalToUse?.description || "",
+      status: proposalToUse?.contract?.status || undefined,
+      contractor_initials: undefined,
+      contractor_signature: undefined,
+      terms: "",
+      service_agreement_content: "",
+      proposal_id: proposalToUse?.id || undefined,
+    };
+    createContractMutation.mutate(payload);
+  };
+
   return (
     <div className="container">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold">Create New Proposal</h1>
-        <p className="text-muted-foreground text-sm">
-          Create a new proposal by following the steps below.
-        </p>
+        <div className="flex flex-row items-center justify-between">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold">Create New Proposal</h1>
+            <p className="text-muted-foreground text-sm">
+              Create a new proposal by following the steps below.
+            </p>
+          </div>
+          {(currentStep === "trades" || currentStep === "contract") && (
+            <div className="flex flex-row gap-2 justify-end mt-6">
+              {currentStep === "trades" && (
+                <>
+                  <Button onClick={handleUpdateTemplate}>Save as Draft</Button>
+                  <Button
+                    variant="outline"
+                    className="mb-4"
+                    onClick={sendProposalToClient}
+                    disabled={
+                      isSending ||
+                      (!createdProposal && !proposal) ||
+                      !(createdProposal?.client_email || proposal?.client_email)
+                    }
+                  >
+                    {isSending ? (
+                      <span className="inline-flex items-center">
+                        <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                        Sending...
+                      </span>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" /> Send Proposal to
+                        Client
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+              {currentStep === "contract" && (
+                <Button
+                  variant="outline"
+                  className="mb-4"
+                  onClick={sendProposalToClient}
+                  disabled={
+                    isSending ||
+                    (!createdProposal && !proposal) ||
+                    !(createdProposal?.client_email || proposal?.client_email)
+                  }
+                >
+                  {isSending ? (
+                    <span className="inline-flex items-center">
+                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                      Sending...
+                    </span>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" /> Send Contract to Client
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Card className="w-full">
@@ -273,13 +484,16 @@ export default function CreateProposalPage() {
               "Template Selection",
               "Proposal Details",
               "Trades & Elements",
+              "Create Contract",
             ]}
             currentStep={
               currentStep === "template"
                 ? 0
                 : currentStep === "details"
                 ? 1
-                : 2
+                : currentStep === "trades"
+                ? 2
+                : 3
             }
           />
         </div>
@@ -314,8 +528,41 @@ export default function CreateProposalPage() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleCreateProposal}>
-                Next: Trades & Elements
+              <Button
+                onClick={handleCreateProposalAndContract}
+                disabled={
+                  createProposalMutation.isPending ||
+                  createContractMutation.isPending
+                }
+                className="flex items-center gap-2"
+              >
+                {createProposalMutation.isPending ||
+                createContractMutation.isPending ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  "Next: Trades & Elements"
+                )}
               </Button>
             </div>
           </TabsContent>
@@ -353,7 +600,19 @@ export default function CreateProposalPage() {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleUpdateTemplate}>Save Proposal</Button>
+              <Button onClick={handleNext}>Next: Create Contract</Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="contract" className="p-6 contract-tab-content">
+            {/* Only render CreateContract if we have a proposal */}
+            {(createdProposal || proposal) && (
+              <CreateContract proposal={(createdProposal || proposal)!} />
+            )}
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={handleBack}>
+                Back
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
