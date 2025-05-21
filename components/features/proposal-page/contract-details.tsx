@@ -1677,10 +1677,73 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 disabled={
                   isSending ||
                   !proposal.client_email ||
-                  isContractSigned ||
-                  !contract
+                  isContractSigned
                 }
-                onClick={sendProposalToClient}
+                onClick={async () => {
+                  // 1. Update the contract before sending
+                  if (contract && contract.id) {
+                    await updateContractMutation.mutateAsync({
+                      id: contract.id,
+                      contract: {
+                        name: contractName,
+                        description: contractDescription,
+                        service_agreement_content: `${serviceAgreementTitle}\n${serviceAgreementBody}`,
+                        terms: termsSections
+                          .map((section) => `${section.title}: ${section.description}`)
+                          .join("\n"),
+                        contractor_initials:
+                          signatures.contractor?.type === "text"
+                            ? signatures.contractor.value
+                            : undefined,
+                        contractor_signature:
+                          signatures.contractor?.type === "image"
+                            ? signatures.contractor.value
+                            : undefined,
+                      },
+                    });
+                  } else if (!contract) {
+                    // If contract doesn't exist, create it first
+                    await handleSubmit();
+                  }
+
+                  // 2. Confirm with the user before sending
+                  if (typeof window !== 'undefined') {
+                    // Custom modal for confirmation
+                    const modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100vw';
+                    modal.style.height = '100vh';
+                    modal.style.background = 'rgba(0,0,0,0.35)';
+                    modal.style.display = 'flex';
+                    modal.style.alignItems = 'center';
+                    modal.style.justifyContent = 'center';
+                    modal.style.zIndex = '9999';
+                    modal.innerHTML = `
+                      <div style="background: white; border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.15); padding: 2.5rem 2rem; max-width: 95vw; width: 400px; text-align: center;">
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #e11d48;">Send Contract to Client?</h2>
+                        <p style="margin-bottom: 2rem; color: #444;">Are you sure you want to send this contract to the client? They will receive an email with the contract details.</p>
+                        <div style="display: flex; gap: 1rem; justify-content: center;">
+                          <button id="modal-cancel-btn" style="padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; background: #f3f4f6; color: #222; font-weight: 500; cursor: pointer;">Cancel</button>
+                          <button id="modal-confirm-btn" style="padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; background: #e11d48; color: #fff; font-weight: 600; cursor: pointer;">Send</button>
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(modal);
+                    await new Promise<void>((resolve) => {
+                      modal.querySelector('#modal-cancel-btn')?.addEventListener('click', () => {
+                        document.body.removeChild(modal);
+                        resolve();
+                      });
+                      modal.querySelector('#modal-confirm-btn')?.addEventListener('click', async () => {
+                        document.body.removeChild(modal);
+                        await sendProposalToClient();
+                        resolve();
+                      });
+                    });
+                  }
+                }}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
