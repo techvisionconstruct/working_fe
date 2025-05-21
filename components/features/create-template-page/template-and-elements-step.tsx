@@ -486,6 +486,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     }
   };
 
+  // Add this helper function to extract variable names from formulas
+  const extractVariableNamesFromFormula = (formula: string): string[] => {
+    if (!formula) return [];
+    const variableNameRegex = /\{([^}]+)\}/g;
+    const matches = formula.match(variableNameRegex);
+    if (!matches) return [];
+    return matches.map((match) => match.substring(1, match.length - 1));
+  };
+
   const handleSelectTrade = (trade: TradeResponse) => {
     const newTrade: TradeResponse = {
       id: trade.id.toString(),
@@ -501,12 +510,87 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     if (!trades.some((t) => t.id === newTrade.id)) {
       updateTrades([...trades, newTrade]);
-      // If the trade has elements, show skeleton
+
+      // Auto-import variables from element formulas
       if (newTrade.elements && newTrade.elements.length > 0) {
+        // Show skeleton while we process
         setTradeSkeletons((prev) => ({ ...prev, [newTrade.id]: true }));
+
+        // Collect all variable names from element formulas
+        const variablesToAdd: VariableResponse[] = [];
+
+        newTrade.elements.forEach((element) => {
+          // Extract variable names from material formula
+          if (element.material_cost_formula) {
+            const materialFormulaVariableNames = extractVariableNamesFromFormula(
+              replaceVariableIdsWithNames(
+                element.material_cost_formula,
+                [], // Empty array because we're looking for names already in the formula
+                element.material_formula_variables || []
+              )
+            );
+
+            materialFormulaVariableNames.forEach((varName) => {
+              // Find in available variables but not in local variables
+              const availableVariable = variablesData?.data?.find(
+                (v: VariableResponse) =>
+                  v.name === varName &&
+                  !localVariables.some((localVar) => localVar.name === varName)
+              );
+
+              if (
+                availableVariable &&
+                !variablesToAdd.some((v) => v.id === availableVariable.id)
+              ) {
+                variablesToAdd.push(availableVariable);
+              }
+            });
+          }
+
+          // Extract variable names from labor formula
+          if (element.labor_cost_formula) {
+            const laborFormulaVariableNames = extractVariableNamesFromFormula(
+              replaceVariableIdsWithNames(
+                element.labor_cost_formula,
+                [], // Empty array because we're looking for names already in the formula
+                element.labor_formula_variables || []
+              )
+            );
+
+            laborFormulaVariableNames.forEach((varName) => {
+              // Find in available variables but not in local variables
+              const availableVariable = variablesData?.data?.find(
+                (v: VariableResponse) =>
+                  v.name === varName &&
+                  !localVariables.some((localVar) => localVar.name === varName)
+              );
+
+              if (
+                availableVariable &&
+                !variablesToAdd.some((v) => v.id === availableVariable.id)
+              ) {
+                variablesToAdd.push(availableVariable);
+              }
+            });
+          }
+        });
+
+        // Add the variables to local variables
+        if (variablesToAdd.length > 0) {
+          const updatedVariables = [...localVariables, ...variablesToAdd];
+          setLocalVariables(updatedVariables);
+          updateVariables(updatedVariables);
+
+          toast.success(`${variablesToAdd.length} variables automatically added`, {
+            position: "top-center",
+            description: `Required variables for formulas have been imported.`,
+          });
+        }
+
+        // Hide skeleton after processing
         setTimeout(() => {
           setTradeSkeletons((prev) => ({ ...prev, [newTrade.id]: false }));
-        }, 1000); // 1 second
+        }, 1000);
       }
     }
 
