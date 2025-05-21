@@ -25,12 +25,13 @@ export default function Navbar() {
 
   return (
     <header
-      className="fixed top-0 z-50 w-full transition-all duration-300 text-white shadow"
+      className={`fixed top-0 z-50 w-full transition-all duration-300 ${
+        scrolled
+          ? "bg-background/80 backdrop-blur-md border-b border-border/40 text-foreground"
+          : "bg-transparent text-white"
+      }`}
       style={{
-        borderBottom: '1px solid #9CA3AF',
-        backgroundColor: 'hsl(0, 85%, 30%)',
-        color: '#FFFFFF',
-        boxShadow: '0 2px 8px 0 #9CA3AF22',
+        borderColor: scrolled ? 'hsla(20, 10%, 90%, 0.4)' : 'transparent'
       }}
     >
       <div className="container flex h-20 items-center justify-between mx-auto">
@@ -40,7 +41,7 @@ export default function Navbar() {
             alt="Simple ProjeX"
             width={40}
             height={40}
-            className=""
+            className={scrolled ? "" : "invert"}
             priority
             loading="eager"
             style={{ height: 'auto' }}
@@ -50,25 +51,33 @@ export default function Navbar() {
         <nav className="hidden md:flex gap-6 z-10">
           <Link
             href="#features"
-            className="text-sm font-medium transition-colors text-[#FFFFFF] hover:text-[#FF784E] focus:text-[#FF784E]"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
+            }`}
           >
             Features
           </Link>
           <Link
             href="#industries"
-            className="text-sm font-medium transition-colors text-[#FFFFFF] hover:text-[#FF784E] focus:text-[#FF784E]"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
+            }`}
           >
             Industries
           </Link>
           <Link
             href="#pricing"
-            className="text-sm font-medium transition-colors text-[#FFFFFF] hover:text-[#FF784E] focus:text-[#FF784E]"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
+            }`}
           >
             Pricing
           </Link>
           <Link
             href="#testimonials"
-            className="text-sm font-medium transition-colors text-[#FFFFFF] hover:text-[#FF784E] focus:text-[#FF784E]"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
+            }`}
           >
             Testimonials
           </Link>
@@ -76,18 +85,22 @@ export default function Navbar() {
         <div className="flex items-center gap-4 z-10">
           <Button
             variant="ghost"
-            className="text-[#FFFFFF] hover:bg-white/10"
-            style={{ color: '#FFFFFF' }}
+            className={scrolled ? "text-foreground hover:bg-muted" : "text-white hover:bg-white/10"}
           >
             Log in
           </Button>
           <Button
-            className="bg-[#FFFFFF] text-[#8B0000] hover:bg-white/90"
-            style={{ backgroundColor: '#FFFFFF', color: 'hsl(0, 85%, 30%)' }}
+            className={
+              scrolled ? "bg-primary text-white hover:bg-primary/90" : "bg-white text-primary hover:bg-white/90"
+            }
+            style={{
+              backgroundColor: scrolled ? 'hsl(0, 85%, 30%)' : 'white',
+              color: scrolled ? 'white' : 'hsl(0, 85%, 30%)'
+            }}
           >
-            Schedule a Demo
+            Schedule a demo
           </Button>
-          <Button variant="ghost" size="icon" className="md:hidden text-[#FFFFFF]">
+          <Button variant="ghost" size="icon" className={`md:hidden ${scrolled ? "text-foreground" : "text-white"}`}>
             <Menu className="h-6 w-6" />
             <span className="sr-only">Menu</span>
           </Button>

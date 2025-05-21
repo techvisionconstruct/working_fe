@@ -52,30 +52,7 @@ function StepsSection() {
               : "bg-white border-gray-200"
           } rounded-lg shadow-inner overflow-hidden`}
         >
-          <div className="w-full h-full p-8 flex flex-col items-center justify-center">
-            <img
-              src="/template/register.png"
-              alt="Sign Up"
-              className="w-full h-full mb-6"
-            />
-            <h3
-              className={`text-xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-black"
-              }`}
-            >
-              Sign Up
-            </h3>
-            <p
-              className={`text-center mb-4 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              Enter your email and create a password to get started instantly.
-            </p>
-            <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
-              Create Account
-            </Button>
-          </div>
+
         </div>
       ),
     },
@@ -181,7 +158,7 @@ function StepsSection() {
     <div>
       <section
         id="steps"
-        className="py-32"
+        className="py-20"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
