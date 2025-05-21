@@ -965,28 +965,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       return;
     }
     
-    // Prepare a loading toast
+
     const loadingToast = toast.loading(`Updating ${elementCount} elements with ${markupValue}% markup...`, {
       position: "top-center"
     });
-    
-    // First, update the element objects in our local state
-    const updatedTrades = trades.map(trade => ({
-      ...trade,
-      elements: trade.elements?.map(element => ({
-        ...element,
-        markup: markupValue
-      })) || []
-    }));
-    
-    // Update local state immediately
-    updateTrades(updatedTrades);
-    
-    // Create an array to track all update promises
-    const updatePromises: Promise<any>[] = [];
-    
-    // For each element, send a proper complete update to the backend
-    updatedTrades.forEach(trade => {
+
+    const updatePromises: Promise<{tradeId: string, updatedElement: any}>[] = [];
+
+
+    trades.forEach(trade => {
       trade.elements?.forEach(element => {
         if (!element || !element.id) return; // Skip invalid elements
         
@@ -1002,60 +989,81 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           labor_formula_variables: element.labor_formula_variables,
         };
         
-        // Add this update to our promises array - use updateElementMutation instead of direct API call
+        // Add this update to our promises array - use updateElementMutation and preserve the response
         updatePromises.push(
           updateElement(element.id, elementData)
+            .then(response => ({
+              tradeId: trade.id,
+              updatedElement: response.data
+            }))
             .catch(error => {
               console.error(`Error updating element ${element.id}:`, error);
-              throw error; // Re-throw to be caught by the Promise.all
+              throw error;
             })
         );
       });
     });
-    
-    // Process all updates in parallel
+
     Promise.all(updatePromises)
-      .then(() => {
-        console.log(`Successfully updated ${updatePromises.length} elements with markup ${markupValue}%`);
-        // Force a refresh of the trades/elements data
+      .then((results) => {
+        console.log(`Successfully updated ${results.length} elements with markup ${markupValue}%`);
+
+        const updatedTrades = trades.map(trade => ({
+          ...trade,
+          elements: trade.elements?.map(element => {
+            const result = results.find(r => 
+              r.tradeId === trade.id && 
+              r.updatedElement.id === element.id
+            );
+            return result ? result.updatedElement : element;
+          }) || []
+        }));
+
+        updateTrades(updatedTrades);
+
         queryClient.invalidateQueries({ queryKey: ["elements"] });
         queryClient.invalidateQueries({ queryKey: ["trades"] });
         
-        // Dismiss loading toast and show success
+
         toast.dismiss(loadingToast);
         toast.success(`Applied ${markupValue}% markup to all elements`, {
           position: "top-center",
-          description: `Updated ${updatePromises.length} elements with ${markupValue}% markup.`
+          description: `Updated ${results.length} elements with ${markupValue}% markup.`
         });
-      })
-      .catch(error => {
+      })      .catch(error => {
         console.error("Error applying global markup:", error);
         
-        // Dismiss loading toast and show error
+
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        
+
         toast.dismiss(loadingToast);
         toast.error("Error applying global markup", {
           position: "top-center",
-          description: error instanceof Error ? error.message : "Failed to update one or more elements"
+          description: error instanceof Error ? error.message : "Failed to update one or more elements. The original values have been restored."
         });
       });
   };
-  // Track initial render for global markup
-  const isFirstGlobalMarkupRender = useRef(true);
-  useEffect(() => {
-    // Skip first render to avoid unnecessary updates when component mounts
+
+  const isFirstGlobalMarkupRender = useRef(true);  useEffect(() => {
+
     if (isFirstGlobalMarkupRender.current) {
       isFirstGlobalMarkupRender.current = false;
       return;
     }
     
-    // Only apply global markup when it's enabled and we have trades with elements
-    if (isGlobalMarkupEnabled && trades.some(trade => (trade.elements || []).length > 0)) {
-      // Add a small delay to ensure the state has been updated
+    if (trades.some(trade => (trade.elements || []).length > 0)) {
+
       const timer = setTimeout(() => {
-        applyGlobalMarkup(globalMarkupValue);
+        if (isGlobalMarkupEnabled) {
+
+          applyGlobalMarkup(globalMarkupValue);
+        }
+
       }, 100);
       
-      // Clean up timer if component unmounts
+
       return () => clearTimeout(timer);
     }
   }, [isGlobalMarkupEnabled, globalMarkupValue]);
@@ -1064,8 +1072,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setEditingMarkupElementId(element.id);
     setInlineMarkupValue(element.markup || 0);
   };
-
   const saveElementMarkup = (elementId: string, tradeId: string, newMarkup: number) => {
+    if (isGlobalMarkupEnabled) {
+      setIsGlobalMarkupEnabled(false);
+    }
+
     const updatedTrades = trades.map(trade => {
       if (trade.id === tradeId) {
         return {
@@ -2036,31 +2047,25 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     globalMarkupValue={globalMarkupValue}
                     onUseGlobalMarkup={() => {
                       if (currentElementId) {
-                        // Update markup in local state
                         setElementMarkup(globalMarkupValue);
-                        
-                        // Find the current element from all trades
                         const currentElement = trades
                           .flatMap(trade => trade.elements || [])
                           .find(element => element.id === currentElementId);
                           
                         if (currentElement) {
-                          // Create a complete element update with all required fields
+
                           const elementData = {
                             name: currentElement.name,
                             description: currentElement.description || undefined,
                             material_cost_formula: currentElement.material_cost_formula,
                             labor_cost_formula: currentElement.labor_cost_formula,
                             markup: globalMarkupValue,
-                            // Include any other essential fields
                             material_formula_variables: currentElement.material_formula_variables,
                             labor_formula_variables: currentElement.labor_formula_variables,
                           };
                           
-                          // Update the element on the backend
                           updateElement(currentElementId, elementData)
                             .then(() => {
-                              // Update local state
                               const updatedTrades = trades.map(trade => ({
                                 ...trade,
                                 elements: trade.elements?.map(element => 
@@ -2070,15 +2075,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                 ) || []
                               }));
                               
-                              // Update local state immediately
+
                               updateTrades(updatedTrades);
                               
-                              // Show success message
                               toast.success(`Applied global markup of ${globalMarkupValue}% to element`, {
                                 position: "top-center"
                               });
                               
-                              // Force a refresh of the trades/elements data
                               queryClient.invalidateQueries({ queryKey: ["elements"] });
                             })
                             .catch(error => {

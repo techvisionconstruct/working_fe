@@ -592,7 +592,7 @@ function HeroSection() {
               onClick={() => setShowVideo(true)}
             >
               <video
-                src="/template/Demo_Video.mp4"
+                src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/media/videos/Demo_Video.mp4"
                 className="w-full h-full object-cover"
                 muted
                 loop
@@ -653,7 +653,7 @@ function HeroSection() {
                 <span className="text-xl">&times;</span>
               </button>
               <video
-                src="/template/Demo_Video.mp4"
+                src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/media/videos/Demo_Video.mp4"
                 className="w-full h-full object-contain"
                 controls
                 autoPlay

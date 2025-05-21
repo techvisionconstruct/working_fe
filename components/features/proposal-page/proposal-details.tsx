@@ -12,21 +12,18 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   const [isSending, setIsSending] = useState(false);
   const sendProposalToClient = async () => {
     if (!proposal.id) return;
-
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
     setIsSending(true);
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/proposals/send/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            proposal_id: proposal.id,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/v1/proposals/send/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          proposal_id: proposal.id,
+        }),
+      });
 
       const data = await response.json();
 
@@ -125,7 +122,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                               {variable.name}
                                               {variable.value !== undefined && (
                                                 <span className="ml-1 font-normal">
-                                                  : {variable.value} {variable.variable_type?.unit}
+                                                  : {variable.value}{" "}
+                                                  {variable.variable_type?.unit}
                                                 </span>
                                               )}
                                             </span>
@@ -272,20 +270,23 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                       <div className="flex items-center gap-2 flex-wrap justify-end">
                                         <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
                                           Material: $
-                                          {Number(element.material_cost || 0).toFixed(2)}
+                                          {Number(
+                                            element.material_cost || 0
+                                          ).toFixed(2)}
                                         </span>
                                         <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
-                                          Labor: ${Number(element.labor_cost || 0).toFixed(2)}
+                                          Labor: $
+                                          {Number(
+                                            element.labor_cost || 0
+                                          ).toFixed(2)}
                                         </span>
                                         <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
                                           Markup: {element.markup || 0}%
                                         </span>
                                         <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
                                           Total: $
-                                          {(
-                                            (Number(element.material_cost || 0) + Number(element.labor_cost || 0)) * 
-                                            (1 + (Number(element.markup || 0) / 100))
-                                          ).toFixed(2)}
+                                          {Number(element.material_cost || 0) +
+                                            Number(element.labor_cost || 0)}
                                         </span>
                                       </div>
                                     </div>

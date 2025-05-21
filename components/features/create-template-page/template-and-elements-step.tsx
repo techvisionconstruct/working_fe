@@ -24,7 +24,14 @@ import {
   SelectValue,
 } from "@/components/shared";
 import { toast } from "sonner";
-import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
+import {
+  X,
+  BracesIcon,
+  Variable,
+  Search,
+  Loader2,
+  PlusCircle,
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
 import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
@@ -50,6 +57,8 @@ import {
 import { getVariables } from "@/queryOptions/variables";
 import { getTrades } from "@/queryOptions/trades";
 import { getElements } from "@/queryOptions/elements";
+import { ProductResponse } from "@/types/products/dto";
+import { cn } from "@/lib/utils";
 
 interface TradesAndElementsStepProps {
   data: {
@@ -106,10 +115,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     null
   );
   const [newElementName, setNewElementName] = useState("");
-  
+
   // Store a local copy of variables to prevent issues with autocomplete
   const [localVariables, setLocalVariables] = useState<VariableResponse[]>([]);
-  
+
   // Update local variables when data.variables changes
   useEffect(() => {
     if (data.variables && data.variables.length > 0) {
@@ -127,6 +136,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddTradeDialog, setShowAddTradeDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Add with other states
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
   // API Queries
   const { data: tradesData, isLoading: tradesLoading } = useQuery(
@@ -384,8 +396,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         )
       : [];
 
-  console.log("filteredVariables", filteredVariables);
-
   const filteredTrades =
     tradeSearchQuery === ""
       ? []
@@ -462,11 +472,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleRemoveVariable = (variableId: string) => {
     const usedInElements = findElementsUsingVariable(variableId);
     if (usedInElements.length > 0) {
-      setVariableToRemove(localVariables.find((v) => v.id === variableId) || null);
+      setVariableToRemove(
+        localVariables.find((v) => v.id === variableId) || null
+      );
       setElementsUsingVariable(usedInElements);
       setShowRemoveVariableConfirm(true);
     } else {
-      const updatedVariables = localVariables.filter((v) => v.id !== variableId);
+      const updatedVariables = localVariables.filter(
+        (v) => v.id !== variableId
+      );
       setLocalVariables(updatedVariables);
       updateVariables(updatedVariables);
     }
@@ -589,14 +603,18 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     description: string;
     materialFormula: string;
     laborFormula: string;
+    materialFormulaProducts?: Record<string, any>[];
+    laborFormulaProducts?: Record<string, any>[];
   }) => {
     if (!data.name.trim() || !currentTradeId) return;
 
-    const materialFormula = data.materialFormula.trim()
+    // Replace variable names with IDs in material formula
+    let materialFormula = data.materialFormula.trim()
       ? replaceVariableNamesWithIds(data.materialFormula.trim(), variables)
       : undefined;
 
-    const laborFormula = data.laborFormula.trim()
+    // Replace variable names with IDs in labor formula
+    let laborFormula = data.laborFormula.trim()
       ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
       : undefined;
 
@@ -637,6 +655,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       description: data.description.trim() || undefined,
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
+      markup: 1,
     };
 
     updateElementMutation({
@@ -648,7 +667,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   // Confirm remove
   const confirmRemoveVariable = () => {
     if (variableToRemove) {
-      const updatedVariables = localVariables.filter((v) => v.id !== variableToRemove.id);
+      const updatedVariables = localVariables.filter(
+        (v) => v.id !== variableToRemove.id
+      );
       setLocalVariables(updatedVariables);
       updateVariables(updatedVariables);
       setShowRemoveVariableConfirm(false);
@@ -662,6 +683,84 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setShowRemoveVariableConfirm(false);
     setVariableToRemove(null);
     setElementsUsingVariable([]);
+  };
+
+  // Add state for edit variable dialog
+  const [showEditVariableDialog, setShowEditVariableDialog] = useState(false);
+  const [variableToEdit, setVariableToEdit] = useState<VariableResponse | null>(null);
+
+  // Handler to open edit dialog and prefill form
+  const handleOpenEditVariableDialog = (variable: VariableResponse) => {
+    setVariableToEdit(variable);
+    setNewVarName(variable.name);
+    setNewVarDescription(variable.description || "");
+    setNewVarDefaultValue(variable.value ?? 0);
+    setNewVarDefaultVariableType(variable.variable_type?.id?.toString() || "");
+    setShowEditVariableDialog(true);
+  };
+
+  // Handler to submit edit
+  const handleEditVariable = () => {
+    if (!validateVariableForm() || !variableToEdit) return;
+    const updatedVariable: VariableResponse = {
+      ...variableToEdit,
+      name: newVarName.trim(),
+      description: newVarDescription.trim() || undefined,
+      value: newVarDefaultValue,
+      variable_type: {
+        ...variableToEdit.variable_type,
+        id: newVarDefaultVariableType,
+        name: variableToEdit.variable_type?.name || "",
+        category: variableToEdit.variable_type?.category || "",
+        unit: variableToEdit.variable_type?.unit || "",
+        is_built_in: variableToEdit.variable_type?.is_built_in ?? false,
+        created_at: variableToEdit.variable_type?.created_at || "",
+        updated_at: variableToEdit.variable_type?.updated_at || "",
+        created_by: variableToEdit.variable_type?.created_by,
+        updated_by: variableToEdit.variable_type?.updated_by,
+      },
+    };
+    const updatedVariables = localVariables.map((v) =>
+      v.id === variableToEdit.id ? updatedVariable : v
+    );
+    setLocalVariables(updatedVariables);
+    updateVariables(updatedVariables);
+    setShowEditVariableDialog(false);
+    setVariableToEdit(null);
+    setNewVarName("");
+    setNewVarDescription("");
+    setNewVarDefaultValue(0);
+    setNewVarDefaultVariableType("");
+  };
+
+  // Add state for edit trade dialog
+  const [showEditTradeDialog, setShowEditTradeDialog] = useState(false);
+  const [tradeToEdit, setTradeToEdit] = useState<TradeResponse | null>(null);
+
+  // Handler to open edit trade dialog and prefill form
+  const handleOpenEditTradeDialog = (trade: TradeResponse) => {
+    setTradeToEdit(trade);
+    setNewTradeName(trade.name);
+    setNewTradeDescription(trade.description || "");
+    setShowEditTradeDialog(true);
+  };
+
+  // Handler to submit trade edit
+  const handleEditTrade = () => {
+    if (!validateTradeForm() || !tradeToEdit) return;
+    const updatedTrade: TradeResponse = {
+      ...tradeToEdit,
+      name: newTradeName.trim(),
+      description: newTradeDescription.trim() || undefined,
+    };
+    const updatedTrades = trades.map((t) =>
+      t.id === tradeToEdit.id ? updatedTrade : t
+    );
+    updateTrades(updatedTrades);
+    setShowEditTradeDialog(false);
+    setTradeToEdit(null);
+    setNewTradeName("");
+    setNewTradeDescription("");
   };
 
   // =========== VALIDATION STATE/FORMS ===========
@@ -698,13 +797,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const validateVariableForm = () => {
     const newErrors = { name: "", variable_type: "" };
 
+    // Exclude the variable being edited from the duplicate name check
+    const duplicate = variables.some((v) =>
+      v.name.toLowerCase() === newVarName.toLowerCase() &&
+      (!variableToEdit || v.id !== variableToEdit.id)
+    );
+
     if (!newVarName.trim()) {
       newErrors.name = "Variable name is required";
     } else if (newVarName.length > 50) {
       newErrors.name = "Variable name must be less than 50 characters";
-    } else if (
-      variables.some((v) => v.name.toLowerCase() === newVarName.toLowerCase())
-    ) {
+    } else if (duplicate) {
       newErrors.name = "Variable with this name already exists";
     }
 
@@ -723,13 +826,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const validateTradeForm = () => {
     const newErrors = { name: "" };
 
+    // Exclude the trade being edited from the duplicate name check
+    const duplicate = trades.some((t) =>
+      t.name.toLowerCase() === newTradeName.toLowerCase() &&
+      (!tradeToEdit || t.id !== tradeToEdit.id)
+    );
+
     if (!newTradeName.trim()) {
       newErrors.name = "Trade name is required";
     } else if (newTradeName.length > 50) {
       newErrors.name = "Trade name must be less than 50 characters";
-    } else if (
-      trades.some((t) => t.name.toLowerCase() === newTradeName.toLowerCase())
-    ) {
+    } else if (duplicate) {
       newErrors.name = "Trade with this name already exists";
     }
 
@@ -758,6 +865,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       });
     });
     return usedIn;
+  };
+
+  // Add this helper function
+  const hasExactMatch = (query: string, trades: TradeResponse[]) => {
+    return trades.some(
+      (trade) => trade.name.toLowerCase() === query.toLowerCase()
+    );
   };
 
   return (
@@ -1082,8 +1196,42 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         {variables.map((variable) => (
                           <div
                             key={variable.id}
-                            className="border rounded-md p-3 bg-muted/30 relative group"
+                            className="border rounded-md p-3 bg-muted/30 relative group overflow-visible"
                           >
+                            {/* Edit and Remove buttons in the absolute top right corner, matching elements */}
+                            <div className="absolute -top-2 -right-2 flex gap-1 z-10">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
+                                onClick={() => handleOpenEditVariableDialog(variable)}
+                                aria-label="Edit variable"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="11"
+                                  height="11"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
+                                onClick={() => handleRemoveVariable(variable.id)}
+                                aria-label="Remove variable"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </Button>
+                            </div>
                             <div className="flex items-center justify-between">
                               <div className="font-medium text-sm flex items-center">
                                 {variable.name}
@@ -1097,14 +1245,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                 {variable.description}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                              onClick={() => handleRemoveVariable(variable.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
                           </div>
                         ))}
                       </div>
@@ -1143,7 +1283,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       value={tradeSearchQuery}
                       onChange={(e) => {
                         setTradeSearchQuery(e.target.value);
-                        // Always show suggestions if there's content, regardless of results
+                        setSelectedSuggestionIndex(-1); // Reset selection
                         if (e.target.value.trim()) {
                           setIsTradeSearchOpen(true);
                         } else {
@@ -1167,13 +1307,47 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         }
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === "Tab" && filteredTrades.length > 0) {
+                        // Handle up/down arrows
+                        if (e.key === "ArrowDown") {
                           e.preventDefault();
-                          handleSelectTrade(filteredTrades[0]);
+                          setSelectedSuggestionIndex((prev) => {
+                            const maxIndex = !hasExactMatch(
+                              tradeSearchQuery,
+                              filteredTrades
+                            )
+                              ? filteredTrades.length
+                              : filteredTrades.length - 1;
+                            return prev < maxIndex ? prev + 1 : 0;
+                          });
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setSelectedSuggestionIndex((prev) =>
+                            prev > 0
+                              ? prev - 1
+                              : !hasExactMatch(tradeSearchQuery, filteredTrades)
+                              ? filteredTrades.length
+                              : filteredTrades.length - 1
+                          );
                         } else if (e.key === "Enter") {
-                          if (
-                            filteredTrades.length === 0 ||
-                            !tradeSearchQuery.trim()
+                          if (selectedSuggestionIndex >= 0) {
+                            e.preventDefault();
+                            if (
+                              selectedSuggestionIndex ===
+                                filteredTrades.length &&
+                              !hasExactMatch(tradeSearchQuery, filteredTrades)
+                            ) {
+                              // Create new trade option selected
+                              setShowAddTradeDialog(true);
+                              setNewTradeName(tradeSearchQuery.trim());
+                              setIsTradeSearchOpen(false);
+                            } else {
+                              // Existing trade selected
+                              handleSelectTrade(
+                                filteredTrades[selectedSuggestionIndex]
+                              );
+                            }
+                          } else if (
+                            !hasExactMatch(tradeSearchQuery, filteredTrades)
                           ) {
                             setIsTradeSearchOpen(false);
                             setShowAddTradeDialog(true);
@@ -1202,7 +1376,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </div>
                     )}
                   </div>
-
                   {/* Trade search results dropdown */}
                   {tradeSearchQuery.trim() && isTradeSearchOpen && (
                     <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
@@ -1210,47 +1383,56 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         <p className="text-xs text-muted-foreground mb-1 px-2">
                           Trades
                         </p>
-                        {filteredTrades.length > 0 ? (
-                          filteredTrades
-                            .filter((trade) => trade.origin === "original")
-                            .map((trade) => (
-                              <div
-                                key={trade.id}
-                                className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                                onClick={() => handleSelectTrade(trade)}
-                              >
-                                <div className="flex items-center">
-                                  <BracesIcon className="mr-2 h-4 w-4" />
-                                  <span>{trade.name}</span>
-                                </div>
+                        <div className="space-y-1">
+                          {/* Show create option if no exact match */}
+                          {!hasExactMatch(tradeSearchQuery, filteredTrades) && (
+                            <div
+                              className={cn(
+                                "flex items-center justify-between w-full p-2 text-sm cursor-pointer rounded-md border-t",
+                                selectedSuggestionIndex ===
+                                  filteredTrades.length
+                                  ? "bg-accent text-accent-foreground"
+                                  : "hover:bg-accent hover:text-accent-foreground"
+                              )}
+                              onClick={() => {
+                                setShowAddTradeDialog(true);
+                                setNewTradeName(tradeSearchQuery.trim());
+                                setIsTradeSearchOpen(false);
+                              }}
+                            >
+                              <div className="flex items-center">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                <span>Create "{tradeSearchQuery}"</span>
                               </div>
-                            ))
-                        ) : (
-                          <div className="p-2 text-sm">
-                            {trades.some((t) =>
-                              t.name
-                                .toLowerCase()
-                                .includes(tradeSearchQuery.toLowerCase())
-                            ) ? (
-                              <span className="text-muted-foreground">
-                                Trade already added
-                              </span>
-                            ) : (
-                              <div>
-                                <span className="text-muted-foreground">
-                                  "{tradeSearchQuery}" doesn't exist.
-                                </span>
-                                <p className="text-xs mt-1 text-primary">
-                                  Press Enter to create this trade
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                            </div>
+                          )}
+                          {filteredTrades.length > 0 && (
+                            <div className="space-y-1">
+                              {filteredTrades
+                                .filter((trade) => trade.origin === "original")
+                                .map((trade, index) => (
+                                  <div
+                                    key={trade.id}
+                                    className={cn(
+                                      "flex items-center justify-between w-full p-2 text-sm cursor-pointer rounded-md",
+                                      selectedSuggestionIndex === index
+                                        ? "bg-accent text-accent-foreground"
+                                        : "hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                    onClick={() => handleSelectTrade(trade)}
+                                  >
+                                    <div className="flex items-center">
+                                      <BracesIcon className="mr-2 h-4 w-4" />
+                                      <span>{trade.name}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
-
                   {/* Dialog for adding a new trade */}
                   <Dialog
                     open={showAddTradeDialog}
@@ -1676,14 +1858,39 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                 </div>
                               </div>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                                onClick={() => handleRemoveTrade(trade.id)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <div className="absolute -top-2 -right-2 flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
+                                  onClick={() => handleOpenEditTradeDialog(trade)}
+                                  aria-label="Edit trade"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="11"
+                                    height="11"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
+                                  onClick={() => handleRemoveTrade(trade.id)}
+                                  aria-label="Remove trade"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </>
                           )}
                         </div>
@@ -1712,7 +1919,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         initialName={newElementName}
         variables={localVariables}
         updateVariables={(updatedVariables) => {
-          if (typeof updatedVariables === 'function') {
+          if (typeof updatedVariables === "function") {
             // If it's a function, compute the new value based on current localVariables
             const newVars = updatedVariables(localVariables);
             setLocalVariables(newVars);
@@ -1737,7 +1944,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             const safeCallback = (newVar: VariableResponse) => {
               try {
                 if (!newVar) return;
-                console.log(`Variable created, running callback for: ${newVar.name}`);
+                console.log(
+                  `Variable created, running callback for: ${newVar.name}`
+                );
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);
@@ -1760,7 +1969,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         elementToEdit={elementToEdit}
         variables={localVariables}
         updateVariables={(updatedVariables) => {
-          if (typeof updatedVariables === 'function') {
+          if (typeof updatedVariables === "function") {
             // If it's a function, compute the new value based on current localVariables
             const newVars = updatedVariables(localVariables);
             setLocalVariables(newVars);
@@ -1785,7 +1994,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             const safeCallback = (newVar: VariableResponse) => {
               try {
                 if (!newVar) return;
-                console.log(`Variable created, running callback for: ${newVar.name}`);
+                console.log(
+                  `Variable created, running callback for: ${newVar.name}`
+                );
                 callback(newVar);
               } catch (err) {
                 console.error("Error in variable creation callback:", err);
@@ -1801,100 +2012,193 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         }}
       />
 
-      {/* Confirm Remove Variable Dialog */}
-      <ConfirmDialog
-        open={showRemoveVariableConfirm}
-        onOpenChange={setShowRemoveVariableConfirm}
-      >
-        <ConfirmDialogContent>
-          <ConfirmDialogHeader>
-            <ConfirmDialogTitle>
-              This variable is being used in an element
-            </ConfirmDialogTitle>
-          </ConfirmDialogHeader>
-          <div className="py-2">
-            <p>
-              <b>{variableToRemove?.name}</b> is being used in the following
-              elements:
-            </p>
-            <ul className="list-disc pl-6 mt-2 text-sm">
-              {elementsUsingVariable.map((el) => (
-                <li key={el.id}>{el.name}</li>
-              ))}
-            </ul>
-            <p className="mt-3 text-destructive">
-              Deleting it might affect these elements. Would you still like to
-              proceed?
-            </p>
+      <Dialog open={showEditVariableDialog} onOpenChange={setShowEditVariableDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <BracesIcon className="mr-2 h-4 w-4" />
+              Edit Template Variable
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-var-name">
+                Variable Name <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="edit-var-name"
+                  placeholder="Wall Length"
+                  value={newVarName}
+                  onChange={(e) => setNewVarName(e.target.value)}
+                  onBlur={() => handleVariableBlur("name")}
+                  className={
+                    variableErrors.name && variableTouched.name
+                      ? "border-red-500 pr-10"
+                      : "pr-10"
+                  }
+                />
+                {newVarName && (
+                  <button
+                    type="button"
+                    onClick={() => setNewVarName("")}
+                    className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                    tabIndex={-1}
+                    aria-label="Clear variable name"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                )}
+              </div>
+              {variableErrors.name && variableTouched.name && (
+                <p className="text-xs text-red-500">{variableErrors.name}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-var-type">
+                Variable Type <span className="text-red-500">*</span>
+              </Label>
+              {isLoadingVariableTypes ? (
+                <div className="relative">
+                  <Select disabled>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Loading variable types..." />
+                    </SelectTrigger>
+                  </Select>
+                  <div className="text-xs text-muted-foreground flex items-center mt-1">
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                    Loading variable types...
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Select
+                    value={newVarDefaultVariableType}
+                    onValueChange={setNewVarDefaultVariableType}
+                  >
+                    <SelectTrigger
+                      className={`w-full ${
+                        variableErrors.variable_type && variableTouched.variable_type
+                          ? "border-red-500"
+                          : ""
+                      }`}
+                    >
+                      <SelectValue placeholder="Select a variable type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray((apiVariableTypes as any)?.data) ? (
+                        (apiVariableTypes as any).data.map((type: any) => (
+                          <SelectItem key={type.id} value={type.id.toString()}>
+                            {type.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="default">Default Type</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {variableErrors.variable_type && variableTouched.variable_type && (
+                    <p className="text-xs text-red-500">{variableErrors.variable_type}</p>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-var-description">
+                Description <span className="text-gray-500">&#40;Optional&#41;</span>
+              </Label>
+              <Textarea
+                id="edit-var-description"
+                placeholder="What this variable represents (optional)"
+                value={newVarDescription}
+                onChange={(e) => setNewVarDescription(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
           </div>
-          <ConfirmDialogFooter>
-            <Button variant="outline" onClick={cancelRemoveVariable}>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditVariableDialog(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmRemoveVariable}>
-              Yes, Remove
+            <Button onClick={handleEditVariable} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
-          </ConfirmDialogFooter>
-        </ConfirmDialogContent>
-      </ConfirmDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Missing Variable Dialog */}
-      <ConfirmDialog
-        open={showMissingVariableDialog}
-        onOpenChange={setShowMissingVariableDialog}
-      >
-        <ConfirmDialogContent>
-          <ConfirmDialogHeader>
-            <ConfirmDialogTitle>Variable Missing from List</ConfirmDialogTitle>
-          </ConfirmDialogHeader>
-          <div className="py-2">
-            <p>
-              The variable <b>{missingVariable}</b> is currently being used in
-              an element but is not in the Variable List.
-            </p>
-            <p className="mt-2">
-              Would you like to create it or delete the variable from the
-              element?
-            </p>
+      <Dialog open={showEditTradeDialog} onOpenChange={setShowEditTradeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <BracesIcon className="mr-2 h-4 w-4" />
+              Edit Trade
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-trade-name">
+                Trade Name <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="edit-trade-name"
+                  placeholder="Framing"
+                  value={newTradeName}
+                  onChange={(e) => setNewTradeName(e.target.value)}
+                  onBlur={() => handleTradeBlur("name")}
+                  className={
+                    tradeErrors.name && tradeTouched.name
+                      ? "border-red-500 pr-10"
+                      : "pr-10"
+                  }
+                />
+                {newTradeName && (
+                  <button
+                    type="button"
+                    onClick={() => setNewTradeName("")}
+                    className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                    tabIndex={-1}
+                    aria-label="Clear trade name"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                )}
+              </div>
+              {tradeErrors.name && tradeTouched.name && (
+                <p className="text-xs text-red-500">{tradeErrors.name}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-trade-description">
+                Description <span className="text-gray-500">&#40;Optional&#41;</span>
+              </Label>
+              <Textarea
+                id="edit-trade-description"
+                placeholder="Description of what this trade covers"
+                value={newTradeDescription}
+                onChange={(e) => setNewTradeDescription(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
           </div>
-          <ConfirmDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowMissingVariableDialog(false);
-                // Optionally, trigger logic to create the variable
-                if (updateVariables && missingVariable) {
-                  updateVariables([
-                    ...variables,
-                    {
-                      id: Date.now().toString(),
-                      name: missingVariable,
-                      description: "",
-                      value: 0,
-                      is_global: false,
-                      variable_type: undefined,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                    },
-                  ]);
-                }
-              }}
-            >
-              Create Variable
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditTradeDialog(false)}>
+              Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setShowMissingVariableDialog(false);
-                // Optionally, trigger logic to remove the variable from all elements
-                // (You may want to implement this logic as needed)
-              }}
-            >
-              Delete Variable from Element
+            <Button onClick={handleEditTrade}>
+              Save Changes
             </Button>
-          </ConfirmDialogFooter>
-        </ConfirmDialogContent>
-      </ConfirmDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
