@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContract } from "@/api/contracts/create-contract";
 import { updateContract } from "@/api/contracts/update-contract";
 import { updateProposal } from "@/api/proposals/update-proposal";
@@ -42,6 +42,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { ContractCreateRequest } from "@/types/contracts/dto";
+import { getContract } from "@/queryOptions/contracts";
 
 interface TermSection {
   id: number;
@@ -154,15 +155,30 @@ const EditableField: React.FC<EditableFieldProps> = ({
         <div className="flex justify-end mt-2 space-x-2 items-center">
           <div className="flex items-center gap-1">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -213,24 +229,28 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   // Handle clicks outside to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isEditing && inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (
+        isEditing &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
         handleSave();
       }
     };
-    
+
     if (isEditing) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditing, tempValue]);
-  
+
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       handleCancel();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       handleSave();
     }
@@ -267,15 +287,30 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
           />
           <div className="flex items-center gap-1">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -300,12 +335,20 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   );
 };
 
-export function ContractDetails({ proposal }: { proposal: ProposalResponse }) {
-  const [isSending, setIsSending] = useState(false);
+export function CreateContract({
+  contract_id,
+  proposal,
+}: {
+  contract_id: string;
+  proposal: ProposalResponse | undefined;
+}) {
   // Add local contract state
-  const [localContract, setLocalContract] = useState(proposal.contract);
+  const { data: contract } = useQuery(getContract(contract_id as string));
+
+
   // Use localContract if available, otherwise fallback to proposal.contract
-  const contract = localContract || proposal.contract;
+
+  console.log("Contract data:", contract);
 
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
@@ -315,20 +358,24 @@ export function ContractDetails({ proposal }: { proposal: ProposalResponse }) {
     useState(false);
   const [isEditingServiceAgreementBody, setIsEditingServiceAgreementBody] =
     useState(false);
-  const [editingTermSectionId, setEditingTermSectionId] = useState<number | null>(
-    null
-  );
+  const [editingTermSectionId, setEditingTermSectionId] = useState<
+    number | null
+  >(null);
 
   // Client information states with detailed saving status
-  const [clientName, setClientName] = useState(proposal.client_name || "");
-  const [clientEmail, setClientEmail] = useState(proposal.client_email || "");
-  const [clientPhone, setClientPhone] = useState(proposal.client_phone || "");
-  const [clientAddress, setClientAddress] = useState(proposal.client_address || "");
+  const [clientName, setClientName] = useState(proposal?.client_name || "");
+  const [clientEmail, setClientEmail] = useState(proposal?.client_email || "");
+  const [clientPhone, setClientPhone] = useState(proposal?.client_phone || "");
+  const [clientAddress, setClientAddress] = useState(
+    proposal?.client_address || ""
+  );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
 
   // Add state for editable contract name and description
-  const [contractName, setContractName] = useState(proposal.name || "");
-  const [contractDescription, setContractDescription] = useState(proposal.description || "");
+  const [contractName, setContractName] = useState(contract?.name || "");
+  const [contractDescription, setContractDescription] = useState(
+    contract?.description || ""
+  );
 
   // Default service agreement content with title as first line
   const defaultServiceAgreement = `SERVICE AGREEMENT
@@ -336,7 +383,9 @@ export function ContractDetails({ proposal }: { proposal: ProposalResponse }) {
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
-Client: ${proposal.client_name || "[CLIENT_NAME]"}, with a primary address at ${proposal.client_address || "[CLIENT_ADDRESS]"}.
+Client: ${contract?.client_name || "[CLIENT_NAME]"}, with a primary address at ${
+    contract?.client_address || "[CLIENT_ADDRESS]"
+  }.
 
 1. SCOPE OF SERVICES:
 The Service Provider agrees to perform the services as outlined in the attached Proposal.
@@ -352,8 +401,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Split the content into title and body
   const initialAgreementContent =
-    proposal.contract?.service_agreement_content ||
-    proposal.contract?.service_agreement?.content ||
+    contract?.service_agreement_content ||
+    contract?.service_agreement?.content ||
     defaultServiceAgreement;
 
   const splitContent = (content: string) => {
@@ -593,30 +642,20 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     (contract?.client_initials && contract?.client_initials.trim() !== "")
   );
 
-  // Create contract mutation
-  const createContractMutation = useMutation({
-    mutationFn: (contractData: ContractCreateRequest) =>
-      createContract(contractData),
-    onSuccess: (data) => {
-      toast.success("Contract created successfully!");
-      setLocalContract(data); // Update local contract state
-    },
-    onError: (error: any) => {
-      toast.error(
-        `Failed to create contract: ${error.message || "Unknown error"}`
-      );
-    },
-  });
-
   // Update contract mutation
   const updateContractMutation = useMutation({
     mutationFn: ({
       id,
       contract,
     }: {
-      id: string;
+      id: string | undefined;
       contract: Partial<ContractCreateRequest>;
-    }) => updateContract(id, contract),
+    }) => {
+      if (!contract_id) {
+        throw new Error("Contract ID is required");
+      }
+      return updateContract(contract_id, contract);
+    },
     onSuccess: (data) => {
       toast.success("Contract updated successfully!");
     },
@@ -629,13 +668,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Update proposal mutation with enhanced feedback and better error handling
   const updateProposalMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: any;
-    }) => updateProposal(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateProposal(id, data),
     onSuccess: () => {
       toast.success("Client information updated successfully!", {
         id: "client-info-update",
@@ -644,17 +678,17 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     onError: (error: any) => {
       // Improve error message handling
       let errorMessage = "Failed to update client information";
-      
+
       if (error instanceof Error) {
         try {
           // Check if it's a JSON string (from our API)
           const parsedError = JSON.parse(error.message);
-          if (typeof parsedError === 'object') {
+          if (typeof parsedError === "object") {
             // Format nested validation errors if present
-            if (parsedError.detail && typeof parsedError.detail === 'object') {
+            if (parsedError.detail && typeof parsedError.detail === "object") {
               errorMessage = Object.entries(parsedError.detail)
                 .map(([field, errors]) => `${field}: ${errors}`)
-                .join(', ');
+                .join(", ");
             } else {
               errorMessage = error.message;
             }
@@ -666,7 +700,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
           errorMessage = error.message;
         }
       }
-      
+
       toast.error(errorMessage, {
         id: "client-info-update-error",
       });
@@ -677,10 +711,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (
-        proposal.client_name !== clientName ||
-        proposal.client_email !== clientEmail ||
-        proposal.client_phone !== clientPhone ||
-        proposal.client_address !== clientAddress
+        proposal?.client_name !== clientName ||
+        proposal?.client_email !== clientEmail ||
+        proposal?.client_phone !== clientPhone ||
+        proposal?.client_address !== clientAddress
       ) {
         saveClientInfoChanges();
       }
@@ -692,10 +726,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   // Auto-save when client info changes with better error handling
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      if (!proposal.id) {
+      if (!proposal?.id) {
         return;
       }
-      
+
       if (
         proposal.client_name !== clientName ||
         proposal.client_email !== clientEmail ||
@@ -703,32 +737,41 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
         proposal.client_address !== clientAddress
       ) {
         setIsClientInfoSaving(true);
-        
+
         const updatedFields: Record<string, string> = {
           // Always include name which is a required field
           name: proposal.name || "",
         };
-        
+
         // Only include fields that have actually changed and have valid values
         if (proposal.client_name !== clientName && clientName !== undefined) {
           updatedFields.client_name = clientName;
         }
-        
-        if (proposal.client_email !== clientEmail && clientEmail !== undefined) {
+
+        if (
+          proposal.client_email !== clientEmail &&
+          clientEmail !== undefined
+        ) {
           updatedFields.client_email = clientEmail;
         }
-        
-        if (proposal.client_phone !== clientPhone && clientPhone !== undefined) {
+
+        if (
+          proposal.client_phone !== clientPhone &&
+          clientPhone !== undefined
+        ) {
           updatedFields.client_phone = clientPhone;
         }
-        
-        if (proposal.client_address !== clientAddress && clientAddress !== undefined) {
+
+        if (
+          proposal.client_address !== clientAddress &&
+          clientAddress !== undefined
+        ) {
           updatedFields.client_address = clientAddress;
         }
-        
+
         updateProposalMutation.mutate({
           id: proposal.id,
-          data: updatedFields
+          data: updatedFields,
         });
       } else {
         setIsClientInfoSaving(false);
@@ -740,7 +783,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Enhanced save client information with better error handling
   const saveClientInfoChanges = async () => {
-    if (!proposal.id) return;
+    if (!proposal?.id) return;
 
     setIsClientInfoSaving(true);
 
@@ -750,15 +793,15 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
         // Always include name which is a required field on the backend
         name: proposal.name || "",
       };
-      
+
       if (clientName) clientData.client_name = clientName;
       if (clientEmail) clientData.client_email = clientEmail;
       if (clientPhone) clientData.client_phone = clientPhone || ""; // Send empty string instead of undefined if blank
       if (clientAddress) clientData.client_address = clientAddress || ""; // Send empty string instead of undefined if blank
-      
+
       await updateProposalMutation.mutateAsync({
         id: proposal.id,
-        data: clientData
+        data: clientData,
       });
     } catch (error) {
       console.error("Error in saveClientInfoChanges:", error);
@@ -799,13 +842,15 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     onRemove: () => void;
     onSave: () => void;
   }> = ({ section, index, onRemove, onSave }) => {
-    const [isEditing, setIsEditing] = useState(editingTermSectionId === section.id);
+    const [isEditing, setIsEditing] = useState(
+      editingTermSectionId === section.id
+    );
     const [title, setTitle] = useState(section.title);
     const [description, setDescription] = useState(section.description);
     const [isSaving, setIsSaving] = useState(false);
     const titleRef = useRef<HTMLInputElement>(null);
     const descriptionRef = useRef<HTMLTextAreaElement>(null);
-    
+
     useEffect(() => {
       setIsEditing(editingTermSectionId === section.id);
     }, [editingTermSectionId, section.id]);
@@ -815,23 +860,29 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       const handleClickOutside = (event: MouseEvent) => {
         // Don't save if click is inside title input, description textarea or buttons area
         if (
-          isEditing && 
-          titleRef.current && 
-          descriptionRef.current && 
+          isEditing &&
+          titleRef.current &&
+          descriptionRef.current &&
           !titleRef.current.contains(event.target as Node) &&
           !descriptionRef.current.contains(event.target as Node) &&
-          !(event.target instanceof Element && event.target.closest('.term-section-buttons')) &&
-          !(event.target instanceof Element && event.target.closest('.term-section-actions'))
+          !(
+            event.target instanceof Element &&
+            event.target.closest(".term-section-buttons")
+          ) &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(".term-section-actions")
+          )
         ) {
           handleSave();
         }
       };
-      
+
       if (isEditing) {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
       }
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener("mousedown", handleClickOutside);
       };
     }, [isEditing, title, description]);
 
@@ -889,18 +940,33 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
               className="min-h-[80px]"
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2 term-section-actions">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -938,11 +1004,11 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     const termsString = termsSections
       .map((section) => `${section.title}: ${section.description}`)
       .join("\n");
-    
+
     const payload: ContractCreateRequest = {
-      name: proposal?.name || "",
-      description: proposal?.description || "",
-      status: proposal?.contract?.status || undefined,
+      name: contract?.name || "",
+      description: contract?.description || "",
+      status: contract?.status || undefined,
       contractor_initials:
         signatures.contractor?.type === "text"
           ? signatures.contractor.value
@@ -955,53 +1021,51 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       service_agreement_content: `${serviceAgreementTitle}\n${serviceAgreementBody}`,
       proposal_id: proposal?.id || undefined,
     };
-    
-    if (proposal.contract && proposal.contract.id) {
+
+    if (contract_id) {
       updateContractMutation.mutate({
-        id: proposal.contract.id,
+        id: contract_id,
         contract: payload,
       });
-    } else {
-      createContractMutation.mutate(payload);
     }
   };
 
-  // Re-add the sendProposalToClient function
-  const sendProposalToClient = async () => {
-    if (!proposal.id) return;
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    setIsSending(true);
-    try {
-      const response = await fetch(`${API_URL}/v1/proposals/send/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          proposal_id: proposal.id,
-        }),
-      });
+  // // Re-add the sendProposalToClient function
+  // const sendProposalToClient = async () => {
+  //   if (!proposal.id) return;
+  //   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  //   setIsSending(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/v1/proposals/send/`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         proposal_id: proposal.id,
+  //       }),
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send proposal");
-      }
+  //     if (!response.ok) {
+  //       throw new Error(data.error || "Failed to send proposal");
+  //     }
 
-      // Show success message
-      toast.success("Proposal has been sent to the client successfully.");
-    } catch (error) {
-      console.error("Error sending proposal:", error);
-      // Show error message
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "An error occurred while sending the proposal."
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
+  //     // Show success message
+  //     toast.success("Proposal has been sent to the client successfully.");
+  //   } catch (error) {
+  //     console.error("Error sending proposal:", error);
+  //     // Show error message
+  //     toast.error(
+  //       error instanceof Error
+  //         ? error.message
+  //         : "An error occurred while sending the proposal."
+  //     );
+  //   } finally {
+  //     setIsSending(false);
+  //   }
+  // };
 
   // Check if contract is already signed by client and disable editing if it is
   React.useEffect(() => {
@@ -1016,27 +1080,27 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     if (contract && contract.id) {
       const autoSaveTimer = setTimeout(() => {
         // Don't auto-save if we're creating a new contract or if there's an ongoing update
-        if (!updateContractMutation.isPending && !createContractMutation.isPending) {
+        if (!updateContractMutation.isPending) {
           handleSubmit();
         }
       }, 500);
-      
+
       return () => clearTimeout(autoSaveTimer);
     }
   }, [
     // Dependencies - changes to any of these will trigger auto-save
     serviceAgreementTitle,
-    serviceAgreementBody, 
+    serviceAgreementBody,
     termsSections,
-    signatures
+    signatures,
   ]);
 
   // Add auto-save for contract name and description
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (
-        proposal.name !== contractName ||
-        proposal.description !== contractDescription
+        contract.name !== contractName ||
+        contract.description !== contractDescription
       ) {
         saveContractInfoChanges();
       }
@@ -1047,16 +1111,17 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Enhanced save contract info changes function
   const saveContractInfoChanges = async () => {
-    if (!proposal.id) return;
+    if (!contract_id) return;
+    if (!proposal?.id) return; // Check if proposal ID exists before trying to use it
 
     try {
       // Update proposal name and description
       await updateProposalMutation.mutateAsync({
-        id: proposal.id,
+        id: proposal.id, // Now we know this is defined
         data: {
           name: contractName,
-          description: contractDescription
-        }
+          description: contractDescription,
+        },
       });
 
       // If we have a contract, also update it
@@ -1065,31 +1130,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
           id: contract.id,
           contract: {
             name: contractName,
-            description: contractDescription
-          }
+            description: contractDescription,
+          },
         });
       }
     } catch (error) {
       console.error("Error in saveContractInfoChanges:", error);
     }
   };
-
   return (
     <div className="w-full mx-auto">
-      {contract == null && (
-        <Alert className="mb-4 border-yellow-300 bg-yellow-50 text-yellow-900 flex items-center gap-3">
-          <AlertTriangle
-            color="#f0b000"
-            className="h-5 w-5 mt-1.5 mr-2 flex-shrink-0"
-          />
-          <div className="mt-2">
-            <AlertTitle>Draft Mode</AlertTitle>
-            <AlertDescription>
-              Contract is not yet created. This is just a draft.
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
@@ -1117,7 +1167,12 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                   />
                   <div className="flex justify-center space-x-2">
                     {updateContractMutation.isPending ? (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        disabled
+                      >
                         <Loader2 className="h-4 w-4 animate-spin" />
                       </Button>
                     ) : (
@@ -1189,7 +1244,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                     />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Project Description</p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Project Description
+                    </p>
                     <EditableField
                       value={contractDescription}
                       onChange={setContractDescription}
@@ -1534,7 +1591,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      Date: {proposal.contract?.contractor_signed_at || "N/A"}
+                      Date: {contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -1652,8 +1709,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                       </div>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {proposal.contract?.contractor_signed_at || "N/A"}
+                      Date: {contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -1668,196 +1724,37 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
         {/* Quick Actions - Right Side (Narrower) */}
         <div className="lg:col-span-1">
-          <div className="p-4 rounded-lg border bg-muted/10 sticky top-4">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <Button
-                variant="default"
-                className="w-full flex items-center justify-center gap-2 mt-2"
-                disabled={
-                  isSending ||
-                  !proposal.client_email ||
-                  isContractSigned
-                }
-                onClick={async () => {
-                  // 1. Update the contract before sending
-                  if (contract && contract.id) {
-                    await updateContractMutation.mutateAsync({
-                      id: contract.id,
-                      contract: {
-                        name: contractName,
-                        description: contractDescription,
-                        service_agreement_content: `${serviceAgreementTitle}\n${serviceAgreementBody}`,
-                        terms: termsSections
-                          .map((section) => `${section.title}: ${section.description}`)
-                          .join("\n"),
-                        contractor_initials:
-                          signatures.contractor?.type === "text"
-                            ? signatures.contractor.value
-                            : undefined,
-                        contractor_signature:
-                          signatures.contractor?.type === "image"
-                            ? signatures.contractor.value
-                            : undefined,
-                      },
-                    });
-                  } else if (!contract) {
-                    // If contract doesn't exist, create it first
-                    await handleSubmit();
-                  }
-
-                  // 2. Confirm with the user before sending
-                  if (typeof window !== 'undefined') {
-                    // Custom modal for confirmation
-                    const modal = document.createElement('div');
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100vw';
-                    modal.style.height = '100vh';
-                    modal.style.background = 'rgba(0,0,0,0.35)';
-                    modal.style.display = 'flex';
-                    modal.style.alignItems = 'center';
-                    modal.style.justifyContent = 'center';
-                    modal.style.zIndex = '9999';
-                    modal.innerHTML = `
-                      <div style="background: white; border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.15); padding: 2.5rem 2rem; max-width: 95vw; width: 400px; text-align: center;">
-                        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #e11d48;">Send Contract to Client?</h2>
-                        <p style="margin-bottom: 2rem; color: #444;">Are you sure you want to send this contract to the client? They will receive an email with the contract details.</p>
-                        <div style="display: flex; gap: 1rem; justify-content: center;">
-                          <button id="modal-cancel-btn" style="padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; background: #f3f4f6; color: #222; font-weight: 500; cursor: pointer;">Cancel</button>
-                          <button id="modal-confirm-btn" style="padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; background: #e11d48; color: #fff; font-weight: 600; cursor: pointer;">Send</button>
-                        </div>
-                      </div>
-                    `;
-                    document.body.appendChild(modal);
-                    await new Promise<void>((resolve) => {
-                      modal.querySelector('#modal-cancel-btn')?.addEventListener('click', () => {
-                        document.body.removeChild(modal);
-                        resolve();
-                      });
-                      modal.querySelector('#modal-confirm-btn')?.addEventListener('click', async () => {
-                        document.body.removeChild(modal);
-                        await sendProposalToClient();
-                        resolve();
-                      });
-                    });
-                  }
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-send"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-                Send to Client
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full flex items-center justify-center gap-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-printer"
-                >
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect width="12" height="8" x="6" y="14" />
-                </svg>
-                Print Contract
-              </Button>
-
-              {!contract && (
-                <Button
-                  variant="default"
-                  className="w-full mt-2 flex items-center justify-center gap-2"
-                  onClick={handleSubmit}
-                  disabled={createContractMutation.isPending}
-                >
-                  {createContractMutation.isPending ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8z"
-                        />
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Contract
-                    </>
-                  )}
-                </Button>
-              )}
-              {/* Removed Update Contract button since we have auto-save now */}
-
-              <Card className="mt-4">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm">Contract Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="text-xs space-y-1 text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>Variables:</span>
-                      <span>{proposal?.template?.variables?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Trades:</span>
-                      <span>{proposal?.template?.trades?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Terms:</span>
-                      <span>{termsSections.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <span
-                        className={
-                          isContractSigned
-                            ? "text-green-600"
-                            : "text-yellow-600"
-                        }
-                      >
-                        {isContractSigned ? "Signed" : "Draft"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          <Card className="mt-4">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="text-sm">Contract Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="text-xs space-y-1 text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Variables:</span>
+                  <span>{proposal?.template?.variables?.length || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Trades:</span>
+                  <span>{proposal?.template?.trades?.length || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Terms:</span>
+                  <span>{termsSections.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Status:</span>
+                  <span
+                    className={
+                      isContractSigned ? "text-green-600" : "text-yellow-600"
+                    }
+                  >
+                    {isContractSigned ? "Signed" : "Draft"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

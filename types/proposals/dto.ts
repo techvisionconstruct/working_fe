@@ -4,6 +4,7 @@ import { PaginationLinks, PaginationMeta } from '../pagination/dto';
 import { TemplateResponse } from '../templates/dto';
 
 export interface ProposalResponse {
+  is_contract_signed: boolean;
   id: string;
   name: string;
   description?: string;
