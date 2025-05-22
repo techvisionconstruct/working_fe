@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContract } from "@/api/contracts/create-contract";
 import { updateContract } from "@/api/contracts/update-contract";
 import { updateProposal } from "@/api/proposals/update-proposal";
@@ -42,6 +42,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { ContractCreateRequest } from "@/types/contracts/dto";
+import { getContract } from "@/queryOptions/contracts";
 
 interface TermSection {
   id: number;
@@ -334,12 +335,20 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   );
 };
 
-export function CreateContract({ proposal }: { proposal: ProposalResponse }) {
-  const [isSending, setIsSending] = useState(false);
+export function CreateContract({
+  contract_id,
+  proposal,
+}: {
+  contract_id: string;
+  proposal: ProposalResponse | undefined;
+}) {
   // Add local contract state
-  const [localContract, setLocalContract] = useState(proposal.contract);
+  const { data: contract } = useQuery(getContract(contract_id as string));
+
+
   // Use localContract if available, otherwise fallback to proposal.contract
-  const contract = localContract || proposal.contract;
+
+  console.log("Contract data:", contract);
 
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
@@ -354,18 +363,18 @@ export function CreateContract({ proposal }: { proposal: ProposalResponse }) {
   >(null);
 
   // Client information states with detailed saving status
-  const [clientName, setClientName] = useState(proposal.client_name || "");
-  const [clientEmail, setClientEmail] = useState(proposal.client_email || "");
-  const [clientPhone, setClientPhone] = useState(proposal.client_phone || "");
+  const [clientName, setClientName] = useState(proposal?.client_name || "");
+  const [clientEmail, setClientEmail] = useState(proposal?.client_email || "");
+  const [clientPhone, setClientPhone] = useState(proposal?.client_phone || "");
   const [clientAddress, setClientAddress] = useState(
-    proposal.client_address || ""
+    proposal?.client_address || ""
   );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
 
   // Add state for editable contract name and description
-  const [contractName, setContractName] = useState(proposal.name || "");
+  const [contractName, setContractName] = useState(contract?.name || "");
   const [contractDescription, setContractDescription] = useState(
-    proposal.description || ""
+    contract?.description || ""
   );
 
   // Default service agreement content with title as first line
@@ -374,8 +383,8 @@ export function CreateContract({ proposal }: { proposal: ProposalResponse }) {
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
-Client: ${proposal.client_name || "[CLIENT_NAME]"}, with a primary address at ${
-    proposal.client_address || "[CLIENT_ADDRESS]"
+Client: ${contract?.client_name || "[CLIENT_NAME]"}, with a primary address at ${
+    contract?.client_address || "[CLIENT_ADDRESS]"
   }.
 
 1. SCOPE OF SERVICES:
@@ -392,8 +401,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Split the content into title and body
   const initialAgreementContent =
-    proposal.contract?.service_agreement_content ||
-    proposal.contract?.service_agreement?.content ||
+    contract?.service_agreement_content ||
+    contract?.service_agreement?.content ||
     defaultServiceAgreement;
 
   const splitContent = (content: string) => {
@@ -633,30 +642,20 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     (contract?.client_initials && contract?.client_initials.trim() !== "")
   );
 
-  // Create contract mutation
-  const createContractMutation = useMutation({
-    mutationFn: (contractData: ContractCreateRequest) =>
-      createContract(contractData),
-    onSuccess: (data) => {
-      toast.success("Contract created successfully!");
-      setLocalContract(data); // Update local contract state
-    },
-    onError: (error: any) => {
-      toast.error(
-        `Failed to create contract: ${error.message || "Unknown error"}`
-      );
-    },
-  });
-
   // Update contract mutation
   const updateContractMutation = useMutation({
     mutationFn: ({
       id,
       contract,
     }: {
-      id: string;
+      id: string | undefined;
       contract: Partial<ContractCreateRequest>;
-    }) => updateContract(id, contract),
+    }) => {
+      if (!contract_id) {
+        throw new Error("Contract ID is required");
+      }
+      return updateContract(contract_id, contract);
+    },
     onSuccess: (data) => {
       toast.success("Contract updated successfully!");
     },
@@ -712,10 +711,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (
-        proposal.client_name !== clientName ||
-        proposal.client_email !== clientEmail ||
-        proposal.client_phone !== clientPhone ||
-        proposal.client_address !== clientAddress
+        proposal?.client_name !== clientName ||
+        proposal?.client_email !== clientEmail ||
+        proposal?.client_phone !== clientPhone ||
+        proposal?.client_address !== clientAddress
       ) {
         saveClientInfoChanges();
       }
@@ -727,7 +726,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   // Auto-save when client info changes with better error handling
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      if (!proposal.id) {
+      if (!proposal?.id) {
         return;
       }
 
@@ -784,7 +783,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Enhanced save client information with better error handling
   const saveClientInfoChanges = async () => {
-    if (!proposal.id) return;
+    if (!proposal?.id) return;
 
     setIsClientInfoSaving(true);
 
@@ -1007,9 +1006,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       .join("\n");
 
     const payload: ContractCreateRequest = {
-      name: proposal?.name || "",
-      description: proposal?.description || "",
-      status: proposal?.contract?.status || undefined,
+      name: contract?.name || "",
+      description: contract?.description || "",
+      status: contract?.status || undefined,
       contractor_initials:
         signatures.contractor?.type === "text"
           ? signatures.contractor.value
@@ -1023,52 +1022,50 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       proposal_id: proposal?.id || undefined,
     };
 
-    if (proposal.contract && proposal.contract.id) {
+    if (contract_id) {
       updateContractMutation.mutate({
-        id: proposal.contract.id,
+        id: contract_id,
         contract: payload,
       });
-    } else {
-      createContractMutation.mutate(payload);
     }
   };
 
-  // Re-add the sendProposalToClient function
-  const sendProposalToClient = async () => {
-    if (!proposal.id) return;
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    setIsSending(true);
-    try {
-      const response = await fetch(`${API_URL}/v1/proposals/send/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          proposal_id: proposal.id,
-        }),
-      });
+  // // Re-add the sendProposalToClient function
+  // const sendProposalToClient = async () => {
+  //   if (!proposal.id) return;
+  //   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  //   setIsSending(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/v1/proposals/send/`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         proposal_id: proposal.id,
+  //       }),
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send proposal");
-      }
+  //     if (!response.ok) {
+  //       throw new Error(data.error || "Failed to send proposal");
+  //     }
 
-      // Show success message
-      toast.success("Proposal has been sent to the client successfully.");
-    } catch (error) {
-      console.error("Error sending proposal:", error);
-      // Show error message
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "An error occurred while sending the proposal."
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
+  //     // Show success message
+  //     toast.success("Proposal has been sent to the client successfully.");
+  //   } catch (error) {
+  //     console.error("Error sending proposal:", error);
+  //     // Show error message
+  //     toast.error(
+  //       error instanceof Error
+  //         ? error.message
+  //         : "An error occurred while sending the proposal."
+  //     );
+  //   } finally {
+  //     setIsSending(false);
+  //   }
+  // };
 
   // Check if contract is already signed by client and disable editing if it is
   React.useEffect(() => {
@@ -1083,10 +1080,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     if (contract && contract.id) {
       const autoSaveTimer = setTimeout(() => {
         // Don't auto-save if we're creating a new contract or if there's an ongoing update
-        if (
-          !updateContractMutation.isPending &&
-          !createContractMutation.isPending
-        ) {
+        if (!updateContractMutation.isPending) {
           handleSubmit();
         }
       }, 500);
@@ -1105,8 +1099,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (
-        proposal.name !== contractName ||
-        proposal.description !== contractDescription
+        contract.name !== contractName ||
+        contract.description !== contractDescription
       ) {
         saveContractInfoChanges();
       }
@@ -1117,12 +1111,13 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Enhanced save contract info changes function
   const saveContractInfoChanges = async () => {
-    if (!proposal.id) return;
+    if (!contract_id) return;
+    if (!proposal?.id) return; // Check if proposal ID exists before trying to use it
 
     try {
       // Update proposal name and description
       await updateProposalMutation.mutateAsync({
-        id: proposal.id,
+        id: proposal.id, // Now we know this is defined
         data: {
           name: contractName,
           description: contractDescription,
@@ -1143,7 +1138,6 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       console.error("Error in saveContractInfoChanges:", error);
     }
   };
-
   return (
     <div className="w-full mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -1597,7 +1591,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      Date: {proposal.contract?.contractor_signed_at || "N/A"}
+                      Date: {contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -1715,7 +1709,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                       </div>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      Date: {proposal.contract?.contractor_signed_at || "N/A"}
+                      Date: {contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                 </div>

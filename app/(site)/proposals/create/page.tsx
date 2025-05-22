@@ -1,33 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, Tabs, TabsContent, Button } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { HelpCircle, Send, Save } from "lucide-react";
-
-// Import tour component
-import { CreateProposalTour } from "@/components/features/tour-guide/create-proposal-tour";
+import { Send } from "lucide-react";
 
 // Import our step components
 import TemplateSelectionStep from "@/components/features/create-proposal-page/template-selection-tab";
 import ProposalDetailsStep from "@/components/features/create-proposal-page/proposal-details-tab";
 import TradesAndElementsStep from "@/components/features/create-proposal-page/trades-and-elements-tab";
-import PreviewStep from "@/components/features/create-proposal-page/preview-tab";
 import StepIndicator from "@/components/features/create-proposal-page/step-indicator";
 
 import { createProposal } from "@/api/proposals/create-proposal";
 import { updateTemplate } from "@/api/templates/update-template";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { ProposalCreateRequest } from "@/types/proposals/dto";
 import {
-  TemplateCreateRequest,
   TemplateResponse,
   TemplateUpdateRequest,
 } from "@/types/templates/dto";
-import { set } from "date-fns";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { CreateContract } from "@/components/features/create-proposal-page/create-contract";
 import { createContract } from "@/api/contracts/create-contract";
@@ -40,11 +33,11 @@ interface ProposalDetailsProps {
 export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<string>("template");
-  const [isTourRunning, setIsTourRunning] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [contractId, setContractId] = useState<string>("");
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
-  const [createdProposal, setCreatedProposal] =
-    useState<ProposalResponse | null>(proposal || null); // Initialize with proposal if available
+  const [createdProposal, setCreatedProposal] = useState<ProposalResponse>();
+  console.log("Created Proposal:", createdProposal);
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -65,12 +58,11 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     client_email: proposal?.client_email || "",
     client_phone: proposal?.client_phone || "",
     client_address: proposal?.client_address || "",
-    valid_until:
-      proposal?.valid_until
-        ? typeof proposal.valid_until === "string"
-          ? proposal.valid_until
-          : proposal.valid_until.toISOString()
-        : "",
+    valid_until: proposal?.valid_until
+      ? typeof proposal.valid_until === "string"
+        ? proposal.valid_until
+        : proposal.valid_until.toISOString()
+      : "",
     location: "",
     status: proposal?.status || "draft",
     template: proposal?.template || null,
@@ -126,6 +118,20 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     },
   });
 
+  const createContractMutation = useMutation({
+    mutationFn: (contractData: ContractCreateRequest) =>
+      createContract(contractData),
+    onSuccess: () => {
+      toast.success("Contract created successfully!");
+      handleNext(); // Move to next step after contract creation
+    },
+    onError: (error: any) => {
+      toast.error(
+        `Failed to create contract: ${error.message || "Unknown error"}`
+      );
+    },
+  });
+
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
     useMutation({
       mutationFn: (data: {
@@ -166,7 +172,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
       createProposalMutation.mutate(proposalDetails, {
         onSuccess: async (proposalData) => {
           try {
-            // Set proposal data first
             setTradeObjects(proposalData.data.template.trades);
             setVariableObjects(proposalData.data.template.variables);
             setTemplate(proposalData.data.template);
@@ -175,40 +180,34 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
 
             toast.success("Proposal created successfully!");
 
-            // Now create the contract
-            const contractPayload: ContractCreateRequest = {
+            const contractDetails = {
               name: proposalData.data.name || "",
               description: proposalData.data.description || "",
-              status: undefined,
+              status: proposalData.data.status || undefined,
               contractor_initials: undefined,
               contractor_signature: undefined,
-              terms: "",
-              service_agreement_content: "",
-              proposal_id: proposalData.data.id,
+              terms: undefined,
+              service_agreement_content: undefined,
+              service_agreement_id: undefined,
+              proposal_id: proposalData.data.id || undefined,
             };
-
-            // Create contract using the mutation
-            createContractMutation.mutate(contractPayload, {
+            createContractMutation.mutate(contractDetails, {
               onSuccess: (contractData) => {
-                setContract(contractData);
+                setContractId(contractData.data.id);
                 toast.success("Contract created successfully!");
                 resolve(proposalData);
-                handleNext(); // Move to trades step
+                handleNext();
               },
-              onError: (contractError) => {
-                // Even if contract creation fails, we still have the proposal
-                toast.error("Proposal created but contract creation failed", {
+              onError: (error) => {
+                toast.error("Failed to create contract", {
                   description:
-                    contractError instanceof Error
-                      ? contractError.message
-                      : "Contract will be created later",
+                    error instanceof Error
+                      ? error.message
+                      : "Please try again later",
                 });
-                resolve(proposalData);
-                handleNext(); // Still move to trades step
               },
             });
           } catch (error) {
-            // If anything goes wrong with contract creation, still proceed
             toast.error("Proposal created but contract creation failed");
             resolve(proposalData);
             handleNext();
@@ -239,101 +238,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     updateTemplateMutation({ templateId, template: tradesAndVariables });
   };
 
-  // Update startTour function with improved class identification
-  const startTour = () => {
-    try {
-      // First ensure we're on the template tab
-      setCurrentStep("template");
-
-      console.log("[Tour] Preparing to start proposal tour");
-
-      // Allow tab switch to happen first
-      setTimeout(() => {
-        try {
-          console.log("[Tour] Adding CSS classes for tour targeting");
-
-          // Add CSS classes for steps and make elements focusable
-          document.querySelectorAll('[role="tab"]').forEach((tab) => {
-            try {
-              const value =
-                tab.getAttribute("data-value") || tab.getAttribute("value");
-              if (value) {
-                tab.classList.add("tab-trigger");
-                tab.setAttribute("data-value", value);
-                tab.setAttribute("tabindex", "0");
-                console.log(`[Tour] Found tab: ${value}`);
-              }
-            } catch (e) {
-              console.error("[Tour] Error processing tab", e);
-            }
-          });
-
-          // Add classes to tab contents for targeting
-          document.querySelectorAll('[role="tabpanel"]').forEach((content) => {
-            try {
-              const tabId =
-                content.getAttribute("id") ||
-                content.getAttribute("data-state");
-              if (tabId) {
-                const tabValue = tabId
-                  .replace("content-", "")
-                  .replace("-tabpanel", "");
-                content.classList.add(`${tabValue}-tab-content`);
-                console.log(`[Tour] Found tab content: ${tabValue}`);
-              }
-            } catch (e) {
-              console.error("[Tour] Error processing tab content", e);
-            }
-          });
-
-          // Ensure trade and variable columns are properly marked
-          document
-            .querySelector(".lg\\:col-span-2")
-            ?.classList.add("trade-column");
-          document
-            .querySelector(".lg\\:col-span-2")
-            ?.setAttribute("tabindex", "0");
-
-          document
-            .querySelector(".variable-column, .lg\\:col-span-1")
-            ?.setAttribute("tabindex", "0");
-
-          // If trade column wasn't found by the selector above, try more generic approach
-          if (!document.querySelector(".trade-column")) {
-            const columns = document.querySelectorAll(
-              ".grid.grid-cols-1.lg\\:grid-cols-3 > div"
-            );
-            if (columns.length > 0) {
-              columns[0].classList.add("trade-column");
-              columns[0].setAttribute("tabindex", "0");
-              console.log(
-                "[Tour] Added class to trade column (alternate selector)"
-              );
-            }
-
-            if (
-              columns.length > 1 &&
-              !document.querySelector(".variable-column")
-            ) {
-              columns[1].classList.add("variable-column");
-              columns[1].setAttribute("tabindex", "0");
-              console.log(
-                "[Tour] Added class to variable column (alternate selector)"
-              );
-            }
-          }
-
-          console.log("[Tour] Starting proposal tour");
-          setIsTourRunning(true);
-        } catch (error) {
-          console.error("[Tour] Error preparing tour:", error);
-        }
-      }, 500); // Give more time for the DOM to be ready
-    } catch (error) {
-      console.error("[Tour] Error in startTour:", error);
-    }
-  };
-
   const [isSending, setIsSending] = useState(false);
   const sendProposalToClient = async () => {
     const proposalToSend = createdProposal || proposal;
@@ -360,8 +264,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
 
       alert("Proposal has been sent to the client successfully.");
 
-      router.push('/proposals');
-
+      router.push("/proposals");
     } catch (error) {
       console.error("Error sending proposal:", error);
       alert(
@@ -372,42 +275,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     } finally {
       setIsSending(false);
     }
-  };
-
-  // Safe contract initialization
-  const [contract, setContract] = useState(proposal?.contract || null);
-
-  const createContractMutation = useMutation({
-    mutationFn: (contractData: ContractCreateRequest) =>
-      createContract(contractData),
-    onSuccess: (data) => {
-      setContract(data);
-      toast.success("Contract created successfully!");
-      handleNext(); // Move to next step after contract creation
-    },
-    onError: (error: any) => {
-      toast.error(
-        `Failed to create contract: ${error.message || "Unknown error"}`
-      );
-    },
-  });
-
-  // Function to handle contract creation (copy logic from CreateContract)
-  const handleCreateContract = () => {
-    const proposalToUse = createdProposal || proposal;
-    if (!proposalToUse) return;
-
-    const payload: ContractCreateRequest = {
-      name: proposalToUse?.name || "",
-      description: proposalToUse?.description || "",
-      status: proposalToUse?.contract?.status || undefined,
-      contractor_initials: undefined,
-      contractor_signature: undefined,
-      terms: "",
-      service_agreement_content: "",
-      proposal_id: proposalToUse?.id || undefined,
-    };
-    createContractMutation.mutate(payload);
   };
 
   return (
@@ -606,9 +473,9 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
 
           <TabsContent value="contract" className="p-6 contract-tab-content">
             {/* Only render CreateContract if we have a proposal */}
-            {(createdProposal || proposal) && (
-              <CreateContract proposal={(createdProposal || proposal)!} />
-            )}
+            
+              <CreateContract contract_id={contractId} proposal={createdProposal} />
+            
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back
@@ -617,26 +484,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
           </TabsContent>
         </Tabs>
       </Card>
-
-      {/* Tour component */}
-      <CreateProposalTour
-        isRunning={isTourRunning}
-        setIsRunning={setIsTourRunning}
-        activeTab={currentStep}
-        setActiveTab={setCurrentStep}
-      />
-
-      {/* Help button to start tour */}
-      <div className="fixed bottom-6 right-6">
-        <Button
-          onClick={startTour}
-          variant="secondary"
-          className="rounded-full w-12 h-12 shadow-lg bg-white text-gray-800 hover:bg-gray-100 border border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 dark:text-gray-200"
-          aria-label="Start tour guide"
-        >
-          <HelpCircle size={24} />
-        </Button>
-      </div>
+     
     </div>
   );
 }
