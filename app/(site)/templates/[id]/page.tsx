@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { TemplateDetailedLoader } from "@/components/features/template-page/loader-detailed";
 import { VariableResponse } from "@/types/variables/dto";
 import { TradeResponse } from "@/types/trades/dto";
@@ -11,12 +12,17 @@ import { ElementResponse } from "@/types/elements/dto";
 import { getTemplate } from "@/queryOptions/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
+import { Button } from "@/components/shared";
+import { Pencil } from "lucide-react";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
 export default function TemplatedById() {
   const { id } = useParams();
+  // Explicitly cast id to string to avoid type issues
+  const templateId = Array.isArray(id) ? id[0] : (id as string);
+  
   // State to track which variable types are expanded
   const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
 
@@ -24,7 +30,7 @@ export default function TemplatedById() {
     data: template,
     isLoading,
     isError,
-  } = useQuery(getTemplate(String(id)));
+  } = useQuery(getTemplate(templateId));
 
   if (isLoading) {
     return <TemplateDetailedLoader />;
@@ -36,6 +42,16 @@ export default function TemplatedById() {
 
   return (
     <div className="p-0 mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <div></div> {/* Empty div for flex spacing */}
+        <Link href={`/templates/${templateId}/edit`}>
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Pencil className="h-4 w-4" />
+            Edit Template
+          </Button>
+        </Link>
+      </div>
+
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
         <Image
           src={template.image || DEFAULT_IMAGE}
