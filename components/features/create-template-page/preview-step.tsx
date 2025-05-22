@@ -4,6 +4,7 @@ import React from "react";
 import { 
   Badge
 } from "@/components/shared";
+import Image from "next/image";
 import { TemplateCreateRequest } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
@@ -42,13 +43,27 @@ const PreviewStep: React.FC<PreviewStepProps> = ({
   data, 
   tradeObjects = [], 
   variableObjects = [] 
-}) => {
+}) => {  const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
+  
   return (
     <div className="p-0 mx-auto">
-      <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl shadow flex items-center justify-center">
-        <div className="text-3xl font-bold text-center text-primary/70">Template Preview</div>
+      <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4 rounded-2xl shadow">
+        {data.image ? (
+          <div className="relative w-full h-full">
+            <Image 
+              src={data.image}
+              alt={data.name || "Template Preview"}
+              fill
+              className="object-cover object-center rounded-2xl"
+              priority
+            />
+          </div>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center rounded-2xl">
+            <div className="text-3xl font-bold text-center text-primary/70">Template Preview</div>
+          </div>
+        )}
       </div>
-      
       <h2 className="text-4xl font-bold mb-2 tracking-tight leading-tight">
         {data.name || "Untitled Template"}
       </h2>
