@@ -15,6 +15,9 @@ export interface ProfileResponse {
   postal_code?: string;
   country?: string;
 
+  // Signature
+  signature_image?: string;
+
   // Professional Information
   company_name?: string;
   job_title?: string;
@@ -54,6 +57,9 @@ export interface ProfileCreateRequest {
   postal_code?: string;
   country?: string;
 
+  // Signature
+  signature_image?: string;
+
   // Professional Information
   company_name?: string;
   job_title?: string;
@@ -72,6 +78,9 @@ export interface ProfileUpdateRequest {
   state?: string;
   postal_code?: string;
   country?: string;
+
+  // Signature
+  signature_image?: string;
 
   // Professional Information
   company_name?: string;
