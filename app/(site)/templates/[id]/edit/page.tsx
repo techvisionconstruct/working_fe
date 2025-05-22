@@ -22,6 +22,7 @@ import {
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { updateTemplate } from "@/api/templates/update-template";
+import { updateVariable } from "@/api/variables/update-variable";
 import { getTemplate } from "@/queryOptions/templates";
 
 export default function EditTemplate() {
@@ -174,6 +175,28 @@ export default function EditTemplate() {
       });
     },
   });
+  // New function to update variable descriptions
+  const updateVariableDescriptions = async (variables: VariableResponse[]) => {
+    console.log("Updating variable descriptions...");
+    
+    // Create an array of promises for each variable update
+    const updatePromises = variables.map(async (variable) => {
+      if (variable.id && variable.description !== undefined) {
+        try {
+          console.log(`Updating variable ${variable.id} with description: ${variable.description}`);
+          await updateVariable(variable.id, { description: variable.description });
+          return { id: variable.id, success: true };
+        } catch (error) {
+          console.error(`Error updating variable ${variable.id}:`, error);
+          return { id: variable.id, success: false, error };
+        }
+      }
+      return { id: variable.id, success: false, skipped: true };
+    });
+    
+    // Wait for all updates to complete
+    return Promise.all(updatePromises);
+  };
 
   const handleUpdateTemplate = async (step = currentStep) => {
     if (!templateId) {
@@ -187,6 +210,17 @@ export default function EditTemplate() {
     console.log("Image changed:", imageChanged);
 
     setIsLoading(true);
+    
+    // First update any variables that have descriptions
+    if (variableObjects && variableObjects.length > 0) {
+      try {
+        const variableUpdateResults = await updateVariableDescriptions(variableObjects);
+        console.log("Variable update results:", variableUpdateResults);
+      } catch (error) {
+        console.error("Error updating variable descriptions:", error);
+        toast.error("Some variable descriptions could not be updated");
+      }
+    }
 
     // Prepare update data - only include image if it was actually changed
     const updateData: TemplateUpdateRequest = {
@@ -214,7 +248,6 @@ export default function EditTemplate() {
       },
     });
   };
-
   const handlePublishTemplate = async () => {
     if (!templateId) {
       toast.error("Template ID is missing");
@@ -227,6 +260,17 @@ export default function EditTemplate() {
     console.log("Image changed:", imageChanged);
 
     setIsLoading(true);
+    
+    // First update any variables that have descriptions
+    if (variableObjects && variableObjects.length > 0) {
+      try {
+        const variableUpdateResults = await updateVariableDescriptions(variableObjects);
+        console.log("Variable update results (publish flow):", variableUpdateResults);
+      } catch (error) {
+        console.error("Error updating variable descriptions during publish:", error);
+        toast.error("Some variable descriptions could not be updated");
+      }
+    }
 
     // Prepare data for publishing - only include image if it was actually changed
     const updateData: TemplateUpdateRequest = {
