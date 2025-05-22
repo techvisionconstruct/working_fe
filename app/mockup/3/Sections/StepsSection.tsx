@@ -1,9 +1,11 @@
-'use client';
+"use client";
 import React from "react";
 import { Target, BarChart3, Clock } from "lucide-react";
 import { useTheme } from "@/components/contexts/theme-context";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
+import { Oswald } from "next/font/google";
 import {
   Button,
   Badge,
@@ -13,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/shared";
 
+const oswald = Oswald({ subsets: ["latin"] });
+
 function StepsSection() {
   const { theme } = useTheme();
   const [isPaused, setIsPaused] = useState(false);
@@ -20,6 +24,7 @@ function StepsSection() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
 
+  
   const handleUserSelect = (idx: number) => {
     setActiveIndex(idx);
     setIsPaused(true);
@@ -30,6 +35,66 @@ function StepsSection() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  const SectionHeader = ({
+    badge,
+    title,
+    description,
+  }: {
+    badge: string;
+    title: string;
+    description: string;
+  }) => (
+    <motion.div
+      className="mb-20 text-center max-w-3xl mx-auto"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      <div
+        className={`${oswald.className} inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium mb-4`}
+        style={{
+          backgroundColor: "hsla(0, 85%, 30%, 0.1)",
+          color: "hsl(0, 85%, 30%)",
+          border: "1px dashed hsl(0, 85%, 30%)",
+        }}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
+        ></span>
+        {badge}
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
+        ></span>
+      </div>
+      <h2
+        className={`${oswald.className} text-4xl md:text-5xl font-bold tracking-tight mb-6 uppercase`}
+        style={{ color: "hsl(20, 10%, 15%)" }}
+      >
+        {title}
+      </h2>
+      <div className="flex justify-center items-center mb-6">
+        <div
+          className="h-0.5 w-16"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+        <div
+          className="h-3 w-3 mx-2 transform rotate-45"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+        <div
+          className="h-0.5 w-16"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+      </div>
+      <p className="text-xl" style={{ color: "hsl(20, 10%, 40%)" }}>
+        {description}
+      </p>
+    </motion.div>
+  );
 
   const features = [
     {
@@ -51,9 +116,7 @@ function StepsSection() {
               ? "bg-[#23272e] border-[#333]"
               : "bg-white border-gray-200"
           } rounded-lg shadow-inner overflow-hidden`}
-        >
-
-        </div>
+        ></div>
       ),
     },
     {
@@ -167,32 +230,15 @@ function StepsSection() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex items-center gap-2 mb-6">
             <div className="h-px w-12 bg-red-600"></div>
-            <Badge
-              variant="outline"
-              className="text-red-600 border-red-200 font-medium uppercase tracking-wider px-3"
-              style={{
-                background: theme === "dark" ? "#23272e" : undefined,
-                color: theme === "dark" ? "#fff" : "#e11d48",
-                borderColor: theme === "dark" ? "#333" : "#e11d48",
-              }}
-            >
-              Features
-            </Badge>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">
-            Everything You Need <span className="text-red-600">to Succeed</span>
-          </h2>
-
-          <p
-            className={`text-lg mb-12 max-w-3xl ${
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
-            Simple ProjeX is designed to make your project management easier and
+          <SectionHeader
+            badge="Steps"
+            title="Everything You Need To Succeed"
+            description="Simple ProjeX is designed to make your project management easier and
             more efficient, with powerful tools that adapt to your specific
-            industry needs.
-          </p>
+            industry needs."
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-8">
             {/* Demo Content on the left (desktop only) */}

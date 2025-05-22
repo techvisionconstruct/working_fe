@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button, Input } from "@/components/shared";
 import { CheckCircle } from "lucide-react";
 
-
 // PricingPlan type
 interface PricingPlan {
   name: string;
@@ -61,9 +60,12 @@ const PricingSection = () => {
   return (
     <div>
       <section
-        id="pricing"
-        className="py-32 relative overflow-hidden"
-        style={{ backgroundColor: "hsl(20, 10%, 96%)" }}
+        id="Indutries"
+        className="py-32"
+        style={{
+          background:
+            "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
+        }}
       >
         {/* Background patterns */}
         <div className="absolute inset-0 z-0">
@@ -185,53 +187,50 @@ const PricingSection = () => {
               </motion.div>
             ))}
           </div>
-
-
         </div>
-          {/* FAQ teaser - visually distinct, responsive, and non-overlapping */}
-          <div
-            className="relative z-20 flex flex-col md:flex-row items-center justify-between gap-8 px-6 py-8 rounded-2xl shadow-xl bg-white/95 border border-gray-200 max-w-4xl mx-auto"
-            style={{
-              boxShadow:
-                '0 8px 32px 0 rgba(31, 38, 135, 0.10), 0 1.5px 6px 0 rgba(220, 38, 38, 0.07)',
-              backdropFilter: 'blur(2px)',
-              marginTop: '3rem', // Move it down below the pricing cards
-              position: 'relative',
-            }}
-          >
-            <div className="max-w-md text-center md:text-left">
-              <h3
-                className={`text-2xl font-bold mb-2 ${
-                  theme === "dark" ? "text-gray-900" : "text-gray-900"
-                }`}
-              >
-                Stay ahead of the curve
-              </h3>
-              <p
-                className={theme === "dark" ? "text-gray-700" : "text-gray-600"}
-              >
-                Get the latest industry insights, tips, and exclusive content delivered straight to your inbox.
-              </p>
-            </div>
-
-            <form className="w-full md:w-auto flex flex-col sm:flex-row gap-3 md:justify-end md:items-center">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 min-w-[220px] placeholder-gray-400 border-2 border-red-600 focus:border-red-700 focus:ring-2 focus:ring-red-200 transition"
-                style={{
-                  background: theme === "dark" ? "#23272e" : "#fff",
-                  color: theme === "dark" ? "#191919" : "#191919",
-                }}
-              />
-              <Button
-                className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
-                type="submit"
-              >
-                Get Started Now!
-              </Button>
-            </form>
+        {/* FAQ teaser - visually distinct, responsive, and non-overlapping */}
+        <div
+          className="relative z-20 flex flex-col md:flex-row items-center justify-between gap-8 px-6 py-8 rounded-2xl shadow-xl bg-white/95 border border-gray-200 max-w-4xl mx-auto"
+          style={{
+            boxShadow:
+              "0 8px 32px 0 rgba(31, 38, 135, 0.10), 0 1.5px 6px 0 rgba(220, 38, 38, 0.07)",
+            backdropFilter: "blur(2px)",
+            marginTop: "3rem", // Move it down below the pricing cards
+            position: "relative",
+          }}
+        >
+          <div className="max-w-md text-center md:text-left">
+            <h3
+              className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-gray-900" : "text-gray-900"
+              }`}
+            >
+              Stay ahead of the curve
+            </h3>
+            <p className={theme === "dark" ? "text-gray-700" : "text-gray-600"}>
+              Get the latest industry insights, tips, and exclusive content
+              delivered straight to your inbox.
+            </p>
           </div>
+
+          <form className="w-full md:w-auto flex flex-col sm:flex-row gap-3 md:justify-end md:items-center">
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 min-w-[220px] placeholder-gray-400 border-2 border-red-600 focus:border-red-700 focus:ring-2 focus:ring-red-200 transition"
+              style={{
+                background: theme === "dark" ? "#23272e" : "#fff",
+                color: theme === "dark" ? "#191919" : "#191919",
+              }}
+            />
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
+              type="submit"
+            >
+              Get Started Now!
+            </Button>
+          </form>
+        </div>
       </section>
     </div>
   );

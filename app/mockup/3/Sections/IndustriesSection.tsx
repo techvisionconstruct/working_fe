@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React from "react";
 import { Badge, Button } from "@/components/shared";
 import { useTheme } from "@/components/contexts/theme-context";
@@ -8,7 +8,6 @@ import { Oswald } from "next/font/google";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
 
 const oswald = Oswald({ subsets: ["latin"] });
 
@@ -47,6 +46,66 @@ function IndustriesSection() {
         "Complete ADU project proposals with floor plans, permits, and timeline projections.",
     },
   ];
+
+  const SectionHeader = ({
+    badge,
+    title,
+    description,
+  }: {
+    badge: string;
+    title: string;
+    description: string;
+  }) => (
+    <motion.div
+      className="mb-20 text-center max-w-3xl mx-auto"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      <div
+        className={`${oswald.className} inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium mb-4`}
+        style={{
+          backgroundColor: "hsla(0, 85%, 30%, 0.1)",
+          color: "hsl(0, 85%, 30%)",
+          border: "1px dashed hsl(0, 85%, 30%)",
+        }}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
+        ></span>
+        {badge}
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
+        ></span>
+      </div>
+      <h2
+        className={`${oswald.className} text-4xl md:text-5xl font-bold tracking-tight mb-6 uppercase`}
+        style={{ color: "hsl(20, 10%, 15%)" }}
+      >
+        {title}
+      </h2>
+      <div className="flex justify-center items-center mb-6">
+        <div
+          className="h-0.5 w-16"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+        <div
+          className="h-3 w-3 mx-2 transform rotate-45"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+        <div
+          className="h-0.5 w-16"
+          style={{ backgroundColor: "hsl(40, 100%, 50%)" }}
+        ></div>
+      </div>
+      <p className="text-xl" style={{ color: "hsl(20, 10%, 40%)" }}>
+        {description}
+      </p>
+    </motion.div>
+  );
 
   // Handle mouse move for 3D effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -109,39 +168,25 @@ function IndustriesSection() {
   }, [industries]);
   return (
     <div>
-      <section
-        id="industries"
-        className="py-32 relative overflow-hidden"
-        style={{ backgroundColor: "hsl(20, 10%, 96%)" }}
+    <section
+        id="Indutries"
+        className="py-32"
+        style={{
+          background:
+            "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
+        }}
       >
         <div className="container mx-auto max-w-6xl">
           <div className="flex items-center gap-2 mb-6">
             <div className="h-px w-12 bg-red-600"></div>
-            <Badge
-              variant="outline"
-              className="text-red-600 border-red-200 font-medium uppercase tracking-wider px-3"
-              style={{
-                background: theme === "dark" ? "#23272e" : undefined,
-                color: theme === "dark" ? "#fff" : "#e11d48",
-                borderColor: theme === "dark" ? "#333" : "#e11d48",
-              }}
-            >
-              Industries
-            </Badge>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">
-            Built For Your Work
-          </h2>
-
-          <p
-            className={`text-lg mb-12 max-w-3xl ${
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
-            We understand the unique requirements of different construction
-            specialties.
-          </p>
+          <SectionHeader
+            badge="Industries"
+            title="Built For Your Work"
+            description="We understand the unique requirements of different construction
+            specialties."
+          />
         </div>
 
         <div className="container px-4 mx-auto relative z-10 max-w-7xl">
