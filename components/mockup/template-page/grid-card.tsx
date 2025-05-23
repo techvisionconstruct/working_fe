@@ -66,12 +66,14 @@ export const GridCard: React.FC<TemplateCardProps> = ({ template }) => {
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem>
                   <Copy className="mr-2 h-4 w-4" />
-                  <span>Duplicate</span>
+                  <span>Duplicate Template</span>
                 </DropdownMenuItem>
+                <Link href={`templates/${template.id}/update`}>
                 <DropdownMenuItem>
                   <Pencil className="mr-2 h-4 w-4" />
-                  <span>Edit</span>
+                  <span>Edit Template</span>
                 </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600">
                   <Trash className="mr-2 h-4 w-4" />

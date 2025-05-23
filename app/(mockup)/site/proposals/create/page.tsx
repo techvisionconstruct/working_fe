@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Card, Tabs, TabsContent, Button } from "@/components/shared";
+import React, { useState, useEffect } from "react";
+import { Card, Tabs, TabsContent, Button, Separator } from "@/components/shared";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -11,14 +11,17 @@ import { LoaderCircle } from "lucide-react";
 import TemplateSelectionStep from "@/components/mockup/create-proposal-page/template-selection-tab";
 import ProposalDetailsStep from "@/components/mockup/create-proposal-page/proposal-details-tab";
 import TradesAndElementsStep from "@/components/mockup/create-proposal-page/trades-and-elements-tab";
+import { CreateContract } from "@/components/mockup/create-proposal-page/create-contract";
 import VerticalStepIndicator from "@/components/mockup/create-template-page/vertical-step-indicator";
 import { Header } from "@/components/mockup/create-template-page/header";
 
 import { createProposal } from "@/api/proposals/create-proposal";
 import { updateTemplate } from "@/api/templates/update-template";
+import { createContract } from "@/api/contracts/create-contract";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { ProposalCreateRequest } from "@/types/proposals/dto";
+import { ProposalCreateRequest, ProposalResponse } from "@/types/proposals/dto";
+import { ContractCreateRequest } from "@/types/contracts/dto";
 import {
   TemplateCreateRequest,
   TemplateResponse,
@@ -31,6 +34,8 @@ export default function CreateProposalPage() {
   const [currentStep, setCurrentStep] = useState<string>("template");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
+  const [createdProposal, setCreatedProposal] = useState<ProposalResponse>();
+  const [contractId, setContractId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
@@ -77,6 +82,8 @@ export default function CreateProposalPage() {
       setCurrentStep("trades");
     } else if (currentStep === "trades") {
       setCurrentStep("preview");
+      // Ensure isLoading is false when entering the contract/preview step
+      setIsLoading(false);
     }
   };
 
@@ -106,6 +113,19 @@ export default function CreateProposalPage() {
     },
   });
 
+  const createContractMutation = useMutation({
+    mutationFn: (contractData: ContractCreateRequest) => createContract(contractData),
+    onSuccess: (data) => {
+      toast.success("Contract created successfully!");
+      setContractId(data.data.id);
+    },
+    onError: (error: any) => {
+      toast.error(
+        `Failed to create contract: ${error.message || "Unknown error"}`
+      );
+    },
+  });
+
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
     useMutation({
       mutationFn: (data: {
@@ -116,8 +136,9 @@ export default function CreateProposalPage() {
         toast.success("Template updated successfully!", {
           description: "Your proposal has been saved",
         });
-        // Navigate to proposals list after successful save
-        router.push("/proposals");
+        // Proceed to contract creation step and reset loading state
+        setIsLoading(false);
+        setCurrentStep("preview");
       },
       onError: (error: any) => {
         toast.error("Failed to update template", {
@@ -127,9 +148,9 @@ export default function CreateProposalPage() {
       },
     });
 
-  const handleCreateProposal = async () => {
+  const handleCreateProposalAndContract = async () => {
     const templateId = formData.template ? formData.template.id : null;
-    
+
     setIsLoading(true);
 
     const proposalDetails = {
@@ -148,14 +169,57 @@ export default function CreateProposalPage() {
 
     return new Promise((resolve, reject) => {
       createProposalMutation.mutate(proposalDetails, {
-        onSuccess: (data) => {
-          resolve(data);
-          toast.success("Proposal created successfully!");
-          setTradeObjects(data.data.template.trades);
-          setVariableObjects(data.data.template.variables);
-          setTemplate(data.data.template);
-          setTemplateId(data.data.template.id);
-          setIsLoading(false);
+        onSuccess: async (proposalData) => {
+          try {
+            // Update local state with proposal data
+            setTradeObjects(proposalData.data.template.trades);
+            setVariableObjects(proposalData.data.template.variables);
+            setTemplate(proposalData.data.template);
+            setTemplateId(proposalData.data.template.id);
+            setCreatedProposal(proposalData.data);
+
+            toast.success("Proposal created successfully!");
+
+            // Now create a contract based on the proposal
+            const contractDetails = {
+              name: proposalData.data.name || "",
+              description: proposalData.data.description || "",
+              status: proposalData.data.status || undefined,
+              contractor_initials: undefined,
+              contractor_signature: undefined,
+              terms: undefined,
+              service_agreement_content: undefined,
+              service_agreement_id: undefined,
+              proposal_id: proposalData.data.id || undefined,
+            };
+
+            createContractMutation.mutate(contractDetails, {
+              onSuccess: (contractData) => {
+                setContractId(contractData.data.id);
+                toast.success("Contract created successfully!");
+                resolve(proposalData);
+                setIsLoading(false);
+                handleNext();
+              },
+              onError: (error) => {
+                setIsLoading(false);
+                toast.error("Failed to create contract", {
+                  description:
+                    error instanceof Error
+                      ? error.message
+                      : "Please try again later",
+                });
+                // Still resolve with proposal data since proposal was created
+                resolve(proposalData);
+                handleNext();
+              },
+            });
+          } catch (error) {
+            setIsLoading(false);
+            toast.error("Proposal created but contract creation failed");
+            resolve(proposalData);
+            handleNext();
+          }
         },
         onError: (error) => {
           reject(error);
@@ -174,7 +238,7 @@ export default function CreateProposalPage() {
       toast.error("Template ID is missing");
       return Promise.reject("Template ID is missing");
     }
-    
+
     setIsLoading(true);
 
     const tradesAndVariables = {
@@ -183,7 +247,63 @@ export default function CreateProposalPage() {
     };
 
     updateTemplateMutation({ templateId, template: tradesAndVariables });
+
+    // Ensure that we set loading to false if the mutation doesn't handle it directly
+    setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+      }
+    }, 2000);
   };
+
+  const [isSending, setIsSending] = useState(false);
+
+  // Function to send the proposal/contract to the client
+  const sendProposalToClient = async () => {
+    if (!createdProposal?.id) {
+      toast.error("No proposal to send");
+      return;
+    }
+
+    setIsSending(true);
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${API_URL}/v1/proposals/send/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          proposal_id: createdProposal.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send proposal");
+      }
+
+      toast.success("Proposal has been sent to the client successfully.");
+    } catch (error) {
+      console.error("Error sending proposal:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending the proposal."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Effect to ensure isLoading is reset when on preview/contract step
+  useEffect(() => {
+    if (currentStep === "preview") {
+      setIsLoading(false);
+    }
+  }, [currentStep]);
 
   return (
     <div className="flex-1 p-6 pt-0">
@@ -197,11 +317,11 @@ export default function CreateProposalPage() {
         <div className="w-64 shrink-0">
           <div className="sticky top-20">
             <VerticalStepIndicator
-              steps={["Template Selection", "Proposal Details", "Trades & Elements", "Preview"]}
+              steps={["Template Selection", "Proposal Details", "Trades & Elements", "Contract Creation"]}
               currentStep={
-                currentStep === "template" ? 0 
-                : currentStep === "details" ? 1 
-                : currentStep === "trades" ? 2 : 3
+                currentStep === "template" ? 0
+                  : currentStep === "details" ? 1
+                    : currentStep === "trades" ? 2 : 3
               }
               className="h-[calc(100vh-600px)]"
             />
@@ -268,7 +388,7 @@ export default function CreateProposalPage() {
                 </Button>
                 <Button
                   className="rounded-full"
-                  onClick={handleCreateProposal}
+                  onClick={handleCreateProposalAndContract}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -321,44 +441,71 @@ export default function CreateProposalPage() {
                   {isLoading ? (
                     <>
                       <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      Processing...
                     </>
                   ) : (
-                    "Next: Preview"
+                    "Next: Contract Creation"
                   )}
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="preview" className="px-4">
-              {/* <PreviewStep formData={formData} /> */}
-              <div className="flex justify-between mt-6">
-                <Button
-                  className="rounded-full"
-                  variant="outline"
-                  onClick={handleBack}
-                  disabled={isLoading}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="rounded-full"
-                  onClick={() => {
-                    // Navigate to proposals list after successful save
-                    router.push("/proposals");
-                  }}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Proposal"
-                  )}
-                </Button>
-              </div>
+              {createdProposal ? (
+                <div className="space-y-6">
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                          Contract Creation
+                        </h1>
+                        <p className="text-muted-foreground">
+                          You are about to create a contract based on the proposal you just created.
+                        </p>
+                      </div>
+                      <div className="flex justify-between gap-2 mt-6">
+                        <Button
+                          className="rounded-full"
+                          variant="outline"
+                          onClick={handleBack}
+                          disabled={isLoading}
+                        >
+                          Back
+                        </Button>
+
+                        <Button
+                          className="rounded-full"
+                          onClick={sendProposalToClient}
+                          disabled={isSending || !createdProposal?.client_email}
+                        >
+                          {isSending ? (
+                            <>
+                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            "Send Contract to Client"
+                          )}
+                        </Button>
+
+                      </div>
+                    </div>
+                    <Separator />
+                  </div>
+                  <CreateContract
+                    contract_id={contractId || `new_${createdProposal.id}`}
+                    proposal={createdProposal}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <div className="text-xl font-medium">Processing Proposal Data</div>
+                  <p className="text-muted-foreground mt-2 mb-4">
+                    Please wait while we prepare your contract creation interface.
+                  </p>
+                  <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
