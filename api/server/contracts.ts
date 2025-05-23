@@ -31,7 +31,6 @@ export async function updateContract(contractId: string, contract: any) {
 export async function clientSignature(contractId: string, contract: any) {
   try {
     const token = Cookies.get("auth-token"); // Always get the latest token
-    console.log("Token:", token);
     const response = await fetch(
       `${API_URL}/v1/contracts/sign/${contractId}/`,
       {

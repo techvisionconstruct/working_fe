@@ -4,7 +4,7 @@ import { ProposalList } from "@/components/features/proposal-page/proposal-list-
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
 import { ProposalLoader } from "@/components/features/proposal-page/loader";
 import { useQuery } from "@tanstack/react-query";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Tabs,
   TabsList,
@@ -30,13 +30,6 @@ export default function ProposalsPage() {
     isPending,
   } = useQuery(getProposals());
 
-  useEffect(() => {
-    const hasSeenTour = localStorage.getItem("hasSeenProposalsTour") === "true";
-    if (!hasSeenTour && proposals.data && proposals.data.length > 0) {
-      setIsTourRunning(true);
-    }
-  }, [proposals]);
-
   const startTour = () => {
     setIsTourRunning(true);
   };
@@ -48,6 +41,8 @@ export default function ProposalsPage() {
   if (isError) {
     return <AlertError resource="proposals" />;
   }
+
+  const proposalData = proposals?.data || [];
 
   return (
     <div id="content">
@@ -92,10 +87,10 @@ export default function ProposalsPage() {
       </div>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <ProposalGridView proposals={proposals?.data} />
+          <ProposalGridView proposals={proposalData} />
         </TabsContent>
         <TabsContent value="list">
-          <ProposalList proposals={proposals?.data} />
+          <ProposalList proposals={proposalData} />
         </TabsContent>
       </Tabs>
 

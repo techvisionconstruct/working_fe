@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementDialog } from "./components/element-dialog";
 
 interface AddElementDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddElement: (data: {
+  onOpenChange: (open: boolean) => void;  onAddElement: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -18,6 +18,9 @@ interface AddElementDialogProps {
   variables: VariableResponse[];
   updateVariables?: (variables: VariableResponse[]) => void;
   isCreatingElement: boolean;
+  // Global markup props
+  isGlobalMarkupEnabled?: boolean;
+  globalMarkupValue?: number;
 }
 
 const AddElementDialog: React.FC<AddElementDialogProps> = ({
@@ -28,10 +31,15 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
   variables = [],
   updateVariables = () => {},
   isCreatingElement,
-}) => {
+  isGlobalMarkupEnabled = false,
+  globalMarkupValue = 0,
+}) => {    // Store a local copy of variables to prevent issues with autocomplete
+    const [localVariables, setLocalVariables] = useState<VariableResponse[]>([]);
+  
   const handleSubmit = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -41,6 +49,7 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
     }
   };
 
+  
   return (
     <ElementDialog
       isOpen={open}
@@ -48,12 +57,29 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
       onSubmit={handleSubmit}
       initialName={newElementName}
       variables={variables}
-      updateVariables={updateVariables}
+      updateVariables={(updatedVariables) => {
+        if (typeof updatedVariables === 'function') {
+          // If it's a function, compute the new value based on current localVariables
+          const newVars = updatedVariables(localVariables);
+          setLocalVariables(newVars);
+          updateVariables(newVars);
+        } else {
+          // If it's a direct value, use it directly
+          setLocalVariables(updatedVariables);
+          updateVariables(updatedVariables);
+        }
+      }}
       isSubmitting={isCreatingElement}
       dialogTitle="Add New Element"
       submitButtonText="Add Element"
       includeMarkup={true}
-      initialMarkup={0}
+      initialMarkup={isGlobalMarkupEnabled ? globalMarkupValue : 0}
+      isGlobalMarkupEnabled={isGlobalMarkupEnabled}
+      globalMarkupValue={globalMarkupValue}
+      onUseGlobalMarkup={() => {
+        // This can be a no-op for now since we're already setting initialMarkup to globalMarkupValue
+        // when global markup is enabled, but in the future we might want to track this action
+      }}
       onRequestCreateVariable={(variableName, callback) => {
         // Instead of creating the variable right away, we'll pass the request to the parent
         // The parent component will handle opening the Add Variable dialog
