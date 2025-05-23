@@ -165,15 +165,24 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               </h3>
 
               <div className="space-y-10">
-                {proposal.template.trades.map((trade) => (
-                  <div
+                {proposal.template.trades.map((trade) => (                  <div
                     key={trade.id}
                     className="bg-gray-50 rounded-lg p-6 border border-gray-100 hover:shadow-sm transition-shadow duration-300"
                   >
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <div className="h-3 w-3 bg-gray-500 rounded-full"></div>
-                      </div>
+                      {trade.image ? (
+                        <div className="h-12 w-12 overflow-hidden rounded-lg">
+                          <img 
+                            src={trade.image} 
+                            alt={trade.name} 
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <div className="h-3 w-3 bg-gray-500 rounded-full"></div>
+                        </div>
+                      )}
                       <h4 className="font-semibold text-lg text-gray-800">{trade.name}</h4>
                     </div>
 
@@ -191,13 +200,23 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                             (1 + Number(element.markup || 0) / 100)
                           ).toFixed(2);
 
-                          return (
-                            <div
+                          return (                              <div
                               key={element.id}
                               className="bg-white rounded-lg p-5 border border-gray-100 flex justify-between items-center hover:border-gray-300 hover:shadow-sm transition-all duration-200"
                             >
                               <div className="flex-1 pr-4">
-                                <h5 className="font-medium text-gray-700 mb-2">{element.name}</h5>
+                                <div className="flex items-center gap-3 mb-2">
+                                  {element.image ? (
+                                    <div className="h-10 w-10 overflow-hidden rounded-lg flex-shrink-0">
+                                      <img 
+                                        src={element.image} 
+                                        alt={element.name} 
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </div>
+                                  ) : null}
+                                  <h5 className="font-medium text-gray-700">{element.name}</h5>
+                                </div>
                                 <p className="text-sm text-gray-500 leading-relaxed">
                                   {element.description}
                                 </p>

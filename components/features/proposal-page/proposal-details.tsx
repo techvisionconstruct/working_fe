@@ -235,11 +235,21 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                     <div
                       key={trade.id}
                       className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
-                    >
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium text-base mb-1">
-                          {trade.name}
-                        </h4>
+                    >                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          {trade.image ? (
+                            <div className="h-10 w-10 overflow-hidden rounded-lg flex-shrink-0">
+                              <img 
+                                src={trade.image} 
+                                alt={trade.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : null}
+                          <h4 className="font-medium text-base mb-1">
+                            {trade.name}
+                          </h4>
+                        </div>
                         <div className="text-sm font-medium">Subtotal:</div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
@@ -257,10 +267,19 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                   key={element.id}
                                   className="flex flex-col p-4 rounded border bg-background w-full"
                                 >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm">
-                                        {element.name}
+                                  <div className="flex items-start justify-between">                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">                                        {element.image ? (
+                                          <div className="h-9 w-9 overflow-hidden rounded-lg flex-shrink-0">
+                                            <img 
+                                              src={element.image} 
+                                              alt={element.name} 
+                                              className="h-full w-full object-cover"
+                                            />
+                                          </div>
+                                        ) : null}
+                                        <div className="font-medium text-sm">
+                                          {element.name}
+                                        </div>
                                       </div>
                                       <div className="text-xs text-muted-foreground line-clamp-1">
                                         {element.description}

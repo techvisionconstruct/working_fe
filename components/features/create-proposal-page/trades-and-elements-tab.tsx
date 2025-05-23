@@ -157,9 +157,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [newVarDefaultVariableType, setNewVarDefaultVariableType] = useState("");
 
   const [tradeSearchQuery, setTradeSearchQuery] = useState("");
-  const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);
-  const [newTradeName, setNewTradeName] = useState("");
+  const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);  const [newTradeName, setNewTradeName] = useState("");
   const [newTradeDescription, setNewTradeDescription] = useState("");
+  const [newTradeImage, setNewTradeImage] = useState("");
   const trades = data.trades || [];
 
   const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
@@ -352,10 +352,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           toast.success("Trade created successfully", {
             position: "top-center",
             description: `"${createdTrade.name}" has been added to your proposal.`,
-          });
-          setShowAddTradeDialog(false);
+          });          setShowAddTradeDialog(false);
           setNewTradeName("");
           setNewTradeDescription("");
+          setNewTradeImage("");
         }
       },
       onError: (error) => {
@@ -1219,13 +1219,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleRemoveTrade = (tradeId: string) => {
     updateTrades(trades.filter((t) => t.id !== tradeId));
   };
-
   const handleAddTrade = () => {
     if (!newTradeName.trim()) return;
 
     const tradeData = {
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
+      image: newTradeImage || undefined,
       origin: "derived",
     };
 
@@ -1235,6 +1235,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleAddElement = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -1254,6 +1255,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
+      image: data.image || undefined,
       material_cost_formula: materialFormula,
       origin: "derived",
       labor_cost_formula: laborFormula,
@@ -1266,6 +1268,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const handleEditElement = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -1285,6 +1288,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
+      image: data.image || undefined,
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
       markup: markup,
@@ -2087,8 +2091,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     }}
                     variables={variables}
                     updateVariables={updateVariables}
-                  />
-                  <AddTradeDialog
+                  />                  <AddTradeDialog
                     open={showAddTradeDialog}
                     onOpenChange={setShowAddTradeDialog}
                     onAddTrade={handleAddTrade}
@@ -2096,8 +2099,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     setNewTradeName={setNewTradeName}
                     newTradeDescription={newTradeDescription}
                     setNewTradeDescription={setNewTradeDescription}
+                    newTradeImage={newTradeImage}
+                    setNewTradeImage={setNewTradeImage}
                     isCreatingTrade={isCreatingTrade}
-                  />                  <AddElementDialog
+                  /><AddElementDialog
                     open={showAddElementDialog}
                     onOpenChange={setShowAddElementDialog}
                     onAddElement={handleAddElement}
@@ -2185,15 +2190,32 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     Trades ({trades.length})
                   </h3>
                   {trades.length > 0 ? (
-                    <div className="space-y-2">
-                      {trades.map((trade) => (
+                    <div className="space-y-2">                      {trades.map((trade) => (
                         <div
                           key={trade.id}
                           className="border rounded-md p-3 bg-muted/30 relative group"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-sm flex items-center">
-                              {trade.name}
+                          <div className="flex items-center justify-between mb-2">                            <div className="font-medium text-sm flex items-center gap-2">
+                              {trade.image ? (
+                                <div className="h-10 w-10 overflow-hidden rounded-md flex-shrink-0">
+                                  <img 
+                                    src={trade.image} 
+                                    alt={trade.name} 
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                              ) : null}
+                              <span>{trade.name}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 opacity-70 hover:opacity-100"
+                                onClick={() => handleRemoveTrade(trade.id)}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </div>
                           {trade.description && (
@@ -2341,15 +2363,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                     </div>
                                   </div>
                                 )}
-                              </div>
-
-                              <div className="space-y-2">
+                              </div>                                <div className="space-y-2">
                                 {trade.elements.map((element) => (
                                   <div
                                     key={element.id}
                                     className="flex flex-col gap-2"
-                                  >
-                                    <div className="flex items-center gap-3 p-4 rounded border bg-background relative group">
+                                  >                                    <div className="flex items-start gap-3 p-4 rounded border bg-background relative group">
+                                      {element.image ? (
+                                        <div className="h-11 w-11 overflow-hidden rounded-md flex-shrink-0 mt-1">
+                                          <img 
+                                            src={element.image} 
+                                            alt={element.name} 
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </div>
+                                      ) : null}
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium text-sm">
                                           {element.name}

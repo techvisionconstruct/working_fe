@@ -13,6 +13,7 @@ interface EditElementDialogProps {
   onEditElement: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -44,6 +45,7 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
   onUseGlobalMarkup = () => {},
 }) => {
   const [localElementMarkup, setElementMarkup] = useState(elementMarkup);
+  const [localVariables, setLocalVariables] = useState<VariableResponse[]>(variables);
   const queryClient = useQueryClient();
 
   // Add mutation for updating element
@@ -60,10 +62,10 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ["trades"] });
     },
   });
-
   const handleSubmit = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -73,14 +75,25 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
     }
   };
 
+  // Create a compatible updateVariables function
+  const handleUpdateVariables = (newVariables: React.SetStateAction<VariableResponse[]>) => {
+    // Handle both function updates and direct value updates
+    const updatedVariables = typeof newVariables === 'function' 
+      ? newVariables(localVariables)
+      : newVariables;
+    
+    setLocalVariables(updatedVariables);
+    updateVariables(updatedVariables);
+  };
+
   return (
     <ElementDialog
       isOpen={open}
       onOpenChange={onOpenChange}
       onSubmit={handleSubmit}
       elementToEdit={elementToEdit}
-      variables={variables}
-      updateVariables={updateVariables}
+      variables={localVariables}
+      updateVariables={handleUpdateVariables}
       isSubmitting={isUpdatingElement}
       dialogTitle="Edit Element"
       submitButtonText="Update Element"
@@ -101,6 +114,7 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
                   data: {
                     name: elementToEdit.name,
                     description: elementToEdit.description || undefined,
+                    image: elementToEdit.image || undefined,
                     material_cost_formula: elementToEdit.material_cost_formula,
                     labor_cost_formula: elementToEdit.labor_cost_formula,
                     markup: globalMarkupValue,
@@ -127,8 +141,7 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
           window.openVariableDialog(variableName, callback);
         } else {
           console.warn("openVariableDialog function not available on window object");
-        }
-      }}
+        }      }}
     />
   );
 };
