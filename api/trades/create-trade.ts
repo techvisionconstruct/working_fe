@@ -5,12 +5,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const TOKEN = Cookies.get("auth-token");
 
 export async function createTrade(trade: TradeCreateRequest) {
-  try {
-    const payload: Record<string, any> = {};
+  try {    const payload: Record<string, any> = {};
     
     if (trade.name) payload.name = trade.name;
     if (trade.description) payload.description = trade.description;
+    if (trade.image !== undefined) payload.image = trade.image;
     if (trade.elements && trade.elements.length > 0) payload.elements = trade.elements;
+    
+    console.log("Creating trade with payload:", payload);
     
     const response = await fetch(`${API_URL}/v1/trades/create/`, {
       method: 'POST',

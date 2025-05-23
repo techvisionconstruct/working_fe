@@ -18,7 +18,6 @@ export function ContractPreview({ proposal }: ContractPreviewProps) {
       return "Invalid date";
     }
   };
-
   return (
     <div className="border rounded-md p-8 bg-white">
       <div className="max-w-4xl mx-auto">
@@ -27,6 +26,16 @@ export function ContractPreview({ proposal }: ContractPreviewProps) {
           <p className="text-lg text-muted-foreground">Client: {client_name || "Client Name"}</p>
           <p className="text-sm text-muted-foreground mt-2">Effective Date: {formatDate(new Date().toISOString())}</p>
         </div>
+        
+        {proposal?.image && (
+          <div className="mb-8 w-full h-48 overflow-hidden rounded-lg">
+            <img
+              src={proposal.image}
+              alt={proposal?.name || "Project Image"} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
         
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Contract Terms</h2>

@@ -2,10 +2,10 @@ import { getAllProposals } from "@/api/proposals/get-all-proposals";
 import { getProposalById } from "@/api/proposals/get-proposal-by-id";
 import { queryOptions } from "@tanstack/react-query";
 
-export function getProposals() {
+export function getProposals(page = 1, pageSize = 10, searchQuery?: string) {
   return queryOptions({
-    queryKey: ["proposal"],
-    queryFn: () => getAllProposals(),
+    queryKey: ["proposal", page, pageSize, searchQuery],
+    queryFn: () => getAllProposals(page, pageSize, searchQuery),
   });
 }
 

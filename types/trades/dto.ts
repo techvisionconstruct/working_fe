@@ -6,6 +6,7 @@ export interface TradeResponse {
   id: string;
   name: string;
   description?: string;
+  image?: string;
   origin: string;
   elements?: ElementResponse[];
   created_at: string;
@@ -31,11 +32,13 @@ export interface TradeDetailResponse {
 export interface TradeCreateRequest {
   name: string;
   description?: string;
+  image?: string;
   elements?: string[];
 }
 
 export interface TradeUpdateRequest {
   name?: string;
   description?: string;
+  image?: string;
   elements?: string[];
 }

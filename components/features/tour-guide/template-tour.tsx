@@ -22,16 +22,13 @@ type TemplateTourProps = {
 export function TemplateTour({ isRunning, setIsRunning }: TemplateTourProps) {
   const router = useRouter();
 
-  // Helper to end the tour
+  // Helper to end the tour - removed localStorage dependency
   const endTour = () => {
-    localStorage.setItem("hasSeenTemplatesTour", "true");
     setIsRunning(false);
-    // No navigation changes when skipping
   };
 
   // Helper to redirect
   const redirectToCreateTemplate = () => {
-    localStorage.setItem("hasSeenTemplatesTour", "true");
     setIsRunning(false);
     router.push("/templates/create");
   };

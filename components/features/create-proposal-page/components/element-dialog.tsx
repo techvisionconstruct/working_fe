@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image"; // Add this import
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   Input,
   Label,
   Textarea,
+  ImageUpload,
 } from "@/components/shared";
 import { BracesIcon, Loader2, AlertCircle, X } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
@@ -18,6 +20,9 @@ import { ElementResponse } from "@/types/elements/dto";
 import { FormulaBuilder } from "./formula-builder";
 import { FormulaToken, useFormula } from "../hooks/use-formula";
 import { toast } from "sonner";
+import { ProductResponse } from "@/types/products/dto";
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/queryOptions/products";
 
 // Storage keys for formulas - make them unique to avoid conflicts
 const STORAGE_PREFIX = 'proposal_element_dialog_';
@@ -33,6 +38,7 @@ interface ElementDialogProps {
   onSubmit: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -40,13 +46,17 @@ interface ElementDialogProps {
   elementToEdit?: ElementResponse | null;
   initialName?: string;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   isSubmitting: boolean;
   dialogTitle: string;
   submitButtonText: string;
   includeMarkup?: boolean;
   initialMarkup?: number;
   onRequestCreateVariable?: (variableName: string, callback: (newVariable: VariableResponse) => void) => void;
+  // Global markup props
+  isGlobalMarkupEnabled?: boolean;
+  globalMarkupValue?: number;
+  onUseGlobalMarkup?: () => void;
 }
 
 export function ElementDialog({
@@ -63,6 +73,10 @@ export function ElementDialog({
   includeMarkup = false,
   initialMarkup = 0,
   onRequestCreateVariable,
+  // Global markup props
+  isGlobalMarkupEnabled = false,
+  globalMarkupValue = 0,
+  onUseGlobalMarkup = () => {},
 }: ElementDialogProps) {
   // Generate a unique ID for this dialog instance
   const dialogId = useRef(`dialog_${Math.random().toString(36).substring(2, 11)}`).current;
@@ -70,10 +84,13 @@ export function ElementDialog({
   
   // Track if this is the first render of the dialog since opening
   const initialRenderRef = useRef(true);
-  
-  const [name, setName] = useState(elementToEdit?.name || initialName);
+    const [name, setName] = useState(elementToEdit?.name || initialName);
   const [description, setDescription] = useState(elementToEdit?.description || "");
+  const [image, setImage] = useState<string>(elementToEdit?.image || "");
   const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
+
+  const { data: productsData } = useQuery(getProducts(1, 999));
+
   
   // Store pending variable information to be processed after creation
   const pendingVariableRef = useRef<{
@@ -97,13 +114,15 @@ export function ElementDialog({
     setMaterialFormulaTokens,
     laborFormulaTokens,
     setLaborFormulaTokens,
-    materialFormulaError,
-    laborFormulaError,
     validateFormulaTokens,
     parseFormulaToTokens,
     tokensToFormulaString,
     replaceVariableIdsWithNames,
   } = useFormula();
+
+  // Add state for formula validation errors
+  const [materialFormulaError, setMaterialFormulaError] = useState<string | null>(null);
+  const [laborFormulaError, setLaborFormulaError] = useState<string | null>(null);
 
   // Local storage helper functions
   const saveFormulasToStorage = () => {
@@ -147,82 +166,200 @@ export function ElementDialog({
     }
   };
 
-  // Initialize form when opening/editing
-  useEffect(() => {
-    if (isOpen) {
-      // Reset initial render flag when dialog opens
-      initialRenderRef.current = true;
-      
-      // Always update the name to match either elementToEdit.name or initialName when dialog opens
-      if (elementToEdit) {
-        setName(elementToEdit.name);
-      } else {
-        setName(initialName);
-      }
-      
-      const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === 'true';
-      
-      if (wasOpen) {
-        // Dialog was previously open - restore from localStorage
-        const { materialTokens, laborTokens } = getFormulasFromStorage();
-        if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
-        if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
-        console.log('Restored formulas from localStorage');
-      } else if (elementToEdit) {
-        // Initialize from element to edit
-        setDescription(elementToEdit.description || "");
-        setMarkup(elementToEdit.markup || 0);
-        
-        if (elementToEdit.material_cost_formula) {
-          const displayFormula = replaceVariableIdsWithNames(
-            elementToEdit.material_cost_formula,
-            filteredVariables,
-            elementToEdit.material_formula_variables || []
-          );
-          setMaterialFormulaTokens(parseFormulaToTokens(displayFormula));
+    useEffect(() => {
+      if (isOpen) {
+        // Reset initial render flag when dialog opens
+        initialRenderRef.current = true;
+  
+        // Always update the name to match either elementToEdit.name or initialName when dialog opens
+        if (elementToEdit) {
+          setName(elementToEdit.name);
         } else {
+          setName(initialName);
+        }
+  
+        const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === "true";
+  
+        if (wasOpen) {
+          // Dialog was previously open - restore formulas from localStorage
+          const { materialTokens, laborTokens } = getFormulasFromStorage();
+          if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
+          if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
+        } else if (elementToEdit) {
+          // Initialize from element to edit
+          setDescription(elementToEdit.description || "");
+          setMarkup(elementToEdit.markup || 0);
+  
+          let materialTokens = [],
+            laborTokens = [];
+  
+          if (elementToEdit.material_cost_formula) {
+            // For variables, we want to display names instead of IDs for better user experience
+            let displayFormula = replaceVariableIdsWithNames(
+              elementToEdit.material_cost_formula,
+              filteredVariables,
+              elementToEdit.material_formula_variables || []
+            );
+  
+            // But for products, we need to preserve the original IDs for proper submission
+            // So we don't call replaceProductIdsWithNames here
+  
+            materialTokens = parseFormulaToTokens(displayFormula);
+            console.log("displayFormula", displayFormula);
+            console.log("Initial material tokens:", materialTokens);
+            console.log(
+              "Material formula variables:",
+              elementToEdit.material_formula_variables
+            );
+  
+            // After parsing, ensure all product references are correctly identified
+            materialTokens = materialTokens.map((token) => {
+              // Strategy 1: Check if this token appears in material_formula_variables as a product
+              if (
+                elementToEdit.material_formula_variables &&
+                elementToEdit.material_formula_variables.length > 0
+              ) {
+                const productVariable =
+                  elementToEdit.material_formula_variables.find(
+                    (variable: any) =>
+                      (variable.name === token.text ||
+                        variable.name === token.displayText) &&
+                      variable.type === "product"
+                  );
+  
+                if (productVariable) {
+                  console.log(
+                    "Found product in material_formula_variables:",
+                    productVariable
+                  );
+                  return {
+                    ...token,
+                    type: "product" as const,
+                    // Store the ID in text for API submission
+                    text: productVariable.id,
+                    // Use displayText for UI with product: prefix
+                    displayText: `${productVariable.name || token.text}`,
+                  };
+                }
+              }
+  
+              const matchedProduct = productsData.data.find(
+                (product: ProductResponse) =>
+                  product.title.toLowerCase() === token.text.toLowerCase() ||
+                  token.text.includes(product.id)
+              );
+  
+              if (matchedProduct) {
+                console.log(
+                  "Found matching product in API data:",
+                  matchedProduct
+                );
+                return {
+                  ...token,
+                  type: "product" as const,
+                  // Store the ID in text for API submission
+                  text: matchedProduct.id,
+                  // Use displayText for UI with product: prefix
+                  displayText: `${matchedProduct.title}`,
+                };
+              }
+  
+              return token;
+            });
+  
+            console.log("Final processed material tokens:", materialTokens);
+  
+            setMaterialFormulaTokens(materialTokens);
+  
+            // Immediately save to localStorage instead of waiting for the useEffect
+            localStorage.setItem(
+              storageKeys.MATERIAL_KEY,
+              JSON.stringify(materialTokens)
+            );
+          } else {
+            setMaterialFormulaTokens([]);
+          }
+  
+          if (elementToEdit.labor_cost_formula) {
+            // For variables, we want to display names instead of IDs for better user experience
+            let displayFormula = replaceVariableIdsWithNames(
+              elementToEdit.labor_cost_formula,
+              filteredVariables,
+              elementToEdit.labor_formula_variables || []
+            );
+  
+            // But for products, we need to preserve the original IDs for proper submission
+            // So we don't call replaceProductIdsWithNames here
+  
+            laborTokens = parseFormulaToTokens(displayFormula);
+  
+            // After parsing, ensure all product references are correctly identified in labor formula
+            laborTokens = laborTokens.map((token) => {
+              // Method 1: Check if displayText starts with "product:" (new method)
+              if (
+                token.displayText?.startsWith("product:") &&
+                token.type !== "product"
+              ) {
+                return {
+                  ...token,
+                  type: "product" as const,
+                  // Preserve the original text (which should contain the ID)
+                };
+              }
+  
+              // Method 2: Check if text property starts with "product:" for backward compatibility
+            
+  
+              return token;
+            });
+  
+            setLaborFormulaTokens(laborTokens);
+  
+            // Immediately save to localStorage instead of waiting for the useEffect
+            localStorage.setItem(
+              storageKeys.LABOR_KEY,
+              JSON.stringify(laborTokens)
+            );
+          } else {
+            setLaborFormulaTokens([]);
+          }
+  
+          // Initial save to localStorage
+          setTimeout(() => {
+            saveFormulasToStorage();
+          }, 100);
+        } else {
+          // New element, initialize with proper values
+          setDescription("");
+          setMarkup(initialMarkup);
           setMaterialFormulaTokens([]);
-        }
-        
-        if (elementToEdit.labor_cost_formula) {
-          const displayFormula = replaceVariableIdsWithNames(
-            elementToEdit.labor_cost_formula,
-            filteredVariables,
-            elementToEdit.labor_formula_variables || []
-          );
-          setLaborFormulaTokens(parseFormulaToTokens(displayFormula));
-        } else {
           setLaborFormulaTokens([]);
+  
+          // Initial save to localStorage
+          setTimeout(() => {
+            saveFormulasToStorage();
+          }, 100);
         }
-        
-        // Initial save to localStorage
-        setTimeout(() => {
-          saveFormulasToStorage();
-        }, 100);
       } else {
-        // New element, initialize with proper values
-        setDescription("");
-        setMarkup(initialMarkup);
-        setMaterialFormulaTokens([]);
-        setLaborFormulaTokens([]);
-        
-        // Initial save to localStorage
-        setTimeout(() => {
-          saveFormulasToStorage();
-        }, 100);
-      }
-    } else {
-      // Dialog is closing, clear storage
-      clearFormulaStorage();
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      if (!isOpen) {
+        // Dialog is closing, clear storage
         clearFormulaStorage();
       }
-    };
-  }, [isOpen, elementToEdit, initialName, initialMarkup, filteredVariables, parseFormulaToTokens, replaceVariableIdsWithNames]);
+  
+      // Cleanup on unmount
+      return () => {
+        if (!isOpen) {
+          clearFormulaStorage();
+        }
+      };
+    }, [
+      isOpen,
+      elementToEdit,
+      initialName,
+      initialMarkup,
+      filteredVariables,
+      parseFormulaToTokens,
+      replaceVariableIdsWithNames,
+    ]);
 
   // Save formulas to localStorage whenever they change
   useEffect(() => {
@@ -323,10 +460,10 @@ export function ElementDialog({
     
     // Clear localStorage before submitting
     clearFormulaStorage();
-    
-    onSubmit({
+      onSubmit({
       name: name.trim(),
       description: description.trim(),
+      image,
       materialFormula,
       laborFormula,
       markup
@@ -499,9 +636,7 @@ export function ElementDialog({
             {elementErrors.name && elementTouched.name && (
               <p className="text-xs text-red-500">{elementErrors.name}</p>
             )}
-          </div>
-
-          <div className="grid gap-2">
+          </div>          <div className="grid gap-2">
             <Label htmlFor="element-description">
               Description{" "}
               <span className="text-gray-500">&#40;Optional&#41;</span>
@@ -526,6 +661,19 @@ export function ElementDialog({
                 </button>
               )}
             </div>
+          </div>          <div className="grid gap-2">
+            <Label htmlFor="element-image">
+              Element Image{" "}
+              <span className="text-gray-500">&#40;Optional&#41;</span>
+            </Label>            <ImageUpload
+              value={image || elementToEdit?.image || ""}
+              onChange={(value) => {
+                console.log("Element image changed:", value);
+                setImage(value);
+              }}
+              placeholder="Click or drag to upload element image"
+              height={200}
+            />
           </div>
 
           {/* Material Cost Formula */}
@@ -560,6 +708,7 @@ export function ElementDialog({
                 handleCreateVariable(name, "material");
               }}
               formulaType="material"
+              onValidationError={setMaterialFormulaError}
             />
           </div>
 
@@ -594,26 +743,69 @@ export function ElementDialog({
                 handleCreateVariable(name, "labor");
               }}
               formulaType="labor"
+              onValidationError={setLaborFormulaError}
             />
           </div>
 
           {/* Markup Field (only if includeMarkup is true) */}
           {includeMarkup && (
             <div className="grid gap-2">
-              <Label htmlFor="element-markup">
-                Markup Percentage (%)
-              </Label>
-              <Input
-                id="element-markup"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="15"
-                value={markup || ''}
-                onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
-              />
+              <div className="flex justify-between items-center mb-1">
+                <Label htmlFor="element-markup">
+                  Markup Percentage (%)
+                </Label>
+                {isGlobalMarkupEnabled && (
+                  <div className="flex items-center">
+                    {markup !== globalMarkupValue && (
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs flex items-center gap-1 text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          // First update local state
+                          setMarkup(globalMarkupValue);
+                          
+                          // Then call the callback to notify parent component
+                          // This is crucial for updating the element in the parent's state
+                          if (onUseGlobalMarkup) {
+                            onUseGlobalMarkup();
+                          }
+                          
+                          // Show success message
+                          toast.success(`Applied global markup of ${globalMarkupValue}%`);
+                        }}
+                      >
+                        Use Global ({globalMarkupValue}%)
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="element-markup"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder={isGlobalMarkupEnabled ? globalMarkupValue.toString() : "15"}
+                  value={markup || ''}
+                  onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+                  className={isGlobalMarkupEnabled && markup === globalMarkupValue ? 'border-primary/30' : ''}
+                />
+                {isGlobalMarkupEnabled && markup === globalMarkupValue && (
+                  <div className="absolute right-3 top-2 flex items-center">
+                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs">
+                      Global
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">
-                Enter the percentage markup to apply to this element (e.g., 15 for 15%)
+                {isGlobalMarkupEnabled 
+                  ? markup === globalMarkupValue 
+                    ? `Using global markup value (${globalMarkupValue}%)` 
+                    : `Enter custom markup or use the global value (${globalMarkupValue}%)`
+                  : "Enter the percentage markup to apply to this element (e.g., 15 for 15%)"}
               </div>
             </div>
           )}

@@ -267,3 +267,7 @@ export { navigationMenuTriggerStyle,
   NavigationMenuIndicator,
   NavigationMenuViewport,
 } from "./navigation-menu/navigation-menu";
+/**
+ * Image Upload
+ */
+export { ImageUpload } from "./image-upload/image-upload";
