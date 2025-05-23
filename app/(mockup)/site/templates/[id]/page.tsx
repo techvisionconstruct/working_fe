@@ -37,13 +37,13 @@ export default function TemplatedById() {
   return (
     <div className="p-0 mx-auto">
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
-        <Link 
+        <Link
           href="/site/templates"
           className="absolute left-4 top-4 z-10 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-full shadow-sm hover:bg-background transition-colors group"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary group-hover:translate-x-[-2px] transition-transform">
-            <path d="m12 19-7-7 7-7"/>
-            <path d="M19 12H5"/>
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
           </svg>
           <span className="text-sm font-medium">Back to templates</span>
         </Link>
@@ -83,7 +83,7 @@ export default function TemplatedById() {
                 {Object.entries(groupedVariables).map(([typeName, variables]) => {
                   const isExpanded = expandedTypes[typeName] || false;
                   const visibleVariables = isExpanded ? variables : variables.slice(0, 3);
-                  
+
                   return (
                     <div key={typeName}>
                       <h4 className="text-sm font-semibold mb-3 text-foreground">
