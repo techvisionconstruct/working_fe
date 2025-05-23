@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Button, Input } from "@/components/shared";
 import { CheckCircle } from "lucide-react";
+import { PopupModal } from "react-calendly";
 
 // PricingPlan type
 interface PricingPlan {
@@ -57,6 +58,7 @@ const pricingPlans: PricingPlan[] = [
 
 const PricingSection = () => {
   const { theme } = useTheme ? useTheme() : { theme: "light" };
+  const [calendlyOpen, setCalendlyOpen] = useState(false);
   return (
     <div>
       <section
@@ -67,27 +69,7 @@ const PricingSection = () => {
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
-        {/* Background patterns */}
-        <div className="absolute inset-0 z-0">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern
-                id="grid"
-                width="40"
-                height="40"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 40 0 L 0 0 0 40"
-                  fill="none"
-                  stroke="hsla(20, 10%, 90%, 0.7)"
-                  strokeWidth="1"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
+        
 
         <div className="container px-4 mx-auto relative z-10 max-w-7xl">
           <motion.div
@@ -162,6 +144,7 @@ const PricingSection = () => {
                         ? "bg-primary hover:bg-primary/90 text-white"
                         : "bg-gray-100 hover:bg-gray-200 text-gray-900"
                     }`}
+                    onClick={() => setCalendlyOpen(true)}
                   >
                     Get Started Now
                   </Button>
@@ -225,12 +208,21 @@ const PricingSection = () => {
             />
             <Button
               className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
-              type="submit"
+              type="button"
+              onClick={() => setCalendlyOpen(true)}
             >
               Get Started Now!
             </Button>
           </form>
         </div>
+        {typeof window !== 'undefined' && (
+          <PopupModal
+            url="https://calendly.com/avorino/simple-projex-demo"
+            open={calendlyOpen}
+            onModalClose={() => setCalendlyOpen(false)}
+            rootElement={document.body}
+          />
+        )}
       </section>
     </div>
   );

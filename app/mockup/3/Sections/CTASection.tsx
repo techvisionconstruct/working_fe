@@ -89,7 +89,7 @@ const CTASection = () => {
                 size="lg"
                 className="rounded-xl py-6 px-8 bg-white text-primary hover:bg-white/90 text-lg w-full shadow-lg shadow-white/10"
               >
-                Start Your Free Trial
+                Schedule a Demo
               </Button>
               <Button
                 size="lg"

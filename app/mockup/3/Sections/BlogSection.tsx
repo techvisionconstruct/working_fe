@@ -31,7 +31,7 @@ const oswald = Oswald({
       },
       excerpt:
         "Discover how Simple ProjeX empowers contractors with industry-specific templates, real-time collaboration, and digital signatures—making proposal creation faster, easier, and more professional.",
-      image: "https://i.ibb.co/cKC6qtMD/Empowerment.jpg",
+      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog1.jpg",
       tags: ["Product Update", "Features"],
       readTime: "5 min read",
       content: (
@@ -71,7 +71,7 @@ const oswald = Oswald({
       },
       excerpt:
         "See how real contractors are saving hours each week, improving win rates, and impressing clients with Simple ProjeX. Read their stories and learn how you can do the same.",
-      image: "https://i.ibb.co/zVWcqPwk/Costumer-Success.jpg",
+      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog2.jpg",
       tags: ["Case Study", "Success"],
       readTime: "7 min read",
       content: (
@@ -110,7 +110,7 @@ const oswald = Oswald({
       },
       excerpt:
         "Generic proposals don’t cut it. Learn how our tailored templates for electrical, plumbing, and ADU builders help you stand out and win more bids.",
-      image: "https://i.ibb.co/6JtKtVyr/Platform-Insights.jpg",
+      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog3.jpg",
       tags: ["Templates", "Best Practices"],
       readTime: "6 min read",
       content: (
@@ -145,7 +145,7 @@ const oswald = Oswald({
       },
       excerpt:
         "Walk through a typical project lifecycle in Simple ProjeX—from fast, accurate estimates to client-ready proposals and secure digital signatures—all in one place.",
-      image: "https://i.ibb.co/8gzBLxNq/Esign.png",
+      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog4.png",
       tags: ["Workflow", "How-To"],
       readTime: "8 min read",
       content: (
@@ -207,27 +207,7 @@ const BlogSection = () => {
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
-        {/* SVG grid pattern overlay */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <svg width="100%" height="100%">
-            <defs>
-              <pattern
-                id="blogGrid"
-                width="40"
-                height="40"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 40 0 L 0 0 0 40"
-                  fill="none"
-                  stroke="hsla(20, 10%, 90%, 0.7)"
-                  strokeWidth="1"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#blogGrid)" />
-          </svg>
-        </div>
+        
 
         {/* Blurred colored blobs for depth */}
         <div className="absolute top-[-6rem] left-[-8rem] w-[32rem] h-[32rem] rounded-full bg-orange-400/20 blur-3xl z-0"></div>
@@ -315,13 +295,13 @@ const BlogSection = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* Featured Post */}
-            <motion.div
-              className="overflow-hidden group bg-white border border-gray-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+            {/* Featured Post */}            <motion.div
+              className="overflow-hidden group bg-white border border-gray-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
+              onClick={() => setOpenBlogIndex(current)}
             >
               <div className="relative h-64 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent z-10"></div>
@@ -401,11 +381,12 @@ const BlogSection = () => {
                 .map((post, idx) => (
                   <motion.div
                     key={idx}
-                    className="overflow-hidden group flex bg-white border border-gray-100 rounded-2xl shadow hover:shadow-lg transition-all duration-300"
+                    className="overflow-hidden group flex bg-white border border-gray-100 rounded-2xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer"
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.1 * idx }}
+                    onClick={() => setOpenBlogIndex(idx >= current ? idx + 1 : idx)}
                   >
                     <div className="w-1/3 relative overflow-hidden">
                       <img
@@ -446,16 +427,6 @@ const BlogSection = () => {
                             {post.author.name}
                           </span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-orange-500 hover:bg-transparent p-0 h-auto"
-                          onClick={() =>
-                            setOpenBlogIndex(idx >= current ? idx + 1 : idx)
-                          }
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                   </motion.div>

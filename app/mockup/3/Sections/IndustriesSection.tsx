@@ -27,21 +27,21 @@ function IndustriesSection() {
     {
       title: "Electrical Contractors",
       image:
-        "https://www.austintec.com/wp-content/uploads/2024/05/what-do-electrical-engineers-do.jpg",
+        "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/ind1.jpg",
       description:
         "Detailed electrical diagrams, code compliance checklists, and material specifications.",
     },
     {
       title: "Plumbing Professionals",
       image:
-        "https://www.icominc.com/wp-content/uploads/2021/08/TA9Q9bV3Z81nZRooviZz51Y4bpnXIdBt1623180634.jpg",
+        "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/ind2.jpg",
       description:
         "Pipe layouts, fixture specifications, and water system diagrams with cost breakdowns.",
     },
     {
       title: "ADU Builders",
       image:
-        "https://www.chase.com/content/dam/unified-assets/photography/articles/primary/mortgage/seo_accessory-dwelling-unit-adu_12152023.jpg",
+        "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/ind3.jpg",
       description:
         "Complete ADU project proposals with floor plans, permits, and timeline projections.",
     },

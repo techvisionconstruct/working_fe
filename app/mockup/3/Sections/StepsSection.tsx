@@ -24,7 +24,6 @@ function StepsSection() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
 
-  
   const handleUserSelect = (idx: number) => {
     setActiveIndex(idx);
     setIsPaused(true);
@@ -104,33 +103,11 @@ function StepsSection() {
           <span className={theme === "dark" ? "text-white" : "text-black"}>
             1.{" "}
           </span>
-          <span className="text-red-600">Create Your Account</span>
+          <span className="text-red-600">Build Your Smart Template</span>
         </>
       ),
       description:
-        "Sign up with your email and set a secure password. No credit card required to start your free trial.",
-      demo: (
-        <div
-          className={`h-full w-full flex items-center justify-center ${
-            theme === "dark"
-              ? "bg-[#23272e] border-[#333]"
-              : "bg-white border-gray-200"
-          } rounded-lg shadow-inner overflow-hidden`}
-        ></div>
-      ),
-    },
-    {
-      icon: <BarChart3 className="h-6 w-6 text-red-600" />,
-      title: (
-        <>
-          <span className={theme === "dark" ? "text-white" : "text-black"}>
-            2.{" "}
-          </span>
-          <span className="text-red-600">Set Up Your First Proposal</span>
-        </>
-      ),
-      description:
-        "Add your company details and create your first project using our guided setup. Choose a template or start from scratch.",
+        "Easily create reusable templates tailored to your projects. Leverage dynamic variables and real-time material pricing to calculate costs with precision.",
       demo: (
         <div
           className={`h-full w-full flex items-center justify-center ${
@@ -140,29 +117,47 @@ function StepsSection() {
           } rounded-lg shadow-inner overflow-hidden`}
         >
           <div className="w-full h-full p-8 flex flex-col items-center justify-center">
-            <img
-              src="/template/create-proposal.png"
-              alt="Project Setup"
-              className="w-full h-full mb-6"
-            />
-            <h3
-              className={`text-xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-black"
-              }`}
-            >
-              Project Setup
-            </h3>
-            <p
-              className={`text-center mb-4 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              Fill in your project details and select a template to jumpstart
-              your workflow.
-            </p>
-            <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
-              Start Proposal
-            </Button>
+            <div className="w-full mb-6 flex justify-center items-center">
+              <img
+                src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/template-builder.png"
+                alt="Template Builder"
+                className="max-w-full h-auto rounded-lg shadow"
+                style={{ display: "block" }}
+              />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      icon: <BarChart3 className="h-6 w-6 text-red-600" />,
+      title: (
+        <>
+          <span className={theme === "dark" ? "text-white" : "text-black"}>
+            2.{" "}
+          </span>
+          <span className="text-red-600">Generate Proposals Instantly</span>
+        </>
+      ),
+      description:
+        "Use your templates or start from scratch to build proposals with live cost calculations based on selected materials and user inputs.",
+      demo: (
+        <div
+          className={`h-full w-full flex items-center justify-center ${
+            theme === "dark"
+              ? "bg-[#23272e] border-[#333]"
+              : "bg-white border-gray-200"
+          } rounded-lg shadow-inner overflow-hidden`}
+        >
+          <div className="w-full h-full flex flex-col items-center justify-center">
+            <div className="w-full mb-6 flex justify-center items-center">
+              <img
+                src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/proposal-generator.png"
+                alt="Proposal Generator"
+                className="max-w-full h-auto rounded-lg shadow"
+                style={{ display: "block" }}
+              />
+            </div>
           </div>
         </div>
       ),
@@ -174,10 +169,11 @@ function StepsSection() {
           <span className={theme === "dark" ? "text-white" : "text-black"}>
             3.{" "}
           </span>
-          <span className="text-red-600">Send Contracts to Clients</span>
+          <span className="text-red-600">Share, Review & Sign</span>
         </>
       ),
-      description: "Easily send contract to clients for your proposal.",
+      description:
+        "Send proposals directly to clients for review, track their activity, and collect digital signatures — all in one place with no 3rd-party apps.",
       demo: (
         <div
           className={`h-full w-full flex items-center justify-center ${
@@ -186,29 +182,15 @@ function StepsSection() {
               : "bg-white border-gray-200"
           } rounded-lg shadow-inner overflow-hidden`}
         >
-          <div className="w-full h-full p-8 flex flex-col items-center justify-center">
-            <img
-              src="/template/contract-email.png"
-              alt="Send Contract"
-              className="w-full h-full mb-6"
-            />
-            <h3
-              className={`text-xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-black"
-              }`}
-            >
-              Contract Making
-            </h3>
-            <p
-              className={`text-center mb-4 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              Send contracts to your clients and sign it right away.
-            </p>
-            <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
-              Send Contract
-            </Button>
+          <div className="w-full h-full p-1 flex flex-col items-center justify-center">
+            <div className="w-full mb-6 flex justify-center items-center">
+              <img
+                src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/client-pov.png"
+                alt="Client Review"
+                className="max-w-full h-auto rounded-lg shadow"
+                style={{ display: "block" }}
+              />
+            </div>
           </div>
         </div>
       ),
@@ -230,15 +212,32 @@ function StepsSection() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex items-center gap-2 mb-6">
             <div className="h-px w-12 bg-red-600"></div>
+            <Badge
+              variant="outline"
+              className="text-red-600 border-red-200 font-medium uppercase tracking-wider px-3"
+              style={{
+                background: theme === "dark" ? "#23272e" : undefined,
+                color: theme === "dark" ? "#fff" : "#e11d48",
+                borderColor: theme === "dark" ? "#333" : "#e11d48",
+              }}
+            >
+              Features
+            </Badge>
           </div>
 
-          <SectionHeader
-            badge="Steps"
-            title="Everything You Need To Succeed"
-            description="Simple ProjeX is designed to make your project management easier and
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">
+            Everything You Need <span className="text-red-600">to Succeed</span>
+          </h2>
+
+          <p
+            className={`text-lg mb-12 max-w-3xl ${
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
+            Simple ProjeX is designed to make your project management easier and
             more efficient, with powerful tools that adapt to your specific
-            industry needs."
-          />
+            industry needs.
+          </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-8">
             {/* Demo Content on the left (desktop only) */}
