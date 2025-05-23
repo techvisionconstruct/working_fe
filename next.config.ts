@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'simpleprojexbucket.s3.us-west-1.amazonaws.com'
+      },
+      {
+        protocol: 'https',
         hostname: 'placehold.co'
       },
       {
