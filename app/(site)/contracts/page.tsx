@@ -24,9 +24,9 @@ import { getProposals } from "@/queryOptions/proposals";
 
 export default function ContractsPage() {
   const router = useRouter();
-  const { data: contractData, contractIsError, contractIsLoading } = useQuery(getContracts());
+  const { data: contractData, isError: contractIsError, isLoading: contractIsLoading } = useQuery(getContracts());
 
-  const { data: proposalData, proposalIsError, proposalIsLoading } = useQuery(getProposals());
+  const { data: proposalData, isError: proposalIsError, isLoading: proposalIsLoading } = useQuery(getProposals());
   console.log("Proposal Data", proposalData);
   console.log("Contract Data", contractData);
   const [search, setSearch] = useState("");
