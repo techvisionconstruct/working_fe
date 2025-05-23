@@ -12,6 +12,7 @@ import {
   Input,
   Textarea,
 } from "@/components/shared";
+import { ImageUpload } from "@/components/shared";
 import { BracesIcon, Loader2 } from "lucide-react";
 
 interface AddTradeDialogProps {
@@ -22,6 +23,8 @@ interface AddTradeDialogProps {
   setNewTradeName: React.Dispatch<React.SetStateAction<string>>;
   newTradeDescription: string;
   setNewTradeDescription: React.Dispatch<React.SetStateAction<string>>;
+  newTradeImage: string;
+  setNewTradeImage: React.Dispatch<React.SetStateAction<string>>;
   isCreatingTrade: boolean;
 }
 
@@ -33,6 +36,8 @@ const AddTradeDialog: React.FC<AddTradeDialogProps> = ({
   setNewTradeName,
   newTradeDescription,
   setNewTradeDescription,
+  newTradeImage,
+  setNewTradeImage,
   isCreatingTrade,
 }) => {
   return (
@@ -64,6 +69,13 @@ const AddTradeDialog: React.FC<AddTradeDialogProps> = ({
               value={newTradeDescription}
               onChange={(e) => setNewTradeDescription(e.target.value)}
               className="min-h-[80px]"
+            />          </div>          <div className="grid gap-2">
+            <Label htmlFor="trade-image">Trade Image (Optional)</Label>            <ImageUpload
+              value={newTradeImage}
+              onChange={(value) => setNewTradeImage(value)}
+              placeholder="Upload an image for this trade..."
+              maxSizeMB={5}
+              className="w-full"
             />
           </div>
         </div>

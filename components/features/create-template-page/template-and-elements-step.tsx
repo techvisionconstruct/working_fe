@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import {
   Card,
   CardHeader,
@@ -22,6 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  ImageUpload,
 } from "@/components/shared";
 import { toast } from "sonner";
 import {
@@ -31,6 +33,7 @@ import {
   Search,
   Loader2,
   PlusCircle,
+  ImageIcon,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
@@ -96,6 +99,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [isTradeSearchOpen, setIsTradeSearchOpen] = useState(false);
   const [newTradeName, setNewTradeName] = useState("");
   const [newTradeDescription, setNewTradeDescription] = useState("");
+  const [newTradeImage, setNewTradeImage] = useState("");
   const trades = data.trades || [];
   const [tradeSkeletons, setTradeSkeletons] = useState<Record<string, boolean>>(
     {}
@@ -226,6 +230,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       onSuccess: (response) => {
         if (response && response.data) {
           const createdTrade = response.data;
+          console.log("Trade created successfully with data:", createdTrade);
+          
+          // Make sure the image is preserved in the created trade object
+          if (newTradeImage && !createdTrade.image) {
+            createdTrade.image = newTradeImage;
+          }
+          
           updateTrades([...trades, createdTrade]);
           toast.success("Trade created successfully", {
             position: "top-center",
@@ -234,6 +245,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setShowAddTradeDialog(false);
           setNewTradeName("");
           setNewTradeDescription("");
+          setNewTradeImage("");
           setTradeSearchQuery("");
         }
       },
@@ -600,15 +612,18 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const handleRemoveTrade = (tradeId: string) => {
     updateTrades(trades.filter((t) => t.id !== tradeId));
-  };
-
-  const handleAddTrade = () => {
+  };  const handleAddTrade = () => {
     if (!validateTradeForm()) return;
-
+    
+    // Log the image data for debugging
+    console.log("Adding trade with image:", newTradeImage);
+    
     const tradeData = {
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
+      image: newTradeImage,  // Send empty string for removal, don't convert to undefined
     };
+    
     createTradeMutation(tradeData);
   };
 
@@ -680,11 +695,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setElementToEdit(element);
     setCurrentElementId(element.id);
     setShowEditElementDialog(true);
-  };
-
-  const handleAddElement = (data: {
+  };  const handleAddElement = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     materialFormulaProducts?: Record<string, any>[];
@@ -694,21 +708,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     // Replace variable names with IDs in material formula
     let materialFormula = data.materialFormula.trim()
-      ? replaceVariableNamesWithIds(data.materialFormula.trim(), variables)
+      ? replaceVariableNamesWithIds(data.materialFormula.trim(), localVariables)
       : undefined;
 
     // Replace variable names with IDs in labor formula
     let laborFormula = data.laborFormula.trim()
-      ? replaceVariableNamesWithIds(data.laborFormula.trim(), variables)
-      : undefined;
+      ? replaceVariableNamesWithIds(data.laborFormula.trim(), localVariables)      : undefined;
 
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
+      image: data.image, // Pass image directly, including empty strings
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
     };
 
+    console.log("Creating element with data:", elementData);
+    
     createElementMutation(elementData);
 
     setElementSearchQueries((prev) => ({
@@ -716,11 +732,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       [currentTradeId]: "",
     }));
     setElementSearchQuery("");
-  };
-
-  const handleUpdateElement = (data: {
+  };  const handleUpdateElement = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
   }) => {
@@ -737,11 +752,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     const elementData = {
       name: data.name.trim(),
       description: data.description.trim() || undefined,
+      image: data.image, // Pass the image value directly, including empty strings
       material_cost_formula: materialFormula,
       labor_cost_formula: laborFormula,
       markup: 1,
     };
 
+    console.log("Updating element with data:", elementData);
+    
     updateElementMutation({
       elementId: currentElementId,
       data: elementData,
@@ -826,25 +844,48 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setTradeToEdit(trade);
     setNewTradeName(trade.name);
     setNewTradeDescription(trade.description || "");
-    setShowEditTradeDialog(true);
+    setNewTradeImage(trade.image || "");
+  setShowEditTradeDialog(true);
   };
 
-  // Handler to submit trade edit
+  // Handler to submit trade edit with proper API call
   const handleEditTrade = () => {
     if (!validateTradeForm() || !tradeToEdit) return;
+    
+    console.log("Editing trade with image:", newTradeImage);
+    
+    // Prepare the update data for API call including existing elements
+    const updateData = {
+      name: newTradeName.trim(),
+      description: newTradeDescription.trim() || undefined,
+      image: newTradeImage,  // Send empty string for removal, don't convert to undefined
+      elements: tradeToEdit.elements?.map(e => e.id) || [],
+    };
+    
+    // Update local state first for immediate UI feedback
     const updatedTrade: TradeResponse = {
       ...tradeToEdit,
       name: newTradeName.trim(),
       description: newTradeDescription.trim() || undefined,
+      image: newTradeImage,  // Send empty string for removal, don't convert to undefined
     };
+    
     const updatedTrades = trades.map((t) =>
       t.id === tradeToEdit.id ? updatedTrade : t
     );
     updateTrades(updatedTrades);
+    
+    // Call the backend update mutation with proper structure
+    updateTradeMutation({
+      tradeId: tradeToEdit.id,
+      data: updateData
+    });
+    
     setShowEditTradeDialog(false);
     setTradeToEdit(null);
     setNewTradeName("");
     setNewTradeDescription("");
+    setNewTradeImage("");
   };
 
   // =========== VALIDATION STATE/FORMS ===========
@@ -1565,7 +1606,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             </p>
                           )}
                         </div>
-
                         <div className="grid gap-2">
                           <Label htmlFor="trade-description">
                             Description
@@ -1581,6 +1621,23 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               setNewTradeDescription(e.target.value)
                             }
                             className="min-h-[80px]"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="trade-image">
+                            Trade Image
+                            <span className="text-gray-500">&#40;Optional&#41;</span>
+                          </Label>
+                          <ImageUpload
+                            value={newTradeImage}
+                            onChange={(value) => {
+                              console.log("Image selected:", value);
+                              setNewTradeImage(value || "");
+                            }}
+                            placeholder="Click or drag to upload a trade image"
+                            maxSizeMB={5}
+                            height={160}
+                            className="w-full"
                           />
                         </div>
                       </div>
@@ -1628,11 +1685,24 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               <div className="h-3 bg-muted rounded w-1/2 mb-2" />
                               <div className="h-3 bg-muted rounded w-1/4 mb-2" />
                               <div className="h-8 bg-muted rounded w-full" />
-                            </div>
-                          ) : (
+                            </div>                              ) : (
                             <>
                               <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm flex items-center">
+                                <div className="font-medium text-sm flex items-center gap-2">
+                                  {trade.image ? (
+                                    <div className="relative w-10 h-10 rounded-md overflow-hidden">
+                                      <Image 
+                                        src={trade.image}
+                                        alt={trade.name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-md bg-muted/30 flex items-center justify-center">
+                                      <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                                    </div>
+                                  )}
                                   {trade.name}
                                 </div>
                               </div>
@@ -1788,7 +1858,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                   }
                                                 >
                                                   <div className="flex items-center">
-                                                    <BracesIcon className="mr-2 h-3 w-3" />
+                                                    <BracesIcon className="mr-2 h-4 w-4" />
                                                     <span>{element.name}</span>
                                                   </div>
                                                 </div>
@@ -1807,23 +1877,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                   )
                                               ) ? (
                                                 <span className="text-muted-foreground">
-                                                  Element already added to this
-                                                  trade
+                                                  Element already added to this trade
                                                 </span>
                                               ) : (
                                                 <div>
                                                   <span className="text-muted-foreground">
-                                                    "
-                                                    {
-                                                      elementSearchQueries[
-                                                        trade.id
-                                                      ]
-                                                    }
-                                                    " doesn't exist.
+                                                    "{elementSearchQueries[trade.id] || ""}" doesn't exist.
                                                   </span>
                                                   <p className="text-xs mt-1 text-primary">
-                                                    Press Enter to create this
-                                                    element
+                                                    Press Enter to create this element
                                                   </p>
                                                 </div>
                                               )}
@@ -1844,6 +1906,20 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                         className="flex flex-col gap-2"
                                       >
                                         <div className="flex items-center gap-3 p-4 rounded border bg-background relative group">
+                                          {/* Add element image display */}
+                                          {element.image ? (                                            <div className="relative min-w-[44px] w-11 h-11 rounded-md overflow-hidden shrink-0">
+                                              <Image 
+                                                src={element.image}
+                                                alt={element.name}
+                                                fill
+                                                className="object-cover"
+                                              />
+                                            </div>
+                                          ) : (                                            <div className="min-w-[44px] w-11 h-11 rounded-md bg-muted/30 flex items-center justify-center shrink-0">
+                                              <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                                            </div>
+                                          )}
+                                          
                                           <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm">
                                               {element.name}
@@ -1854,52 +1930,45 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                               </div>
                                             )}
                                             <div className="mt-2 pt-2 border-t border-dashed">
-                                              {element.material_cost_formula && (
-                                                <div className="mt-1 flex flex-col">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-semibold">
-                                                      Material:
-                                                    </span>
-                                                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                              <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
+                                                Formulas
+                                              </div>
+                                              <div className="space-y-1">
+                                                {element.material_cost_formula && (
+                                                  <div className="text-xs">
+                                                    <span className="font-medium">Material:</span>{" "}
+                                                    <code className="bg-muted/50 px-1 rounded text-[10px]">
                                                       {replaceVariableIdsWithNames(
                                                         element.material_cost_formula,
-                                                        variables,
-                                                        element.material_formula_variables ||
-                                                          []
+                                                        localVariables,
+                                                        element.material_formula_variables || []
                                                       )}
                                                     </code>
                                                   </div>
-                                                </div>
-                                              )}
-                                              {element.labor_cost_formula && (
-                                                <div className="mt-2 flex flex-col">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-semibold">
-                                                      Labor:
-                                                    </span>
-                                                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                                )}
+                                                {element.labor_cost_formula && (
+                                                  <div className="text-xs">
+                                                    <span className="font-medium">Labor:</span>{" "}
+                                                    <code className="bg-muted/50 px-1 rounded text-[10px]">
                                                       {replaceVariableIdsWithNames(
                                                         element.labor_cost_formula,
-                                                        variables,
-                                                        element.labor_formula_variables ||
-                                                          []
+                                                        localVariables,
+                                                        element.labor_formula_variables || []
                                                       )}
                                                     </code>
                                                   </div>
-                                                </div>
-                                              )}
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
 
                                           <div className="absolute -top-2 -right-2 flex gap-1">
-                                            {/* Edit element button */}
                                             <Button
                                               variant="ghost"
                                               size="icon"
                                               className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-primary hover:text-primary/80"
-                                              onClick={() =>
-                                                handleOpenEditDialog(element)
-                                              }
+                                              onClick={() => handleOpenEditDialog(element)}
+                                              aria-label="Edit element"
                                             >
                                               <svg
                                                 xmlns="http://www.w3.org/2000/svg"
@@ -1916,17 +1985,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                               </svg>
                                             </Button>
-                                            {/* Remove element button */}
                                             <Button
                                               variant="ghost"
                                               size="icon"
                                               className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 bg-muted/80 text-destructive hover:text-destructive/80"
-                                              onClick={() =>
-                                                handleRemoveElement(
-                                                  element.id,
-                                                  trade.id
-                                                )
-                                              }
+                                              onClick={() => handleRemoveElement(element.id, trade.id)}
+                                              aria-label="Remove element"
                                             >
                                               <X className="h-2.5 w-2.5" />
                                             </Button>
@@ -2257,7 +2321,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                 )}
               </div>
               {tradeErrors.name && tradeTouched.name && (
-                <p className="text-xs text-red-500">{tradeErrors.name}</p>
+                <p className="text-xs text-red-500">
+                  {tradeErrors.name}
+                </p>
               )}
             </div>
             <div className="grid gap-2">
@@ -2272,6 +2338,22 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                 className="min-h-[80px]"
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-trade-image">
+                Trade Image <span className="text-gray-500">&#40;Optional&#41;</span>
+              </Label>
+              <ImageUpload
+                value={newTradeImage || ""}
+                onChange={(value) => {
+                  console.log("Edit trade image selected:", value);
+                  setNewTradeImage(value || "");
+                }}
+                placeholder="Click or drag to upload a trade image"
+                maxSizeMB={5}
+                height={160}
+                className="w-full"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditTradeDialog(false)}>
@@ -2283,6 +2365,43 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation dialog for removing variables that are used in elements */}
+      <ConfirmDialog 
+        open={showRemoveVariableConfirm} 
+        onOpenChange={setShowRemoveVariableConfirm}
+      >
+        <ConfirmDialogContent>
+          <ConfirmDialogHeader>
+            <ConfirmDialogTitle>Remove Variable</ConfirmDialogTitle>
+          </ConfirmDialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to remove the variable 
+              <strong className="mx-1">{variableToRemove?.name}</strong>?
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This variable is used in {elementsUsingVariable.length} element{elementsUsingVariable.length !== 1 ? 's' : ''}:
+            </p>
+            <ul className="mt-2 text-sm list-disc pl-5">
+              {elementsUsingVariable.map((element) => (
+                <li key={element.id}>{element.name}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm text-destructive font-medium">
+              Removing this variable may cause formula calculations to break.
+            </p>
+          </div>
+          <ConfirmDialogFooter>
+            <Button variant="outline" onClick={cancelRemoveVariable}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmRemoveVariable}>
+              Remove Variable
+            </Button>
+          </ConfirmDialogFooter>
+        </ConfirmDialogContent>
+      </ConfirmDialog>
     </div>
   );
 };

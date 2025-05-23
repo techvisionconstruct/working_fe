@@ -1444,8 +1444,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                             <div
                               key={trade.id}
                               className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                            >
-                              <div className="flex items-center gap-2 mb-4">
+                            >                              <div className="flex items-center gap-3 mb-4">
+                                {trade.image && (
+                                  <div className="h-10 w-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <img
+                                      src={trade.image}
+                                      alt={trade.name || "Trade"}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                )}
                                 <div className="h-6 w-1 bg-primary rounded-full"></div>
                                 <h4 className="font-medium">
                                   {trade.name || "Trade Name"}
@@ -1458,29 +1466,41 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                                     <div
                                       key={element.id}
                                       className="bg-gray-50 rounded-md p-3 border border-gray-100 hover:border-primary/20 transition-colors"
-                                    >
-                                      <div className="flex justify-between items-center mb-1">
-                                        <h5 className="font-medium text-sm">
-                                          {element.name || "Element Name"}
-                                        </h5>
-                                        <span className="font-medium text-sm bg-white px-3 py-1 rounded text-primary border border-gray-100">
-                                          {new Intl.NumberFormat("en-US", {
-                                            style: "currency",
-                                            currency: "USD",
-                                          }).format(
-                                            (parseFloat(
-                                              element.material_cost || 0
-                                            ) +
-                                              parseFloat(
-                                                element.labor_cost || 0
-                                              )) *
-                                              (1 +
-                                                parseFloat(
-                                                  element.markup || 0
-                                                ) /
-                                                  100)
-                                          )}
-                                        </span>
+                                    >                                      <div className="flex items-start gap-3 mb-1">
+                                        {element.image && (
+                                          <div className="h-11 w-11 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                            <img
+                                              src={element.image}
+                                              alt={element.name || "Element"}
+                                              className="h-full w-full object-cover"
+                                            />
+                                          </div>
+                                        )}
+                                        <div className="flex-1">
+                                          <div className="flex justify-between items-center">
+                                            <h5 className="font-medium text-sm">
+                                              {element.name || "Element Name"}
+                                            </h5>
+                                            <span className="font-medium text-sm bg-white px-3 py-1 rounded text-primary border border-gray-100">
+                                              {new Intl.NumberFormat("en-US", {
+                                                style: "currency",
+                                                currency: "USD",
+                                              }).format(
+                                                (parseFloat(
+                                                  element.material_cost || 0
+                                                ) +
+                                                  parseFloat(
+                                                    element.labor_cost || 0
+                                                  )) *
+                                                  (1 +
+                                                    parseFloat(
+                                                      element.markup || 0
+                                                    ) /
+                                                      100)
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
                                       </div>
 
                                       <p className="text-xs text-gray-600 line-clamp-2">

@@ -6,10 +6,10 @@ import { ElementDialog } from "./components/element-dialog";
 
 interface AddElementDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddElement: (data: {
+  onOpenChange: (open: boolean) => void;  onAddElement: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -33,12 +33,13 @@ const AddElementDialog: React.FC<AddElementDialogProps> = ({
   isCreatingElement,
   isGlobalMarkupEnabled = false,
   globalMarkupValue = 0,
-}) => {
-    // Store a local copy of variables to prevent issues with autocomplete
+}) => {    // Store a local copy of variables to prevent issues with autocomplete
     const [localVariables, setLocalVariables] = useState<VariableResponse[]>([]);
+  
   const handleSubmit = (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;

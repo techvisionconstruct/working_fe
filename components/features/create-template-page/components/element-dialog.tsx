@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image"; // Add this import
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   Input,
   Label,
   Textarea,
+  ImageUpload,
 } from "@/components/shared";
 import { BracesIcon, Loader2, AlertCircle, X } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
@@ -36,6 +38,7 @@ interface ElementDialogProps {
   onSubmit: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -75,14 +78,11 @@ export function ElementDialog({
     `dialog_${Math.random().toString(36).substring(2, 11)}`
   ).current;
   const storageKeys = getStorageKeys(dialogId);
-
   // Track if this is the first render of the dialog since opening
   const initialRenderRef = useRef(true);
-
   const [name, setName] = useState(elementToEdit?.name || initialName);
-  const [description, setDescription] = useState(
-    elementToEdit?.description || ""
-  );
+  const [description, setDescription] = useState(elementToEdit?.description || "");
+  const [image, setImage] = useState<string>(elementToEdit?.image || "");
   const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
 
   // Track which formula field is active/focused
@@ -486,10 +486,11 @@ export function ElementDialog({
 
     // Clear localStorage before submitting
     clearFormulaStorage();
-
+    
     onSubmit({
       name: name.trim(),
       description: description.trim(),
+      image,
       materialFormula,
       laborFormula,
       markup,
@@ -706,7 +707,18 @@ export function ElementDialog({
                   <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
                 </button>
               )}
-            </div>
+            </div>          </div>          <div className="grid gap-2">            <Label htmlFor="element-image">
+              Element Image{" "}
+              <span className="text-gray-500">&#40;Optional&#41;</span>
+            </Label>            <ImageUpload
+              value={image || elementToEdit?.image || ""}
+              onChange={(value) => {
+                console.log("Element image changed:", value);
+                setImage(value);
+              }}
+              placeholder="Click or drag to upload element image"
+              height={200}
+            />
           </div>
 
           {/* Material Cost Formula */}
@@ -754,8 +766,7 @@ export function ElementDialog({
               className="flex items-center justify-between"
             >
               <span className="text-sm font-medium flex items-center">
-                Labor Cost Formula{" "}
-                <span className="text-gray-500">&#40;Optional&#41;</span>
+                Labor Cost Formula <span className="text-gray-500">&#40;Optional&#41;</span>
               </span>
               {laborFormulaError && (
                 <span className="text-xs text-red-500 font-normal flex items-center">
@@ -780,7 +791,7 @@ export function ElementDialog({
                 handleCreateVariable(name, "labor");
               }}
               formulaType="labor"
-              onValidationError={setLaborFormulaError} // NEW
+              onValidationError={setLaborFormulaError}
             />
           </div>
 
@@ -798,8 +809,7 @@ export function ElementDialog({
                 onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
               />
               <div className="text-xs text-muted-foreground">
-                Enter the percentage markup to apply to this element (e.g., 15
-                for 15%)
+                Enter the percentage markup to apply to this element (e.g., 15 for 15%)
               </div>
             </div>
           )}

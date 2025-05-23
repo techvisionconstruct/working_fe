@@ -5,6 +5,7 @@ export interface ElementResponse {
   id: string;
   name: string;
   description?: string;
+  image?: string;
   origin: string;
   material_cost_formula?: string;
   material_formula_variables?: Record<string, any>[];
@@ -36,6 +37,7 @@ export interface ElementDetailResponse {
 export interface ElementCreateRequest {
   name: string;
   description?: string;
+  image?: string;
   material_cost_formula?: string;
   labor_cost_formula?: string;
   markup?: number;
@@ -44,6 +46,7 @@ export interface ElementCreateRequest {
 export interface ElementUpdateRequest {
   name?: string;
   description?: string;
+  image?: string;
   material_cost_formula?: string;
   labor_cost_formula?: string;
   markup?: number;

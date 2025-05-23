@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image"; // Add this import
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   Input,
   Label,
   Textarea,
+  ImageUpload,
 } from "@/components/shared";
 import { BracesIcon, Loader2, AlertCircle, X } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
@@ -36,6 +38,7 @@ interface ElementDialogProps {
   onSubmit: (data: {
     name: string;
     description: string;
+    image?: string;
     materialFormula: string;
     laborFormula: string;
     markup: number;
@@ -81,9 +84,9 @@ export function ElementDialog({
   
   // Track if this is the first render of the dialog since opening
   const initialRenderRef = useRef(true);
-  
-  const [name, setName] = useState(elementToEdit?.name || initialName);
+    const [name, setName] = useState(elementToEdit?.name || initialName);
   const [description, setDescription] = useState(elementToEdit?.description || "");
+  const [image, setImage] = useState<string>(elementToEdit?.image || "");
   const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
 
   const { data: productsData } = useQuery(getProducts(1, 999));
@@ -457,10 +460,10 @@ export function ElementDialog({
     
     // Clear localStorage before submitting
     clearFormulaStorage();
-    
-    onSubmit({
+      onSubmit({
       name: name.trim(),
       description: description.trim(),
+      image,
       materialFormula,
       laborFormula,
       markup
@@ -633,9 +636,7 @@ export function ElementDialog({
             {elementErrors.name && elementTouched.name && (
               <p className="text-xs text-red-500">{elementErrors.name}</p>
             )}
-          </div>
-
-          <div className="grid gap-2">
+          </div>          <div className="grid gap-2">
             <Label htmlFor="element-description">
               Description{" "}
               <span className="text-gray-500">&#40;Optional&#41;</span>
@@ -660,6 +661,19 @@ export function ElementDialog({
                 </button>
               )}
             </div>
+          </div>          <div className="grid gap-2">
+            <Label htmlFor="element-image">
+              Element Image{" "}
+              <span className="text-gray-500">&#40;Optional&#41;</span>
+            </Label>            <ImageUpload
+              value={image || elementToEdit?.image || ""}
+              onChange={(value) => {
+                console.log("Element image changed:", value);
+                setImage(value);
+              }}
+              placeholder="Click or drag to upload element image"
+              height={200}
+            />
           </div>
 
           {/* Material Cost Formula */}
