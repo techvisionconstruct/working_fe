@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Menu } from "lucide-react"
-import { Button } from "@/components/shared"
-import { useRouter } from "next/navigation"
-import { PopupModal } from "react-calendly"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/shared";
+import { useRouter } from "next/navigation";
+import { PopupModal } from "react-calendly";
 
 declare global {
   interface Window {
@@ -17,33 +17,33 @@ declare global {
 }
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
-  const [calendlyOpen, setCalendlyOpen] = useState(false)
-  const router = useRouter()
+  const [scrolled, setScrolled] = useState(false);
+  const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 10
+      const isScrolled = window.scrollY > 10;
       if (isScrolled !== scrolled) {
-        setScrolled(isScrolled)
+        setScrolled(isScrolled);
       }
-    }
+    };
 
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [scrolled])
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [scrolled]);
 
-  // Calendly popup handler
   const handleCalendly = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    if (typeof window !== 'undefined' && window.Calendly) {
-      window.Calendly.initPopupWidget({ url: 'https://calendly.com/avorino/simple-projex-demo' });
+    if (typeof window !== "undefined" && window.Calendly) {
+      window.Calendly.initPopupWidget({
+        url: "https://calendly.com/avorino/simple-projex-demo",
+      });
     } else {
-      window.open('https://calendly.com/avorino/simple-projex-demo', '_blank');
+      window.open("https://calendly.com/avorino/simple-projex-demo", "_blank");
     }
-  }
+  };
 
   return (
     <>
@@ -54,10 +54,10 @@ export default function Navbar() {
             : "bg-transparent text-white"
         }`}
         style={{
-          borderColor: scrolled ? 'hsla(20, 10%, 90%, 0.4)' : 'transparent'
+          borderColor: scrolled ? "hsla(20, 10%, 90%, 0.4)" : "transparent",
         }}
       >
-        <div className="container flex h-20 items-center justify-between mx-auto">
+        <div className="container flex h-20 items-center justify-between px-6 md:px-12 mx-auto">
           <Link href="/" className="flex items-center gap-2 z-10">
             <Image
               src="https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/latest-logo.png"
@@ -67,72 +67,116 @@ export default function Navbar() {
               className={scrolled ? "" : "invert"}
               priority
               loading="eager"
-              style={{ height: 'auto' }}
+              style={{ height: "auto" }}
             />
             <span className="font-bold text-xl">Simple ProjeX</span>
           </Link>
+
+          {/* Desktop nav */}
           <nav className="hidden md:flex gap-6 z-10">
-            <Link
-              href="#features"
-              className={`text-sm font-medium transition-colors ${
-                scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
-              }`}
-            >
-              Features
-            </Link>
-            <Link
-              href="#industries"
-              className={`text-sm font-medium transition-colors ${
-                scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
-              }`}
-            >
-              Industries
-            </Link>
-            <Link
-              href="#pricing"
-              className={`text-sm font-medium transition-colors ${
-                scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
-              }`}
-            >
-              Pricing
-            </Link>
-            <Link
-              href="#testimonials"
-              className={`text-sm font-medium transition-colors ${
-                scrolled ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white"
-              }`}
-            >
-              Testimonials
-            </Link>
+            {["Features", "Industries", "Blog", "Pricing", "FAQ"].map(
+              (text) => (
+                <Link
+                  key={text}
+                  href={`#${text}`}
+                  className={`text-sm font-medium transition-colors ${
+                    scrolled
+                      ? "text-muted-foreground hover:text-foreground"
+                      : "text-white/80 hover:text-white"
+                  }`}
+                >
+                  {text}
+                </Link>
+              )
+            )}
           </nav>
-          <div className="flex items-center gap-4 z-10">
+
+          {/* Desktop actions */}
+          <div className="hidden md:flex items-center gap-4 z-10">
             <Button
               variant="ghost"
-              className={scrolled ? "text-foreground hover:bg-muted" : "text-white hover:bg-white/10"}
+              className={
+                scrolled
+                  ? "text-foreground hover:bg-muted"
+                  : "text-white hover:bg-white/10"
+              }
               onClick={() => router.replace("/signin")}
             >
               Sign in
             </Button>
             <Button
               className={
-                scrolled ? "bg-primary text-white hover:bg-primary/90" : "bg-white text-primary hover:bg-white/90"
+                scrolled
+                  ? "bg-primary text-white hover:bg-primary/90"
+                  : "bg-white text-primary hover:bg-white/90"
               }
               style={{
-                backgroundColor: scrolled ? 'hsl(0, 85%, 30%)' : 'white',
-                color: scrolled ? 'white' : 'hsl(0, 85%, 30%)'
+                backgroundColor: scrolled ? "hsl(0, 85%, 30%)" : "white",
+                color: scrolled ? "white" : "hsl(0, 85%, 30%)",
               }}
               onClick={() => setCalendlyOpen(true)}
             >
               Schedule a demo
             </Button>
-            <Button variant="ghost" size="icon" className={`md:hidden ${scrolled ? "text-foreground" : "text-white"}`}>
+          </div>
+
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`md:hidden z-20 ${
+              scrolled ? "text-foreground" : "text-white"
+            }`}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
               <Menu className="h-6 w-6" />
-              <span className="sr-only">Menu</span>
+            )}
+            <span className="sr-only">Menu</span>
+          </Button>
+        </div>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="md:hidden absolute top-20 left-0 right-0 z-40 w-full bg-white text-black px-6 py-4 flex flex-col gap-4 border-t border-gray-200 shadow-md">
+            {["Features", "Industries", "Blog", "Pricing", "FAQ"].map(
+              (text) => (
+                <Link
+                  key={text}
+                  href={`#${text}`}
+                  className="text-base font-medium"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {text}
+                </Link>
+              )
+            )}
+            <Button
+              variant="ghost"
+              className="text-black"
+              onClick={() => {
+                setMenuOpen(false);
+                router.replace("/signin");
+              }}
+            >
+              Sign in
+            </Button>
+            <Button
+              className="bg-red-700 text-white hover:bg-red-800"
+              onClick={(e) => {
+                handleCalendly(e);
+                setMenuOpen(false);
+              }}
+            >
+              Schedule a demo
             </Button>
           </div>
-        </div>
+        )}
       </header>
-      {typeof window !== 'undefined' && (
+
+      {typeof window !== "undefined" && (
         <PopupModal
           url="https://calendly.com/avorino/simple-projex-demo"
           open={calendlyOpen}
@@ -141,5 +185,5 @@ export default function Navbar() {
         />
       )}
     </>
-  )
+  );
 }

@@ -59,8 +59,8 @@ const FAQSection = () => {
   return (
     <div>
       <section
-        id="Indutries"
-        className="py-32"
+        id="FAQ"
+        className="p-4 py-32 overflow-hidden"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
@@ -169,7 +169,7 @@ const FAQSection = () => {
               }`}
               asChild
             >
-              <a href="#">
+              <a href="/mockup/3/Sections/Dedicated-Pages/all-faqs">
                 <span>View All FAQs</span>
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>

@@ -1,195 +1,188 @@
 "use client";
-import React, { useState } from "react";
-import { useEffect } from "react";
-import {
-  Lightbulb,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  ArrowRight,
-} from "lucide-react";
-import { Badge, Button } from "@/components/shared";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/shared";
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Clock, ArrowRight } from "lucide-react";
+import { Button } from "@/components/shared";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/shared";
-import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
-import { PopupModal } from "react-calendly";
 import { Oswald } from "next/font/google";
+import Link from "next/link";
 
 const oswald = Oswald({
   subsets: ["latin"],
 });
 
-  const posts = [
-    {
-      title: "How Simple ProjeX Is Revolutionizing Construction Proposals",
-      date: "May 20, 2025",
-      author: {
-        name: "Simple ProjeX Team",
-        role: "Product Team",
-        avatar: "/icons/logo.svg",
-      },
-      excerpt:
-        "Discover how Simple ProjeX empowers contractors with industry-specific templates, real-time collaboration, and digital signatures—making proposal creation faster, easier, and more professional.",
-      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog1.jpg",
-      tags: ["Product Update", "Features"],
-      readTime: "5 min read",
-      content: (
-        <>
-          <h2 className="text-2xl font-bold mb-4">
-            How Simple ProjeX Is Revolutionizing Construction Proposals
-          </h2>
-          <p>
-            In the fast-paced world of construction, time is money. Simple
-            ProjeX is designed to help contractors and builders create
-            professional proposals in minutes, not hours. With industry-specific
-            templates, real-time collaboration, and digital signatures, you can
-            streamline your workflow and impress your clients.
-          </p>
-          <ul className="list-disc pl-6 my-4">
-            <li>
-              Industry-specific templates for electrical, plumbing, ADU, and
-              more
-            </li>
-            <li>Real-time collaboration with your team and clients</li>
-            <li>Secure digital signatures for faster approvals</li>
-          </ul>
-          <p>
-            Join thousands of professionals who have transformed their proposal
-            process with Simple ProjeX!
-          </p>
-        </>
-      ),
+const posts = [
+  {
+    title: "How Simple ProjeX Is Revolutionizing Construction Proposals",
+    date: "May 20, 2025",
+    author: {
+      name: "Simple ProjeX Team",
+      role: "Simple ProjeX Team",
+      avatar: "/icons/logo.svg",
     },
-    {
-      title: "Customer Success: 3 Ways Our Users Win More Projects",
-      date: "May 14, 2025",
-      author: {
-        name: "Simple ProjeX Admin",
-        role: "Customer Success",
-        avatar: "/icons/logo.svg",
-      },
-      excerpt:
-        "See how real contractors are saving hours each week, improving win rates, and impressing clients with Simple ProjeX. Read their stories and learn how you can do the same.",
-      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog2.jpg",
-      tags: ["Case Study", "Success"],
-      readTime: "7 min read",
-      content: (
-        <>
-          <h2 className="text-2xl font-bold mb-4">
-            Customer Success: 3 Ways Our Users Win More Projects
-          </h2>
-          <ol className="list-decimal pl-6 my-4">
-            <li>
-              <b>Faster Proposals:</b> Automated templates cut proposal creation
-              time by 60%.
-            </li>
-            <li>
-              <b>Higher Win Rates:</b> Professional, branded proposals help
-              users stand out.
-            </li>
-            <li>
-              <b>Client Satisfaction:</b> Real-time updates and e-signatures
-              keep clients happy and informed.
-            </li>
-          </ol>
-          <p>
-            Read more stories from our community and see how you can achieve
-            similar results!
-          </p>
-        </>
-      ),
+    excerpt:
+      "Discover how Simple ProjeX empowers contractors with industry-specific templates, real-time collaboration, and digital signatures—making proposal creation faster, easier, and more professional.",
+    image:
+      "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog1.jpg",
+    tags: ["Product Update", "Features"],
+    readTime: "5 min read",
+    content: (
+      <>
+        <h2 className="text-2xl font-bold mb-4">
+          How Simple ProjeX Is Revolutionizing Construction Proposals
+        </h2>
+        <p>
+          In the fast-paced world of construction, time is money. Simple ProjeX
+          is designed to help contractors and builders create professional
+          proposals in minutes, not hours. With industry-specific templates,
+          real-time collaboration, and digital signatures, you can streamline
+          your workflow and impress your clients.
+        </p>
+        <ul className="list-disc pl-6 my-4">
+          <li>
+            Industry-specific templates for electrical, plumbing, ADU, and more
+          </li>
+          <li>Real-time collaboration with your team and clients</li>
+          <li>Secure digital signatures for faster approvals</li>
+        </ul>
+        <p>
+          Join thousands of professionals who have transformed their proposal
+          process with Simple ProjeX!
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "Customer Success: 3 Ways Our Users Win More Projects",
+    date: "May 14, 2025",
+    author: {
+      name: "Simple ProjeX Admin",
+      role: "Customer Success",
+      avatar: "/icons/logo.svg",
     },
-    {
-      title: "Why Industry-Specific Templates Matter for Your Business",
-      date: "May 7, 2025",
-      author: {
-        name: "Simple ProjeX Team",
-        role: "Platform Insights",
-        avatar: "/icons/logo.svg",
-      },
-      excerpt:
-        "Generic proposals don’t cut it. Learn how our tailored templates for electrical, plumbing, and ADU builders help you stand out and win more bids.",
-      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog3.jpg",
-      tags: ["Templates", "Best Practices"],
-      readTime: "6 min read",
-      content: (
-        <>
-          <h2 className="text-2xl font-bold mb-4">
-            Why Industry-Specific Templates Matter for Your Business
-          </h2>
-          <p>
-            Every trade is different. That's why Simple ProjeX offers templates
-            tailored to your specialty—whether you're an electrician, plumber,
-            or ADU builder.
-          </p>
-          <ul className="list-disc pl-6 my-4">
-            <li>Meet industry standards and compliance</li>
-            <li>Highlight your expertise</li>
-            <li>Win more bids with targeted proposals</li>
-          </ul>
-          <p>
-            Upgrade your business with templates that speak your clients'
-            language.
-          </p>
-        </>
-      ),
+    excerpt:
+      "See how real contractors are saving hours each week, improving win rates, and impressing clients with Simple ProjeX. Read their stories and learn how you can do the same.",
+    image:
+      "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog2.jpg",
+    tags: ["Case Study", "Success"],
+    readTime: "7 min read",
+    content: (
+      <>
+        <h2 className="text-2xl font-bold mb-4">
+          Customer Success: 3 Ways Our Users Win More Projects
+        </h2>
+        <ol className="list-decimal pl-6 my-4">
+          <li>
+            <b>Faster Proposals:</b> Automated templates cut proposal creation
+            time by 60%.
+          </li>
+          <li>
+            <b>Higher Win Rates:</b> Professional, branded proposals help users
+            stand out.
+          </li>
+          <li>
+            <b>Client Satisfaction:</b> Real-time updates and e-signatures keep
+            clients happy and informed.
+          </li>
+        </ol>
+        <p>
+          Read more stories from our community and see how you can achieve
+          similar results!
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "Why Industry-Specific Templates Matter for Your Business",
+    date: "May 7, 2025",
+    author: {
+      name: "Simple ProjeX Team",
+      role: "Platform Insights",
+      avatar: "/icons/logo.svg",
     },
-    {
-      title: "From Estimate to E-Signature: The Simple ProjeX Workflow",
-      date: "April 28, 2025",
-      author: {
-        name: "Simple ProjeX Admin",
-        role: "Product Team",
-        avatar: "/icons/logo.svg",
-      },
-      excerpt:
-        "Walk through a typical project lifecycle in Simple ProjeX—from fast, accurate estimates to client-ready proposals and secure digital signatures—all in one place.",
-      image: "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog4.png",
-      tags: ["Workflow", "How-To"],
-      readTime: "8 min read",
-      content: (
-        <>
-          <h2 className="text-2xl font-bold mb-4">
-            From Estimate to E-Signature: The Simple ProjeX Workflow
-          </h2>
-          <ol className="list-decimal pl-6 my-4">
-            <li>
-              <b>Estimate:</b> Use our cost estimation tools for fast, accurate
-              quotes.
-            </li>
-            <li>
-              <b>Proposal:</b> Customize industry-specific templates for your
-              client.
-            </li>
-            <li>
-              <b>E-Signature:</b> Get client approval instantly with secure
-              digital signatures.
-            </li>
-          </ol>
-          <p>Experience a seamless workflow from start to finish!</p>
-        </>
-      ),
+    excerpt:
+      "Generic proposals don’t cut it. Learn how our tailored templates for electrical, plumbing, and ADU builders help you stand out and win more bids.",
+    image:
+      "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog3.jpg",
+    tags: ["Templates", "Best Practices"],
+    readTime: "6 min read",
+    content: (
+      <>
+        <h2 className="text-2xl font-bold mb-4">
+          Why Industry-Specific Templates Matter for Your Business
+        </h2>
+        <p>
+          Every trade is different. That's why Simple ProjeX offers templates
+          tailored to your specialty—whether you're an electrician, plumber, or
+          ADU builder.
+        </p>
+        <ul className="list-disc pl-6 my-4">
+          <li>Meet industry standards and compliance</li>
+          <li>Highlight your expertise</li>
+          <li>Win more bids with targeted proposals</li>
+        </ul>
+        <p>
+          Upgrade your business with templates that speak your clients'
+          language.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "From Estimate to E-Signature: The Simple ProjeX Workflow",
+    date: "April 28, 2025",
+    author: {
+      name: "Simple ProjeX Admin",
+      role: "Product Team",
+      avatar: "/icons/logo.svg",
     },
-  ];
+    excerpt:
+      "Walk through a typical project lifecycle in Simple ProjeX—from fast, accurate estimates to client-ready proposals and secure digital signatures—all in one place.",
+    image:
+      "https://simpleprojexbucket.s3.us-west-1.amazonaws.com/static/landing/blog4.png",
+    tags: ["Workflow", "How-To"],
+    readTime: "8 min read",
+    content: (
+      <>
+        <h2 className="text-2xl font-bold mb-4">
+          From Estimate to E-Signature: The Simple ProjeX Workflow
+        </h2>
+        <ol className="list-decimal pl-6 my-4">
+          <li>
+            <b>Estimate:</b> Use our cost estimation tools for fast, accurate
+            quotes.
+          </li>
+          <li>
+            <b>Proposal:</b> Customize industry-specific templates for your
+            client.
+          </li>
+          <li>
+            <b>E-Signature:</b> Get client approval instantly with secure
+            digital signatures.
+          </li>
+        </ol>
+        <p>Experience a seamless workflow from start to finish!</p>
+      </>
+    ),
+  },
+];
 
 const BlogSection = () => {
-  const { theme } = useTheme ? useTheme() : { theme: "light" };
   const [current, setCurrent] = useState(0);
   const [hasMounted, setHasMounted] = useState(false);
-  const [calendlyUrl, setCalendlyUrl] = useState("");
-  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
   const [openBlogIndex, setOpenBlogIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
+    if (openBlogIndex !== null) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [openBlogIndex]);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_CALENDLY_URL;
-    if (url) {
-      setCalendlyUrl(url);
-    }
+    setHasMounted(true);
   }, []);
 
   const prevPost = () =>
@@ -200,15 +193,13 @@ const BlogSection = () => {
   return (
     <div>
       <section
-        id="Indutries"
-        className="py-32"
+        id="Blog"
+        className="relative overflow-hidden p-4 py-32"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
-        
-
         {/* Blurred colored blobs for depth */}
         <div className="absolute top-[-6rem] left-[-8rem] w-[32rem] h-[32rem] rounded-full bg-orange-400/20 blur-3xl z-0"></div>
         <div className="absolute bottom-[-8rem] right-[-6rem] w-[28rem] h-[28rem] rounded-full bg-primary/20 blur-3xl z-0"></div>
@@ -277,7 +268,7 @@ const BlogSection = () => {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full border-primary/40 text-primary hover:text-white hover:bg-primary hover:border-primary"
+              className="rounded-full border-red-600 text-red-600 hover:text-white hover:bg-red-700 hover:border-red-700 shadow-lg"
               onClick={prevPost}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -286,7 +277,7 @@ const BlogSection = () => {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full border-primary/40 text-primary hover:text-white hover:bg-primary hover:border-primary"
+              className="rounded-full border-red-600 text-red-600 hover:text-white hover:bg-red-700 hover:border-red-700 shadow-lg"
               onClick={nextPost}
             >
               <ChevronRight className="h-5 w-5" />
@@ -295,8 +286,9 @@ const BlogSection = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* Featured Post */}            <motion.div
-              className="overflow-hidden group bg-white border border-gray-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            {/* Featured Post */}
+            <motion.div
+              className="overflow-hidden group bg-gradient-to-br from-white via-gray-100 to-gray-500 border-2 border-black rounded-3xl shadow-2xl hover:shadow-black/30 transition-all duration-300 cursor-pointer relative"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -304,14 +296,15 @@ const BlogSection = () => {
               onClick={() => setOpenBlogIndex(current)}
             >
               <div className="relative h-64 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent z-10"></div>
                 <img
                   src={posts[current].image || "/placeholder.svg"}
                   alt={posts[current].title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  style={{ filter: "brightness(0.93) saturate(1.1)" }}
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10"></div>
                 <div className="absolute top-4 right-4 z-20">
-                  <span className="bg-primary text-white px-3 py-1 rounded-full text-xs font-medium">
+                  <span className="bg-red-700 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg border border-white/30">
                     Featured
                   </span>
                 </div>
@@ -321,19 +314,19 @@ const BlogSection = () => {
                   {posts[current].tags.map((tag, i) => (
                     <span
                       key={i}
-                      className="backdrop-blur-sm bg-primary/80 text-white border border-primary/30 rounded-full px-3 py-1 text-xs"
+                      className="backdrop-blur-sm bg-red-700 text-white border border-red-800 rounded-full px-3 py-1 text-xs shadow"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold group-hover:text-primary transition-colors">
+                <h3 className="text-2xl md:text-3xl font-bold group-hover:text-black transition-colors text-black">
                   {posts[current].title}
                 </h3>
-                <div className="flex items-center gap-2 text-sm mt-3 text-gray-800">
-                  <Clock className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2 text-sm mt-3 text-black">
+                  <Clock className="h-3.5 w-3.5 text-black" />
                   <span>{posts[current].readTime}</span>
-                  <span className="w-1 h-1 rounded-full bg-gray-800"></span>
+                  <span className="w-1 h-1 rounded-full bg-black"></span>
                   <span>{posts[current].date}</span>
                 </div>
                 <p className="mb-3 mt-4 text-gray-800">
@@ -343,9 +336,12 @@ const BlogSection = () => {
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage
-                        src={posts[current].author.avatar || "/icons/logo.svg"}
+                        src={
+                          posts[current].author.avatar ||
+                          "/icons/logo-white.png"
+                        }
                       />
-                      <AvatarFallback className="bg-primary text-white">
+                      <AvatarFallback className="bg-black text-white">
                         {posts[current].author.name
                           .split(" ")
                           .map((n) => n[0])
@@ -353,17 +349,17 @@ const BlogSection = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col px-0 py-2 sm:p-0 items-start text-left">
-                      <div className="font-medium text-black">
+                      <div className="font-semibold text-black">
                         {posts[current].author.name}
                       </div>
-                      <div className="text-xs text-gray-800">
+                      <div className="text-xs text-gray-700">
                         {posts[current].author.role}
                       </div>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
-                    className="text-primary gap-1 group/btn hover:underline sm:mt-0 w-full sm:w-auto"
+                    className="text-black gap-1 group/btn hover:underline sm:mt-0 w-full sm:w-auto"
                     onClick={() => setOpenBlogIndex(current)}
                   >
                     <span>Read Article</span>
@@ -381,33 +377,36 @@ const BlogSection = () => {
                 .map((post, idx) => (
                   <motion.div
                     key={idx}
-                    className="overflow-hidden group flex bg-white border border-gray-100 rounded-2xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer"
+                    className="overflow-hidden group flex bg-gradient-to-br from-white via-gray-100 to-black border border-black rounded-2xl shadow hover:shadow-black/40 transition-all duration-300 cursor-pointer"
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.1 * idx }}
-                    onClick={() => setOpenBlogIndex(idx >= current ? idx + 1 : idx)}
+                    onClick={() =>
+                      setOpenBlogIndex(idx >= current ? idx + 1 : idx)
+                    }
                   >
                     <div className="w-1/3 relative overflow-hidden">
                       <img
                         src={post.image || "/placeholder.svg"}
                         alt={post.title}
-                        className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover absolute inset-0 group-hover:scale-110 transition-transform duration-700"
+                        style={{ filter: "brightness(0.9) saturate(1.2)" }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-primary/80"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/80"></div>
                     </div>
                     <div className="w-2/3 p-4">
-                      <div className="flex items-center gap-2 text-xs mb-2 text-primary">
-                        <span className="bg-transparent text-primary border border-primary/30 rounded-full px-2 py-0">
+                      <div className="flex items-center gap-2 text-xs mb-2">
+                        <span className="bg-red-700 text-white border border-red-800 rounded-full px-2 py-0">
                           {post.tags[0]}
                         </span>
                         <span>•</span>
-                        <span>{post.readTime}</span>
+                        <span className="text-black">{post.readTime}</span>
                       </div>
-                      <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                      <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-black transition-colors text-black">
                         {post.title}
                       </h3>
-                      <p className="text-sm line-clamp-2 mb-3 text-gray-900">
+                      <p className="text-sm line-clamp-2 mb-3 text-gray-800">
                         {post.excerpt}
                       </p>
                       <div className="flex items-center justify-between">
@@ -416,14 +415,14 @@ const BlogSection = () => {
                             <AvatarImage
                               src={post.author.avatar || "/icons/logo.svg"}
                             />
-                            <AvatarFallback className="bg-primary text-xs text-white">
+                            <AvatarFallback className="bg-black text-xs text-white">
                               {post.author.name
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-xs text-gray-900">
+                          <span className="text-xs text-black">
                             {post.author.name}
                           </span>
                         </div>
@@ -431,15 +430,16 @@ const BlogSection = () => {
                     </div>
                   </motion.div>
                 ))}
+
               <div className="flex justify-center mt-8">
                 <Button
-                  className="border text-primary hover:bg-primary hover:text-white bg-transparent border-primary/50"
+                  className="border text-black hover:bg-black hover:text-white bg-transparent border-black"
                   asChild
                 >
-                  <a href="#">
+                  <Link href="/mockup/3/Sections/Dedicated-Pages/all-blogs">
                     <span>View All Blogs</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </div>

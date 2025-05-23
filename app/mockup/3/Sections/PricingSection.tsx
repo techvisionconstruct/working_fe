@@ -59,18 +59,33 @@ const pricingPlans: PricingPlan[] = [
 const PricingSection = () => {
   const { theme } = useTheme ? useTheme() : { theme: "light" };
   const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleCalendlyOpen = () => {
+    if (!email.trim()) {
+      alert("Please enter your email.");
+      return;
+    }
+
+    const emailPattern = /^\S+@\S+\.\S+$/;
+    if (!emailPattern.test(email)) {
+      alert("Please enter a valid email.");
+      return;
+    }
+
+    setCalendlyOpen(true);
+  };
+
   return (
     <div>
       <section
-        id="Indutries"
-        className="py-32"
+        id="Pricing"
+        className="p-4 py-32 overflow-hidden"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
-        
-
         <div className="container px-4 mx-auto relative z-10 max-w-7xl">
           <motion.div
             className="mb-20 text-center max-w-3xl mx-auto"
@@ -144,7 +159,7 @@ const PricingSection = () => {
                         ? "bg-primary hover:bg-primary/90 text-white"
                         : "bg-gray-100 hover:bg-gray-200 text-gray-900"
                     }`}
-                    onClick={() => setCalendlyOpen(true)}
+                    onClick={handleCalendlyOpen}
                   >
                     Get Started Now
                   </Button>
@@ -196,28 +211,39 @@ const PricingSection = () => {
             </p>
           </div>
 
-          <form className="w-full md:w-auto flex flex-col sm:flex-row gap-3 md:justify-end md:items-center">
+          <form
+            className="w-full md:w-auto flex flex-col sm:flex-row gap-3 md:justify-end md:items-center"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCalendlyOpen();
+            }}
+          >
             <Input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               className="flex-1 min-w-[220px] placeholder-gray-400 border-2 border-red-600 focus:border-red-700 focus:ring-2 focus:ring-red-200 transition"
               style={{
                 background: theme === "dark" ? "#23272e" : "#fff",
-                color: theme === "dark" ? "#191919" : "#191919",
+                color: "#191919",
               }}
             />
             <Button
               className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
-              type="button"
-              onClick={() => setCalendlyOpen(true)}
+              type="submit"
+              onClick={handleCalendlyOpen}
             >
               Get Started Now!
             </Button>
           </form>
         </div>
-        {typeof window !== 'undefined' && (
+
+        {typeof window !== "undefined" && (
           <PopupModal
-            url="https://calendly.com/avorino/simple-projex-demo"
+            url={`https://calendly.com/avorino/simple-projex-demo?email=${encodeURIComponent(
+              email
+            )}`}
             open={calendlyOpen}
             onModalClose={() => setCalendlyOpen(false)}
             rootElement={document.body}

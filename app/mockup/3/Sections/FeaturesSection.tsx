@@ -7,7 +7,6 @@ import { ArrowUpRight } from "lucide-react";
 const oswald = Oswald({ subsets: ["latin"] });
 
 function FeaturesSection() {
-
   const SectionHeader = ({
     badge,
     title,
@@ -67,17 +66,18 @@ function FeaturesSection() {
       </p>
     </motion.div>
   );
+
   return (
     <div>
       <section
-        id="features"
-        className="py-32"
+        id="Features"
+        className="py-32 overflow-hidden"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
-        <div className="container px-4 mx-auto max-w-7xl">
+        <div className="container px-4 mx-auto relative max-w-7xl">
           <SectionHeader
             badge="Features"
             title="Build Your Success"

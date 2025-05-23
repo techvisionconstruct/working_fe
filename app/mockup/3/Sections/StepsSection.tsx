@@ -202,29 +202,13 @@ function StepsSection() {
   return (
     <div>
       <section
-        id="steps"
-        className="py-20"
+        className="py-20 p-4 overflow-hidden"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
         <div className="container mx-auto max-w-6xl">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-12 bg-red-600"></div>
-            <Badge
-              variant="outline"
-              className="text-red-600 border-red-200 font-medium uppercase tracking-wider px-3"
-              style={{
-                background: theme === "dark" ? "#23272e" : undefined,
-                color: theme === "dark" ? "#fff" : "#e11d48",
-                borderColor: theme === "dark" ? "#333" : "#e11d48",
-              }}
-            >
-              Features
-            </Badge>
-          </div>
-
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">
             Everything You Need <span className="text-red-600">to Succeed</span>
           </h2>

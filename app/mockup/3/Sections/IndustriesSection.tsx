@@ -60,7 +60,7 @@ function IndustriesSection() {
       className="mb-20 text-center max-w-3xl mx-auto"
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
       <div
@@ -166,21 +166,18 @@ function IndustriesSection() {
     };
     preloadImages();
   }, [industries]);
+
   return (
     <div>
-    <section
-        id="Indutries"
-        className="py-32"
+      <section
+        id="Industries"
+        className="p-4 py-32 overflow-hidden"
         style={{
           background:
             "linear-gradient(to bottom, hsl(0, 0%, 100%), hsl(20, 10%, 96%))",
         }}
       >
         <div className="container mx-auto max-w-6xl">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-12 bg-red-600"></div>
-          </div>
-
           <SectionHeader
             badge="Industries"
             title="Built For Your Work"
@@ -200,21 +197,21 @@ function IndustriesSection() {
           >
             {/* Carousel header with interactive elements */}
             <motion.div
-              className="flex justify-between items-center mb-12"
+              className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-12"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
               <h3
-                className={`${oswald.className} text-3xl font-bold uppercase`}
+                className={`${oswald.className} text-2xl sm:text-3xl font-bold uppercase text-center sm:text-left`}
                 style={{ color: "hsl(20, 10%, 15%)" }}
               >
                 Industry Solutions
               </h3>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
                 <motion.div
-                  className="flex space-x-1"
+                  className="flex space-x-1 mb-2 sm:mb-0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
@@ -225,7 +222,7 @@ function IndustriesSection() {
                       onClick={() => setCurrentIndustry(idx)}
                       className="relative overflow-hidden rounded-md"
                       style={{
-                        width: idx === currentIndustry ? "2.5rem" : "0.5rem",
+                        width: idx === currentIndustry ? "1.5rem" : "0.5rem",
                         height: "0.5rem",
                         transition: "all 0.3s ease",
                       }}
@@ -260,13 +257,13 @@ function IndustriesSection() {
                   ))}
                 </motion.div>
 
-                <div className="flex space-x-4">
+                <div className="flex space-x-2 sm:space-x-4">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={prevIndustry}
                     disabled={isLoading || !allImagesLoaded}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-lg ${
                       isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                     style={{
@@ -275,14 +272,14 @@ function IndustriesSection() {
                       boxShadow: "0 10px 25px -5px rgba(220, 38, 38, 0.3)",
                     }}
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={nextIndustry}
                     disabled={isLoading || !allImagesLoaded}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-lg ${
                       isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                     style={{
@@ -291,7 +288,7 @@ function IndustriesSection() {
                       boxShadow: "0 10px 25px -5px rgba(220, 38, 38, 0.3)",
                     }}
                   >
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                   </motion.button>
                 </div>
               </div>
@@ -388,7 +385,7 @@ function IndustriesSection() {
 
                         {/* Content overlay - Always rendered but hidden with opacity for performance */}
                         <div
-                          className="absolute inset-0 z-20 flex flex-col justify-end p-12 lg:p-16"
+                          className="absolute inset-0 z-20 flex flex-col justify-center sm:justify-end p-4 sm:p-8 lg:p-16"
                           style={{
                             background:
                               "linear-gradient(to right, hsla(20, 10%, 15%, 0.9), hsla(20, 10%, 15%, 0.7) 60%, transparent)",
@@ -396,7 +393,7 @@ function IndustriesSection() {
                         >
                           <div className="max-w-2xl">
                             <div
-                              className={`inline-block mb-6 px-4 py-1.5 text-sm font-medium rounded-full backdrop-blur-md ${oswald.className}`}
+                              className={`inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium rounded-full backdrop-blur-md ${oswald.className}`}
                               style={{
                                 backgroundColor: "hsla(40, 100%, 50%, 0.2)",
                                 color: "hsl(40, 100%, 50%)",
@@ -406,7 +403,7 @@ function IndustriesSection() {
                             </div>
 
                             <h3
-                              className={`${oswald.className} text-5xl lg:text-6xl font-bold mb-6 uppercase`}
+                              className={`${oswald.className} text-2xl sm:text-4xl lg:text-6xl font-bold mb-4 sm:mb-6 uppercase`}
                               style={{ color: "hsl(0, 0%, 100%)" }}
                             >
                               <span>Solutions for </span>
@@ -416,7 +413,7 @@ function IndustriesSection() {
                               >
                                 {industry.title}
                                 <div
-                                  className="absolute -bottom-3 left-0 h-1 w-full rounded-full animate-expand-right"
+                                  className="absolute -bottom-2 sm:-bottom-3 left-0 h-0.5 sm:h-1 w-full rounded-full animate-expand-right"
                                   style={{
                                     backgroundColor: "hsl(40, 100%, 50%)",
                                   }}
@@ -425,42 +422,11 @@ function IndustriesSection() {
                             </h3>
 
                             <p
-                              className="text-2xl mb-10 max-w-lg"
+                              className="text-base sm:text-2xl mb-6 sm:mb-10 max-w-lg"
                               style={{ color: "hsla(0, 0%, 100%, 0.9)" }}
                             >
                               {industry.description}
                             </p>
-
-                            <div className="flex flex-wrap gap-5">
-                              <Button
-                                className="rounded-full text-lg px-8 py-6 shadow-xl relative overflow-hidden group"
-                                style={{
-                                  backgroundColor: "hsl(40, 100%, 50%)",
-                                  color: "hsl(20, 10%, 15%)",
-                                }}
-                              >
-                                <span className="absolute inset-0 w-0 bg-gradient-hover-orange opacity-0 group-hover:w-full group-hover:opacity-100 transition-all duration-500 ease-out"></span>
-                                <span className="relative z-10">
-                                  View Solutions
-                                </span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="rounded-full text-lg px-8 py-6 relative overflow-hidden group"
-                                style={{
-                                  borderColor: "hsla(0, 0%, 100%, 0.3)",
-                                  borderWidth: "2px",
-                                  color: "hsl(0, 0%, 100%)",
-                                  backgroundColor: "transparent",
-                                }}
-                              >
-                                <span className="absolute inset-0 w-0 bg-white/10 opacity-0 group-hover:w-full group-hover:opacity-100 transition-all duration-500 ease-out"></span>
-                                <span className="relative z-10 flex items-center">
-                                  Case Studies{" "}
-                                  <ExternalLink className="ml-2 h-4 w-4" />
-                                </span>
-                              </Button>
-                            </div>
                           </div>
 
                           {/* Interactive floating elements - Static for better performance */}

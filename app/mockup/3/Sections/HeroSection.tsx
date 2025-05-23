@@ -13,7 +13,28 @@ function HeroSection() {
   const [isPaused, setIsPaused] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const [showVideo, setShowVideo] = useState(false);
+  const [email, setEmail] = useState("");
   const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [calendlyUrl, setCalendlyUrl] = useState("");
+
+  const handleCalendlyOpen = () => {
+    if (!email.trim()) {
+      alert("Please enter your email.");
+      return;
+    }
+
+    const emailPattern = /^\S+@\S+\.\S+$/;
+    if (!emailPattern.test(email)) {
+      alert("Please enter a valid email.");
+      return;
+    }
+
+    const url = `https://calendly.com/avorino/simple-projex-demo?email=${encodeURIComponent(
+      email
+    )}`;
+    setCalendlyUrl(url);
+    setCalendlyOpen(true);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -43,13 +64,13 @@ function HeroSection() {
       {/* Hero section (keeping as requested) */}
       <section
         ref={heroRef}
-        className="relative py-24 min-h-[81vh] overflow-hidden"
+        className="relative p-4 py-24 overflow-hidden"
         style={{
           backgroundColor: "hsl(0, 85%, 30%)", // Primary red color
         }}
       >
         {/* Decorative elements for maximalist style */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="overflow-hidden">
           {/* Large geometric shapes with improved animations */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -175,24 +196,33 @@ function HeroSection() {
                 transition={{ duration: 0.5, delay: 0.9 }}
                 className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
               >
-                <div className="flex-1 max-w-md">
+                <form
+                  className="flex-1 max-w-md"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCalendlyOpen();
+                  }}
+                >
                   <Input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white"
                   />
-                </div>
+                </form>
                 <Button
                   size="lg"
                   className="rounded-full bg-white hover:bg-white/90 text-lg px-8 h-12"
                   style={{ color: "hsl(0, 85%, 30%)" }}
-                  onClick={() => setCalendlyOpen(true)}
+                  onClick={handleCalendlyOpen}
                 >
                   Get Started <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
+
                 {typeof window !== "undefined" && (
                   <PopupModal
-                    url="https://calendly.com/avorino/simple-projex-demo"
+                    url={calendlyUrl}
                     open={calendlyOpen}
                     onModalClose={() => setCalendlyOpen(false)}
                     rootElement={document.body}
