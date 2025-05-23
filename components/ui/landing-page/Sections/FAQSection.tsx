@@ -6,6 +6,7 @@ import { Badge, Button } from "@/components/shared";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/shared";
 import { HelpCircle, ChevronUp, ChevronDown, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { text } from "stream/consumers";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -144,9 +145,9 @@ const FAQSection = () => {
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <SectionHeader
+              badge="FAQ"
               title="Frequently Asked Questions"
-              subtitle="Have a question? We've got answers."
-              badgeText="FAQ"
+              description="Have a question? We've got answers."
             />
           </div>
           <div className="space-y-6">
@@ -206,9 +207,8 @@ const FAQSection = () => {
           </div>
           <div className="flex justify-center mt-8">
             <Button
-              className={`bg-transparent border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-white ${
-                theme === "dark" ? "" : ""
-              }`}
+              style={{ color: "hsl(0, 85%, 30%)" }}
+              className={`bg-transparent border border-red-900/50 hover:bg-white hover:text-red-900 transition-colors`}
               asChild
             >
               <a href="/mockup/3/Sections/Dedicated-Pages/all-faqs">
