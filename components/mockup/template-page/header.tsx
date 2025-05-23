@@ -4,6 +4,7 @@ import {
   Button
 } from "@/components/shared"
 import { PlusCircle } from "lucide-react"
+import Link from 'next/link';
 
 interface TemplateHeaderProps {
   title: string;
@@ -24,10 +25,12 @@ export const Header: React.FC<TemplateHeaderProps> = ({
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Link href="/site/templates/create">
           <Button className="rounded-full">
             <PlusCircle className="h-4 w-4" />
             New Template
           </Button>
+          </Link>
         </div>
       </div>
       <Separator />

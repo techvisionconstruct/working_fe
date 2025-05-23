@@ -45,7 +45,6 @@ export const Filters: React.FC<TemplateFiltersProps> = ({
             <SelectItem value="recent">Recently Updated</SelectItem>
             <SelectItem value="name">Name (A-Z)</SelectItem>
             <SelectItem value="most-used">Most Used</SelectItem>
-            <SelectItem value="rating">Highest Rating</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -29,6 +29,7 @@ import {
 import { format } from "date-fns";
 
 import { TemplateResponse } from "@/types/templates/dto";
+import Link from "next/link";
 
 interface TemplateCardProps {
   template: TemplateResponse;
@@ -65,12 +66,14 @@ export const GridCard: React.FC<TemplateCardProps> = ({ template }) => {
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem>
                   <Copy className="mr-2 h-4 w-4" />
-                  <span>Duplicate</span>
+                  <span>Duplicate Template</span>
                 </DropdownMenuItem>
+                <Link href={`templates/${template.id}/update`}>
                 <DropdownMenuItem>
                   <Pencil className="mr-2 h-4 w-4" />
-                  <span>Edit</span>
+                  <span>Edit Template</span>
                 </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600">
                   <Trash className="mr-2 h-4 w-4" />
@@ -149,9 +152,11 @@ export const GridCard: React.FC<TemplateCardProps> = ({ template }) => {
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Button variant="outline" className="w-1/2 rounded-full">
-          View
-        </Button>
+        <Link href={`/site/templates/${template.id}`} className="w-1/2">
+          <Button variant="outline" className="w-full rounded-full">
+            View
+          </Button>
+        </Link>
         <Button variant="outline" className="w-1/2 rounded-full">
           Create Proposal
         </Button>

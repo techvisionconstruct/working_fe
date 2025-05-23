@@ -343,6 +343,12 @@ export function Sidenav() {
                     )}
                   >
                     <Avatar className="h-9 w-9 ring-2 ring-sidebar-ring/20 hover:ring-sidebar-ring/40 transition-all">
+                    <Image
+                      src={userProfile?.avatar_url || "/icons/avatar.png"}
+                      alt="User Avatar"
+                      width={40}
+                      height={40}
+                      className="object-cover" />
                       <AvatarFallback className="font-medium text-sidebar-foreground uppercase">{avatarFallback}</AvatarFallback>
                     </Avatar>
                   </div>
@@ -391,10 +397,12 @@ export function Sidenav() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <Link href="/settings">
               <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem className="w-full flex items-center cursor-pointer hover:bg-accent text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>

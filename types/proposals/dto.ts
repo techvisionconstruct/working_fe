@@ -4,6 +4,7 @@ import { PaginationLinks, PaginationMeta } from '../pagination/dto';
 import { TemplateResponse } from '../templates/dto';
 
 export interface ProposalResponse {
+  is_contract_signed: boolean;
   id: string;
   name: string;
   description?: string;
@@ -57,7 +58,7 @@ export interface ProposalCreateRequest {
 }
 
 export interface ProposalUpdateRequest {
-  name?: string;
+  name: string; // Changed from optional to required to match backend expectations
   description?: string;
   status?: string;
   client_name?: string;
@@ -67,7 +68,7 @@ export interface ProposalUpdateRequest {
   valid_until?: Date;
   is_public?: boolean;
   total_material_cost?: number;
-  total_label_cost?: number;
+  total_labor_cost?: number; // Fixed typo from 'label' to 'labor'
   total_cost?: number;
   total_with_markup_cost?: number;
   image?: string;

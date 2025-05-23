@@ -11,16 +11,18 @@ export async function updateElement(
   elementId: string,
   element: ElementUpdateRequest
 ) {
-  try {
-    const payload: Record<string, any> = {};
+  try {    const payload: Record<string, any> = {};
     if (element.name !== undefined) payload.name = element.name;
     if (element.description !== undefined)
       payload.description = element.description;
+    if (element.image !== undefined) payload.image = element.image;
     if (element.material_cost_formula !== undefined)
       payload.material_cost_formula = element.material_cost_formula;
     if (element.labor_cost_formula !== undefined)
       payload.labor_cost_formula = element.labor_cost_formula;
     if (element.markup !== undefined) payload.markup = element.markup;
+
+    console.log("Sending element update payload:", payload);
 
     const response = await fetch(
       `${API_URL}/v1/elements/update/${elementId}/`,
