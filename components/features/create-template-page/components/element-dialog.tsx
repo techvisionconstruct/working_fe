@@ -120,8 +120,6 @@ export function ElementDialog({
   // Fetch products to check if formula tokens are products
   const { data: productsData } = useQuery(getProducts(1, 999));
 
-  console.log("Products data:", productsData);
-
   const {
     materialFormulaTokens,
     setMaterialFormulaTokens,

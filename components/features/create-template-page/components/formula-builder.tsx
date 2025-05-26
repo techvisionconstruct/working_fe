@@ -160,6 +160,12 @@ export function FormulaBuilder({
   // Track if this component is currently focused
   const [isFocused, setIsFocused] = useState(false);
 
+  // Store pending variable information to be processed after creation
+  const pendingVariableRef = useRef<{
+    name: string;
+    formulaType: "material" | "labor" | null;
+  } | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: variablesData, isLoading: variablesLoading } = useQuery(
@@ -182,14 +188,20 @@ export function FormulaBuilder({
   const validFormulaTokens = useMemo(() => {
     if (!Array.isArray(formulaTokens)) return [];
 
-    return formulaTokens.filter(
-      (token) =>
-        token &&
-        typeof token === "object" &&
-        token.id !== undefined &&
-        token.text !== undefined &&
-        token.type !== undefined
-    );
+    return formulaTokens
+      .filter(
+        (token) =>
+          token &&
+          typeof token === "object" &&
+          token.id !== undefined &&
+          token.text !== undefined &&
+          token.type !== undefined
+      )
+      .map((token) => ({
+        ...token,
+        // Ensure displayText is always present, fallback to text if missing
+        displayText: token.displayText !== undefined ? token.displayText : token.text
+      }));
   }, [formulaTokens]);
 
   const addFormulaToken = (
@@ -203,6 +215,15 @@ export function FormulaBuilder({
       displayText,
       type: tokenType,
     };
+
+    // Log newly created variable tokens
+    if (tokenType === "variable") {
+      console.log("New variable token created:", {
+        token: newToken,
+        formulaType,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Always append the token at the end for now
     const updatedTokens = [...validFormulaTokens, newToken];
@@ -241,6 +262,18 @@ export function FormulaBuilder({
       if (onCreateVariable && !isCreatingVariable) {
         setIsCreatingVariable(true);
 
+        // Store the pending variable information
+        pendingVariableRef.current = {
+          name: name.trim(),
+          formulaType: formulaType || null,
+        };
+
+        console.log("Requesting variable creation:", {
+          name: name.trim(),
+          formulaType,
+          timestamp: new Date().toISOString()
+        });
+
         // Pass the formula type to indicate which formula should get the new variable
         onCreateVariable(name, formulaType);
 
@@ -251,6 +284,7 @@ export function FormulaBuilder({
     } catch (error) {
       console.error("Error calling onCreateVariable:", error);
       setIsCreatingVariable(false);
+      pendingVariableRef.current = null;
     }
     return false;
   };
@@ -273,6 +307,13 @@ export function FormulaBuilder({
       if (suggestions.length > 0) {
         const selectedItem = suggestions[selectedSuggestion];
         const isProduct = "isProduct" in selectedItem && selectedItem.isProduct;
+        const isCreateSuggestion = "isCreateSuggestion" in selectedItem && selectedItem.isCreateSuggestion;
+
+        if (isCreateSuggestion) {
+          // Handle create variable suggestion
+          safeCreateVariable(selectedItem.name);
+          return;
+        }
 
         if (isProduct) {
           // Handle product selection
@@ -317,8 +358,15 @@ export function FormulaBuilder({
       const selectedItem = suggestions[selectedSuggestion];
 
       const isProduct = "isProduct" in selectedItem && selectedItem.isProduct;
-      console.log("isProduct", isProduct);
-      console.log("selectedItem", selectedItem);
+      const isCreateSuggestion = "isCreateSuggestion" in selectedItem && selectedItem.isCreateSuggestion;
+
+
+
+      if (isCreateSuggestion) {
+        // Handle create variable suggestion
+        safeCreateVariable(selectedItem.name);
+        return;
+      }
 
       if (isProduct) {
         // Handle product selection
@@ -414,12 +462,42 @@ export function FormulaBuilder({
       }));
     }
 
-    setSuggestions([
+    // Only show "add as variable" suggestion if:
+    // 1. Input is not a number
+    // 2. Input is not an operator
+    // 3. Input doesn't exactly match an existing variable
+    // 4. Input has at least 2 characters
+    const shouldShowCreateSuggestion =
+      formulaInput.trim().length >= 2 &&
+      isNaN(parseFloat(formulaInput)) &&
+      !["+", "-", "*", "/", "(", ")", "^"].includes(formulaInput.trim()) &&
+      !variables.some(v => v.name.toLowerCase() === formulaInput.trim().toLowerCase()) &&
+      !validFormulaTokens.some(token =>
+        token.type === "variable" &&
+        token.text.toLowerCase() === formulaInput.trim().toLowerCase()
+      );
+
+    const suggestions = [];
+
+    // Add "create variable" suggestion first if applicable
+    if (shouldShowCreateSuggestion) {
+      suggestions.push({
+        id: `create-${formulaInput}`,
+        name: formulaInput.trim(),
+        displayText: `Add "${formulaInput.trim()}" as variable`,
+        isCreateSuggestion: true,
+      });
+    }
+
+    // Add other suggestions
+    suggestions.push(
       ...templateMatches,
       ...apiMatches.filter((v) => v.is_global),
       ...apiMatches.filter((v) => !v.is_global),
-      ...productMatches,
-    ]);
+      ...productMatches
+    );
+
+    setSuggestions(suggestions);
 
     setShowSuggestions(true);
     setSelectedSuggestion(0);
@@ -440,33 +518,65 @@ export function FormulaBuilder({
     setIsCreatingVariable(false);
   }, [validFormulaTokens]);
 
+  // Handle pending variable addition after creation
+  useEffect(() => {
+    if (!pendingVariableRef.current) return;
+
+    const pendingVariable = pendingVariableRef.current;
+
+    // Look for a newly created variable that matches the pending name
+    const newVariable = variables.find(variable =>
+      variable.name.toLowerCase() === pendingVariable.name.toLowerCase() &&
+      // Only add if it's not already in the formula
+      !validFormulaTokens.some(token =>
+        token.type === "variable" &&
+        token.text.toLowerCase() === variable.name.toLowerCase()
+      )
+    );
+
+    if (newVariable) {
+      console.log("Adding newly created variable to formula:", {
+        variableName: newVariable.name,
+        formulaType: pendingVariable.formulaType,
+        timestamp: new Date().toISOString()
+      });
+
+      // Add the variable token to the formula
+      addFormulaToken(newVariable.name, newVariable.name, "variable");
+
+      // Clear the pending variable
+      pendingVariableRef.current = null;
+      setIsCreatingVariable(false);
+    }
+  }, [variables, validFormulaTokens]);
+
+
+
   return (
     <>
       <div
-        className={`border rounded-lg p-3 flex flex-wrap gap-2 min-h-[65px] bg-background/50 relative transition-all ${
-          hasError || validationError
-            ? "border-red-300 bg-red-50/50"
-            : isFormulaValid && validFormulaTokens.length > 0
+        className={`border rounded-lg p-3 flex flex-wrap gap-2 min-h-[65px] bg-background/50 relative transition-all ${hasError || validationError
+          ? "border-red-300 bg-red-50/50"
+          : isFormulaValid && validFormulaTokens.length > 0
             ? "border-green-300 bg-green-50/50"
             : "hover:border-primary/30 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20"
-        }`}
+          }`}
         onClick={() => inputRef.current?.focus()}
       >
         {validFormulaTokens.map((token) => (
           <Badge
             key={token.id}
             variant="outline"
-            className={`gap-1.5 px-2 py-1 text-sm rounded-md transition-all duration-150 hover:shadow cursor-text ${
-              token.type === "variable"
-                ? "bg-gradient-to-r from-primary/5 to-primary/10 text-primary border-primary/20 shadow-sm"
-                : token.type === "operator"
+            className={`gap-1.5 px-2 py-1 text-sm rounded-md transition-all duration-150 hover:shadow cursor-text ${token.type === "variable"
+              ? "bg-gradient-to-r from-primary/5 to-primary/10 text-primary border-primary/20 shadow-sm"
+              : token.type === "operator"
                 ? "bg-gradient-to-r from-amber-500/5 to-amber-500/10 text-amber-700 border-amber-500/20 shadow-sm"
                 : token.type === "number"
-                ? "bg-gradient-to-r from-blue-500/5 to-blue-500/10 text-blue-700 border-blue-500/20 shadow-sm"
-                : token.type === "product"
-                ? "bg-gradient-to-r from-green-500/5 to-green-500/10 text-green-700 border-green-500/20 shadow-sm"
-                : "bg-gray-100 text-gray-800 shadow-sm"
-            }`}
+                  ? "bg-gradient-to-r from-blue-500/5 to-blue-500/10 text-blue-700 border-blue-500/20 shadow-sm"
+                  : token.type === "product"
+                    ? "bg-gradient-to-r from-green-500/5 to-green-500/10 text-green-700 border-green-500/20 shadow-sm"
+                    : "bg-gray-100 text-gray-800 shadow-sm"
+              }`}
           >
             {token.type === "variable" ? (
               <Variable className="w-3 h-3 mr-1" />
@@ -547,27 +657,31 @@ export function FormulaBuilder({
               suggestions.map((item, index) => {
                 // Check if this is a product
                 const isProduct = "isProduct" in item && item.isProduct;
-                const displayName = isProduct ? item.title : item.name;
+                // Check if this is a "create variable" suggestion
+                const isCreateSuggestion = "isCreateSuggestion" in item && item.isCreateSuggestion;
+
+                const displayName = isProduct ? item.title :
+                  isCreateSuggestion ? item.displayText :
+                    item.name;
 
                 return (
                   <div
                     key={item.id}
-                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
-                      selectedSuggestion === index
-                        ? "bg-accent text-accent-foreground"
-                        : ""
-                    }`}
+                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedSuggestion === index
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                      }`}
                     onClick={() => {
-                      if (isProduct) {
-                        addFormulaToken(item.id, item.title, "product");
-                      } else {
-                        addFormulaToken(item.name, item.name, "variable");
+                      if (isCreateSuggestion) {
+                        safeCreateVariable(item.name);
                       }
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        {isProduct ? (
+                        {isCreateSuggestion ? (
+                          <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
+                        ) : isProduct ? (
                           <Package className="w-3.5 h-3.5 text-green-600" />
                         ) : (
                           <Variable className="w-3.5 h-3.5 text-primary" />
@@ -575,13 +689,21 @@ export function FormulaBuilder({
                         {displayName}
                       </span>
                       <div className="flex items-center gap-1">
-                        {!isProduct &&
+                        {isCreateSuggestion && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-blue-100 text-blue-700 border-blue-200"
+                          >
+                            Create
+                          </Badge>
+                        )}
+                        {!isProduct && !isCreateSuggestion &&
                           !templateVariables.some((v) => v.id === item.id) && (
                             <Badge variant="outline" className="ml-2 text-xs">
                               Will add to template
                             </Badge>
                           )}
-                        {!isProduct && item.is_global && (
+                        {!isProduct && !isCreateSuggestion && item.is_global && (
                           <Badge variant="secondary" className="text-xs">
                             Global
                           </Badge>
@@ -633,8 +755,8 @@ export function FormulaBuilder({
                   </div>
                 </div>
               ) : ["+", "-", "*", "/", "(", ")", "^"].includes(
-                  formulaInput.trim()
-                ) ? (
+                formulaInput.trim()
+              ) ? (
                 <div
                   className="p-3 cursor-pointer hover:bg-accent"
                   onClick={() =>
@@ -655,9 +777,9 @@ export function FormulaBuilder({
                   </div>
                 </div>
               ) : variables.some(
-                  (v) =>
-                    v.name.toLowerCase() === formulaInput.trim().toLowerCase()
-                ) ? (
+                (v) =>
+                  v.name.toLowerCase() === formulaInput.trim().toLowerCase()
+              ) ? (
                 <div
                   className="p-3 cursor-pointer hover:bg-accent"
                   onClick={() =>
