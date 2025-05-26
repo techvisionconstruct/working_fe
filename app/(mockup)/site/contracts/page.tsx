@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, Button } from "@/components/shared";
 import { useQuery } from "@tanstack/react-query";
-import { getContracts } from "@/queryOptions/contracts";
+import { getContracts } from "@/query-options/contracts";
 import { ContractResponse } from "@/types/contracts/dto";
 import { Header } from "@/components/mockup/contract-page/header";
 import { Filters } from "@/components/mockup/contract-page/filters";

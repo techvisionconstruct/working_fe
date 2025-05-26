@@ -8,7 +8,7 @@ import { getAllTemplates } from "@/api/templates/get-all-templates";
 import { TemplateResponse } from "@/types/templates/dto";
 import Image from "next/image";
 import { format } from "date-fns";
-import { getTemplates } from "@/queryOptions/templates";
+import { getTemplates } from "@/query-options/templates";
 
 interface TemplateSelectionTabProps {
   data: TemplateResponse | null;

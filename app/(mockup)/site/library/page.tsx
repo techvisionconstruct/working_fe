@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getTrades } from "@/queryOptions/trades";
-import { getElements } from "@/queryOptions/elements";
-import { getVariables } from "@/queryOptions/variables";
+import { getTrades } from "@/query-options/trades";
+import { getElements } from "@/query-options/elements";
+import { getVariables } from "@/query-options/variables";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { VariableResponse } from "@/types/variables/dto";

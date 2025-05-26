@@ -12,7 +12,7 @@ import {
   Label,
   Textarea,
 } from "@/components/shared";
-import { BracesIcon, Loader2, AlertCircle, X } from "lucide-react";
+import { BracesIcon, Loader2, AlertCircle, X, Upload, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { ProductResponse } from "@/types/products/dto";
@@ -20,7 +20,7 @@ import { FormulaBuilder } from "./formula-builder";
 import { FormulaToken, useFormula } from "../hooks/use-formula";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/queryOptions/products";
+import { getProducts } from "@/query-options/products";
 
 // Storage keys for formulas - make them unique to avoid conflicts
 const STORAGE_PREFIX = "element_dialog_";
@@ -39,6 +39,7 @@ interface ElementDialogProps {
     materialFormula: string;
     laborFormula: string;
     markup: number;
+    image?: string;
   }) => void;
   elementToEdit?: ElementResponse | null;
   initialName?: string;
@@ -85,6 +86,14 @@ export function ElementDialog({
   );
   const [markup, setMarkup] = useState(elementToEdit?.markup || initialMarkup);
 
+  // Image upload state
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [localImage, setLocalImage] = useState<string | undefined>(
+    elementToEdit?.image || undefined
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Track which formula field is active/focused
   const [activeFormulaField, setActiveFormulaField] = useState<
     "material" | "labor" | null
@@ -99,6 +108,79 @@ export function ElementDialog({
     formulaType: null,
   });
 
+  // Image upload helper functions
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const processFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Maximum size is 5MB.");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target?.result as string;
+      setLocalImage(base64String);
+      setIsUploading(false);
+      console.log("Image processed as base64");
+      toast.success("Image uploaded successfully!");
+    };
+    
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast.error("Failed to process image. Please try again.");
+      console.error("FileReader error:", reader.error);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFile(e.target.files[0]);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setLocalImage(undefined);
+  };
+
   // Filter variables to only include those relevant to this template
   const filteredVariables = useMemo(() => {
     if (!variables) return [];
@@ -111,8 +193,6 @@ export function ElementDialog({
 
   // Fetch products to check if formula tokens are products
   const { data: productsData } = useQuery(getProducts(1, 999));
-
-  console.log("Products data:", productsData);
 
   const {
     materialFormulaTokens,
@@ -178,6 +258,10 @@ export function ElementDialog({
     if (isOpen) {
       // Reset initial render flag when dialog opens
       initialRenderRef.current = true;
+      
+      // Reset errors and touched state when dialog opens
+      setElementErrors({ name: "" });
+      setElementTouched({ name: false });
 
       // Always update the name to match either elementToEdit.name or initialName when dialog opens
       if (elementToEdit) {
@@ -197,6 +281,34 @@ export function ElementDialog({
         // Initialize from element to edit
         setDescription(elementToEdit.description || "");
         setMarkup(elementToEdit.markup || 0);
+        console.log("Loading image from database:", elementToEdit.image);
+        
+        // Handle the image from database - ensure it's in a displayable format
+        if (elementToEdit.image) {
+          console.log("Element image details:", {
+            imageType: elementToEdit.image.substring(0, 30) + "...",
+            isBase64: elementToEdit.image.startsWith("data:"),
+            isRelativeUrl: elementToEdit.image.startsWith("/"),
+            isAbsoluteUrl: elementToEdit.image.startsWith("http"),
+            length: elementToEdit.image.length,
+            approximateSizeKB: Math.round(elementToEdit.image.length / 1024)
+          });
+          
+          // If the image is a URL but doesn't start with http/https, prepend it
+          if (elementToEdit.image.startsWith('/') && !elementToEdit.image.startsWith('data:')) {
+            const fullUrl = `${window.location.origin}${elementToEdit.image}`;
+            console.log("Converting relative URL to absolute:", fullUrl);
+            setLocalImage(fullUrl);
+          } 
+          // If it's already a data URL or full URL, use as-is
+          else {
+            console.log("Using image as-is (data URL or absolute URL)");
+            setLocalImage(elementToEdit.image);
+          }
+        } else {
+          console.log("No image found in element data");
+          setLocalImage(undefined);
+        }
 
         let materialTokens = [],
           laborTokens = [];
@@ -375,6 +487,7 @@ export function ElementDialog({
         // New element, initialize with proper values
         setDescription("");
         setMarkup(initialMarkup);
+        setLocalImage(undefined);
         setMaterialFormulaTokens([]);
         setLaborFormulaTokens([]);
 
@@ -502,13 +615,20 @@ export function ElementDialog({
     const materialFormula = tokensToFormulaString(materialFormulaTokens);
     const laborFormula = tokensToFormulaString(laborFormulaTokens);
 
-    // Log the data that's being submitted when updating an element
-    console.log("Updating element with data:", {
+    // Log the data that's being submitted
+    const payload = {
       name: name.trim(),
       description: description.trim(),
       materialFormula,
       laborFormula,
       markup,
+      image: localImage,
+    };
+    
+    console.log(`${elementToEdit ? "Updating" : "Creating"} element with payload:`, {
+      ...payload,
+      imagePresent: !!localImage,
+      imageSize: localImage ? `~${Math.round(localImage.length / 1024)} KB` : 'none',
       materialTokens: materialFormulaTokens,
       laborTokens: laborFormulaTokens,
     });
@@ -516,13 +636,18 @@ export function ElementDialog({
     // Clear localStorage before submitting
     clearFormulaStorage();
 
-    onSubmit({
+    // Create the final submission payload
+    const submissionPayload = {
       name: name.trim(),
       description: description.trim(),
       materialFormula,
       laborFormula,
       markup,
-    });
+      image: localImage,
+    };
+    
+    // Send the payload to the parent component for API submission
+    onSubmit(submissionPayload);
   };
 
   const handleCreateVariable = (
@@ -663,89 +788,220 @@ export function ElementDialog({
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
-          // Clear storage when dialog is manually closed
           clearFormulaStorage();
         }
         onOpenChange(open);
       }}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-auto min-w-[600px] max-w-5xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <BracesIcon className="mr-2 h-4 w-4" />
+            <BracesIcon size={28} className="mr-2" />
             {dialogTitle}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-5 py-5">
-          <div className="grid gap-2">
-            <Label htmlFor="element-name">
-              Element Name <span className="text-red-500">*</span>
-            </Label>
-            <div className="relative">
-              <Input
-                id="element-name"
-                placeholder="Wall Framing"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => handleElementBlur("name")}
-                className={
-                  elementErrors.name && elementTouched.name
-                    ? "border-red-500 pr-10"
-                    : "pr-10"
-                }
-              />
-              {name && (
-                <button
-                  type="button"
-                  onClick={() => setName("")}
-                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                  tabIndex={-1}
-                  aria-label="Clear element name"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                </button>
+        <div className="grid gap-6 py-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Basic Info */}
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="element-name">
+                  Element Name <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="element-name"
+                    placeholder="Wall Framing"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={() => handleElementBlur("name")}
+                    className={
+                      elementErrors.name && elementTouched.name
+                        ? "border-red-500 pr-10"
+                        : "pr-10"
+                    }
+                  />
+                  {name && (
+                    <button
+                      type="button"
+                      onClick={() => setName("")}
+                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                      tabIndex={-1}
+                      aria-label="Clear element name"
+                    >
+                      <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                    </button>
+                  )}
+                </div>
+                {elementErrors.name && elementTouched.name && (
+                  <p className="text-xs text-red-500">{elementErrors.name}</p>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="element-description">
+                  Description
+                  <span className="text-gray-500">&#40;Optional&#41;</span>
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    id="element-description"
+                    placeholder="Description of this element"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[120px] pr-10"
+                  />
+                  {description && (
+                    <button
+                      type="button"
+                      onClick={() => setDescription("")}
+                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                      tabIndex={-1}
+                      aria-label="Clear description"
+                    >
+                      <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Markup Field (only if includeMarkup is true) */}
+              {includeMarkup && (
+                <div className="grid gap-2">
+                  <Label htmlFor="element-markup">Markup Percentage (%)</Label>
+                  <Input
+                    id="element-markup"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="15"
+                    value={markup || ""}
+                    onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Enter the percentage markup to apply to this element (e.g., 15
+                    for 15%)
+                  </div>
+                </div>
               )}
             </div>
-            {elementErrors.name && elementTouched.name && (
-              <p className="text-xs text-red-500">{elementErrors.name}</p>
-            )}
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="element-description">
-              Description{" "}
-              <span className="text-gray-500">&#40;Optional&#41;</span>
-            </Label>
-            <div className="relative">
-              <Textarea
-                id="element-description"
-                placeholder="Description of this element"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="min-h-[60px] pr-10"
-              />
-              {description && (
-                <button
-                  type="button"
-                  onClick={() => setDescription("")}
-                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                  tabIndex={-1}
-                  aria-label="Clear description"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                </button>
-              )}
+            {/* Right Column - Image Upload */}
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="element-image">
+                  Element Image{" "}
+                  <span className="text-gray-500">&#40;Optional&#41;</span>
+                </Label>
+
+                <div className="h-[200px] w-full relative">
+                  {!localImage ? (
+                    <div
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onClick={handleFileSelect}
+                      className={`absolute inset-0 border-2 border-dashed rounded-lg transition-colors duration-200 flex flex-col items-center justify-center cursor-pointer
+                        ${
+                          isDragging
+                            ? "border-primary/70 bg-primary/5"
+                            : "border-muted-foreground/25 hover:border-primary/40 hover:bg-muted/30"
+                        }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="element-image"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                      />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                          <span className="text-sm font-medium">Processing...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center px-4">
+                          <Upload className="w-8 h-8 mb-2 text-muted-foreground/70" />
+                          <p className="text-sm font-medium mb-1">
+                            {isDragging
+                              ? "Drop to upload"
+                              : "Drop image here or click to browse"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            PNG, JPG or GIF (max. 5MB)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0">
+                      <div className="relative w-full h-full rounded-lg overflow-hidden">
+                        <img
+                          src={localImage}
+                          alt="Element preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error("Image failed to load:", e);
+                            // Fallback to a placeholder if the image fails to load
+                            e.currentTarget.src = "/placeholder-image.jpg";
+                            toast.error("Failed to load image properly");
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col justify-end p-3">
+                          <div className="flex justify-between items-center w-full">
+                            <div className="flex items-center space-x-1.5">
+                              <CheckCircle2 className="h-4 w-4 text-green-400" />
+                              <span className="text-xs font-medium text-white">
+                                Image uploaded
+                              </span>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                type="button"
+                                className="h-6 px-2 bg-black/30 hover:bg-black/50 text-white border-0 rounded-md text-xs font-medium"
+                                onClick={handleFileSelect}
+                              >
+                                Change
+                              </button>
+                              
+                              <button
+                                type="button"
+                                className="h-6 px-2 bg-black/30 hover:bg-red-600/70 text-white border-0 rounded-md text-xs font-medium flex items-center"
+                                onClick={handleRemoveImage}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="element-image-update"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Material Cost Formula */}
-          <div className="grid gap-3">
+          <div className="grid gap-4 max-w-4xl">
             <Label
               htmlFor="material-formula"
               className="flex items-center justify-between"
             >
               <span className="text-sm font-medium flex items-center">
-                Material Cost Formula{" "}
+                Material Cost Formula
                 <span className="text-gray-500">&#40;Optional&#41;</span>
               </span>
               {materialFormulaError && (
@@ -755,6 +1011,7 @@ export function ElementDialog({
                 </span>
               )}
             </Label>
+
             <FormulaBuilder
               formulaTokens={materialFormulaTokens}
               setFormulaTokens={(tokens) => {
@@ -775,8 +1032,9 @@ export function ElementDialog({
             />
           </div>
 
+
           {/* Labor Cost Formula */}
-          <div className="grid gap-3">
+          <div className="grid gap-4 max-w-4xl">
             <Label
               htmlFor="labor-formula"
               className="flex items-center justify-between"
@@ -791,24 +1049,25 @@ export function ElementDialog({
                 </span>
               )}
             </Label>
-            <FormulaBuilder
-              formulaTokens={laborFormulaTokens}
-              setFormulaTokens={(tokens) => {
-                setLaborFormulaTokens(tokens);
-                // Update localStorage immediately
-                localStorage.setItem(
-                  storageKeys.LABOR_KEY,
-                  JSON.stringify(tokens)
-                );
-              }}
-              variables={filteredVariables}
-              updateVariables={updateVariables}
-              hasError={!!laborFormulaError}
-              onCreateVariable={(name) => {
-                handleCreateVariable(name, "labor");
-              }}
-              formulaType="labor"
-            />
+           
+              <FormulaBuilder
+                formulaTokens={laborFormulaTokens}
+                setFormulaTokens={(tokens) => {
+                  setLaborFormulaTokens(tokens);
+                  // Update localStorage immediately
+                  localStorage.setItem(
+                    storageKeys.LABOR_KEY,
+                    JSON.stringify(tokens)
+                  );
+                }}
+                variables={filteredVariables}
+                updateVariables={updateVariables}
+                hasError={!!laborFormulaError}
+                onCreateVariable={(name) => {
+                  handleCreateVariable(name, "labor");
+                }}
+                formulaType="labor"
+              />
           </div>
 
           {/* Markup Field (only if includeMarkup is true) */}
@@ -831,9 +1090,10 @@ export function ElementDialog({
             </div>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="justify-end">
           <Button
             variant="outline"
+            className="rounded-full"
             onClick={() => {
               clearFormulaStorage();
               onOpenChange(false);
@@ -842,6 +1102,7 @@ export function ElementDialog({
             Cancel
           </Button>
           <Button
+            className="rounded-full"
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
           >

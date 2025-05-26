@@ -19,8 +19,8 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getContracts } from "@/queryOptions/contracts";
-import { getProposals } from "@/queryOptions/proposals";
+import { getContracts } from "@/query-options/contracts";
+import { getProposals } from "@/query-options/proposals";
 
 export default function ContractsPage() {
   const router = useRouter();

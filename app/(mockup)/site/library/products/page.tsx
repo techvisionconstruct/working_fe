@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, Button } from "@/components/shared";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/queryOptions/products";
+import { getProducts } from "@/query-options/products";
 import { ProductResponse } from "@/types/products/dto";
 import { usePathname, useRouter } from "next/navigation";
 import {

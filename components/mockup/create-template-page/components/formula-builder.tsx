@@ -16,8 +16,8 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
 import { FormulaToken } from "../hooks/use-formula";
-import { getVariables } from "@/queryOptions/variables";
-import { getProducts } from "@/queryOptions/products";
+import { getVariables } from "@/query-options/variables";
+import { getProducts } from "@/query-options/products";
 
 interface FormulaBuilderProps {
   formulaTokens: FormulaToken[];
@@ -105,7 +105,24 @@ function validateFormula(tokens: FormulaToken[]): {
       }
     }
 
-    new Function(`return ${formula}`)();
+    // Only try to evaluate if all tokens are numbers, operators, or parentheses
+    const allSimple = tokens.every(
+      (t) =>
+        t.type === "number" ||
+        t.type === "operator" ||
+        t.text === "(" ||
+        t.text === ")"
+    );
+    const lastToken = tokens[tokens.length - 1];
+    if (
+      allSimple &&
+      !(
+        lastToken.type === "operator" &&
+        ["+", "-", "*", "/", "(", "^"].includes(lastToken.text)
+      )
+    ) {
+      new Function(`return ${formula}`)();
+    }
 
     return { isValid: true, errorMessage: "" };
   } catch (error) {
@@ -171,16 +188,6 @@ export function FormulaBuilder({
         token.type !== undefined
     );
   }, [formulaTokens]);
-
-  useEffect(() => {
-    const { isValid, errorMessage } = validateFormula(validFormulaTokens);
-
-    if (!isValid && validFormulaTokens.length > 0) {
-      setValidationError(errorMessage);
-    } else {
-      setValidationError(null);
-    }
-  }, [validFormulaTokens]);
 
   const addFormulaToken = (
     text: string,
@@ -307,14 +314,10 @@ export function FormulaBuilder({
       const selectedItem = suggestions[selectedSuggestion];
 
       const isProduct = "isProduct" in selectedItem && selectedItem.isProduct;
-      console.log("isProduct", isProduct);
-      console.log("selectedItem", selectedItem);
 
       if (isProduct) {
         // Handle product selection
-        // Add "product:" prefix to the displayText for better identification
-        addFormulaToken(selectedItem.id, `product:${selectedItem.title}`, "product");
-        
+        addFormulaToken(selectedItem.id, selectedItem.title, "product");
         return;
       }
 
@@ -353,8 +356,6 @@ export function FormulaBuilder({
       setShowSuggestions(false);
       return;
     }
-
-
 
     let templateMatches = templateVariables.filter(
       (v) =>
@@ -429,14 +430,14 @@ export function FormulaBuilder({
   }, [validFormulaTokens]);
 
   return (
-    <>
+    <div className="space-y-3">
       <div
-        className={`border rounded-lg p-3 flex flex-wrap gap-2 min-h-[65px] bg-background/50 relative transition-all ${
+        className={`border w-full max-w-full rounded-md p-1 flex flex-wrap gap-2 min-h-[50px] bg-gradient-to-br from-background/80 to-background/60 relative transition-all duration-200 ${
           hasError || validationError
-            ? "border-red-300 bg-red-50/50"
+            ? "border-red-300 bg-red-50/50 shadow-sm shadow-red-100"
             : isFormulaValid && validFormulaTokens.length > 0
-            ? "border-green-300 bg-green-50/50"
-            : "hover:border-primary/30 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20"
+            ? "border-green-300 bg-green-50/50 shadow-sm shadow-green-100"
+            : "hover:border-primary/40 hover:shadow-sm focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/10 focus-within:shadow-md"
         }`}
         onClick={() => inputRef.current?.focus()}
       >
@@ -444,22 +445,22 @@ export function FormulaBuilder({
           <Badge
             key={token.id}
             variant="outline"
-            className={`gap-1.5 px-2 py-1 text-sm rounded-md transition-all duration-150 hover:shadow cursor-text ${
+            className={`gap-1.5 px-2 py-1 text-sm rounded-lg transition-all duration-200 hover:shadow-md cursor-text ${
               token.type === "variable"
-                ? "bg-gradient-to-r from-primary/5 to-primary/10 text-primary border-primary/20 shadow-sm"
+                ? "bg-gradient-to-r from-primary/8 to-primary/15 text-primary border-primary/25 shadow-sm hover:shadow-primary/20"
                 : token.type === "operator"
-                ? "bg-gradient-to-r from-amber-500/5 to-amber-500/10 text-amber-700 border-amber-500/20 shadow-sm"
+                ? "bg-gradient-to-r from-amber-500/8 to-amber-500/15 text-amber-700 border-amber-500/25 shadow-sm hover:shadow-amber-500/20"
                 : token.type === "number"
-                ? "bg-gradient-to-r from-blue-500/5 to-blue-500/10 text-blue-700 border-blue-500/20 shadow-sm"
+                ? "bg-gradient-to-r from-blue-500/8 to-blue-500/15 text-blue-700 border-blue-500/25 shadow-sm hover:shadow-blue-500/20"
                 : token.type === "product"
-                ? "bg-gradient-to-r from-green-500/5 to-green-500/10 text-green-700 border-green-500/20 shadow-sm"
+                ? "bg-gradient-to-r from-green-500/8 to-green-500/15 text-green-700 border-green-500/25 shadow-sm hover:shadow-green-500/20"
                 : "bg-gray-100 text-gray-800 shadow-sm"
             }`}
           >
             {token.type === "variable" ? (
               <Variable className="w-3 h-3 mr-1" />
             ) : token.type === "operator" ? (
-              <Calculator className="w-3 h-3 mr-1" />
+              <div/>
             ) : token.type === "number" ? (
               <Hash className="w-3 h-3 mr-1" />
             ) : token.type === "product" ? (
@@ -492,6 +493,13 @@ export function FormulaBuilder({
           onBlur={() => {
             setIsFocused(false);
             setTimeout(() => setShowSuggestions(false), 150);
+            // Validate formula on blur only
+            const { isValid, errorMessage } = validateFormula(validFormulaTokens);
+            if (!isValid && validFormulaTokens.length > 0) {
+              setValidationError(errorMessage);
+            } else {
+              setValidationError(null);
+            }
           }}
           onClick={(e) => {
             // Update cursor position on click
@@ -504,24 +512,11 @@ export function FormulaBuilder({
               ? "Add more..."
               : "Type variables, products, numbers, or operators..."
           }
-          className="border-0 shadow-none focus:outline-none focus:ring-0 p-0 h-9 text-sm flex-1 min-w-[40px] bg-transparent"
+          className="border-0 ml-2 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-sm flex-1 min-w-[120px] bg-transparent placeholder:text-muted-foreground/60"
         />
-
-        {validationError && (
-          <div className="absolute -bottom-6 left-0 text-xs text-red-500 flex items-center">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            {validationError}
-          </div>
-        )}
-
-        {isFormulaValid && validFormulaTokens.length > 0 && (
-          <div className="absolute -bottom-6 left-0 text-xs text-green-600 flex items-center">
-            Valid formula
-          </div>
-        )}
-
         {showSuggestions && formulaInput && (
-          <div className="absolute left-0 top-full mt-1 z-20 w-full bg-background border rounded-md shadow-md max-h-[200px] overflow-y-auto">
+          <div className="absolute left-0 top-full mt-2 z-20 w-full bg-background border border-border/30 rounded-lg shadow-lg max-h-[200px] overflow-y-auto"
+               style={{ backdropFilter: 'blur(8px)' }}>
             {suggestions.length > 0 ? (
               suggestions.map((item, index) => {
                 // Check if this is a product
@@ -531,7 +526,7 @@ export function FormulaBuilder({
                 return (
                   <div
                     key={item.id}
-                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                    className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors ${
                       selectedSuggestion === index
                         ? "bg-accent text-accent-foreground"
                         : ""
@@ -593,7 +588,7 @@ export function FormulaBuilder({
                 </div>
               ) : !isNaN(parseFloat(formulaInput)) ? (
                 <div
-                  className="p-3 cursor-pointer hover:bg-accent"
+                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
                   onClick={() =>
                     addFormulaToken(
                       formulaInput.trim(),
@@ -615,7 +610,7 @@ export function FormulaBuilder({
                   formulaInput.trim()
                 ) ? (
                 <div
-                  className="p-3 cursor-pointer hover:bg-accent"
+                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
                   onClick={() =>
                     addFormulaToken(
                       formulaInput.trim(),
@@ -638,7 +633,7 @@ export function FormulaBuilder({
                     v.name.toLowerCase() === formulaInput.trim().toLowerCase()
                 ) ? (
                 <div
-                  className="p-3 cursor-pointer hover:bg-accent"
+                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
                   onClick={() =>
                     addFormulaToken(
                       variables.find(
@@ -666,7 +661,7 @@ export function FormulaBuilder({
                 </div>
               ) : (
                 <div
-                  className="p-3 flex items-center cursor-pointer hover:bg-accent"
+                  className="p-3 flex items-center cursor-pointer hover:bg-accent transition-colors"
                   onClick={() => safeCreateVariable(formulaInput.trim())}
                 >
                   <div className="flex-1">
@@ -708,6 +703,6 @@ export function FormulaBuilder({
         Type variable names, product names, numbers, or use the operator
         buttons.
       </div>
-    </>
+    </div>
   );
 }

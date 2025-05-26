@@ -23,7 +23,7 @@ import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { TemplateResponse } from "@/types/templates/dto";
 import { updateProposal } from "@/api/proposals/update-proposal";
-import { getProposal } from "@/queryOptions/proposals";
+import { getProposal } from "@/query-options/proposals";
 
 export default function EditProposal() {
   const router = useRouter();
