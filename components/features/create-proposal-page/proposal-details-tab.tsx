@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { 
   Input, 
   Label, 
@@ -14,6 +14,12 @@ import { FileUpload, FileUploadDropzone, FileUploadList, FileUploadTrigger } fro
 import { Calendar } from "@/components/shared/calendar/calendar";
 import { CalendarIcon, Upload, ImageIcon, X } from "lucide-react";
 import Image from "next/image";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface ProposalDetailsTabProps {
   data: {
@@ -35,6 +41,8 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
   const [date, setDate] = useState<Date | undefined>(
     data.valid_until ? new Date(data.valid_until) : undefined
   );
+  const autocompleteInput = useRef<HTMLInputElement>(null);
+  const clientAddressInput = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: string, value: string) => {
     updateData({
@@ -71,6 +79,60 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
     const day = String(date.getDate()).padStart(2, '0');
     
     return `${year}-${month}-${day}`;
+  };
+
+  useEffect(() => {
+    // Load Google Maps script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = initAutocomplete;
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script when component unmounts
+      document.head.removeChild(script);
+
+    };
+  }, []);
+
+  const initAutocomplete = () => {
+    // Project location autocomplete
+    if (autocompleteInput.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        autocompleteInput.current,
+        {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+        }
+      );
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.formatted_address) {
+          handleChange('location', place.formatted_address);
+        }
+      });
+    }
+
+    // Client address autocomplete
+    if (clientAddressInput.current) {
+      const clientAutocomplete = new window.google.maps.places.Autocomplete(
+        clientAddressInput.current,
+        {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+        }
+      );
+
+      clientAutocomplete.addListener('place_changed', () => {
+        const place = clientAutocomplete.getPlace();
+        if (place.formatted_address) {
+          handleChange('client_address', place.formatted_address);
+        }
+      });
+    }
   };
 
   return (
@@ -112,8 +174,9 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
             <div className="grid gap-2">
               <Label htmlFor="location">Project Location</Label>
               <Input
+                ref={autocompleteInput}
                 id="location"
-                placeholder="Enter project location"
+                placeholder="Start typing to search for an address"
                 value={data.location}
                 onChange={(e) => handleChange("location", e.target.value)}
               />
@@ -184,9 +247,10 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
             <div className="grid gap-2">
               <Label htmlFor="client_address">Client Address</Label>
               <Textarea
-                id="client_address"
-                placeholder="Enter client address"
                 className="min-h-[120px]"
+                ref={clientAddressInput}
+                id="client_address"
+                placeholder="Start typing to search for an address"
                 value={data.client_address}
                 onChange={(e) => handleChange("client_address", e.target.value)}
               />
