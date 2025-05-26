@@ -3,264 +3,93 @@
 import React, { useState } from "react";
 import {
   Button,
-  Label,
+  Badge,
   Input,
-  Textarea,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
 } from "@/components/shared";
 import { toast } from "sonner";
-import { X, BracesIcon, Variable, Search, Loader2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllVariables } from "@/api/variables/get-all-variables";
-import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
-import { createVariable } from "@/api/variables/create-variable";
-import { updateVariable } from "@/api/variables/update-variable";
+import { X, Variable, Search, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { VariableResponse } from "@/types/variables/dto";
 import { getVariables } from "@/query-options/variables";
-import { VariableResponse, VariableUpdateRequest } from "@/types/variables/dto";
-import EditVariableDialog from "../edit-variable-dialog";
+import AddVariableDialog from "./add-variable-dialog";
+import EditVariableDialog from "./edit-variable-dialog";
 
 interface VariablesColumnProps {
   variables: VariableResponse[];
   updateVariables: (variables: VariableResponse[]) => void;
 }
 
-const calculateFormulaValue = (formula: string, variables: VariableResponse[]): number | null => {
-  if (!formula) return null;
-
-  try {
-    const variableValues: Record<string, number> = {};
-    variables.forEach(variable => {
-      if (variable.id) {
-        variableValues[variable.id] = variable.value || 0;
-      }
-    });
-
-    let evalFormula = formula;
-    const matches = formula.match(/\{([^}]+)\}/g) || [];
-    
-    for (const match of matches) {
-      const variableId = match.slice(1, -1);
-      const variableValue = variableValues[variableId];
-      
-      if (variableValue !== undefined) {
-        evalFormula = evalFormula.replace(match, variableValue.toString());
-      } else {
-        evalFormula = evalFormula.replace(match, "0");
-      }
-    }
-    
-    evalFormula = evalFormula.replace(/\*/g, '*').replace(/\//g, '/');
-    
-    const result = new Function(`return ${evalFormula}`)();
-    return typeof result === 'number' ? result : null;
-  } catch (error) {
-    console.error("Error calculating formula value:", error);
-    return null;
-  }
-};
-
 export const VariablesColumn: React.FC<VariablesColumnProps> = ({
   variables,
   updateVariables,
 }) => {
-  const queryClient = useQueryClient();
-  
-  // State management
+  // Local state for search and UI
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newVarName, setNewVarName] = useState("");
-  const [newVarDefaultValue, setNewVarDefaultValue] = useState(0);
-  const [newVarDescription, setNewVarDescription] = useState("");
-  const [newVarDefaultVariableType, setNewVarDefaultVariableType] = useState("");
 
   // Edit variable state
   const [showEditVariableDialog, setShowEditVariableDialog] = useState(false);
-  const [currentVariableId, setCurrentVariableId] = useState<string | null>(null);
-  const [editVariableName, setEditVariableName] = useState("");
-  const [editVariableDescription, setEditVariableDescription] = useState("");
-  const [editVariableValue, setEditVariableValue] = useState(0);
-  const [editVariableType, setEditVariableType] = useState("");
-  const [editVariableFormula, setEditVariableFormula] = useState("");
-  const [isUpdatingVariable, setIsUpdatingVariable] = useState(false);
+  const [variableToEdit, setVariableToEdit] = useState<VariableResponse | null>(null);
 
-  // Inline editing state
-  const [inlineEditingVariableId, setInlineEditingVariableId] = useState<string | null>(null);
-  const [inlineEditValue, setInlineEditValue] = useState<number>(0);
-
-  // Queries
+  // API Query
   const { data: variablesData, isLoading: variablesLoading } = useQuery(
-    getVariables()
+    getVariables(1, 10, searchQuery)
   );
 
-  const { data: apiVariableTypes, isLoading: isLoadingVariableTypes } = useQuery({
-    queryKey: ["variable-types"],
-    queryFn: getAllVariableTypes,
-  });
-
-  // Mutations
-  const { mutate: createVariableMutation, isPending: isCreatingVariable } = useMutation({
-    mutationFn: createVariable,
-    onSuccess: (response) => {
-      if (response && response.data) {
-        const createdVariable = response.data;
-        updateVariables([...variables, createdVariable]);
-        
-        toast.success("Variable created successfully", {
-          position: "top-center",
-          description: `"${createdVariable.name}" has been added.`,
-        });
-        
-        setShowAddDialog(false);
-        setNewVarName("");
-        setNewVarDefaultValue(0);
-        setNewVarDescription("");
-        setNewVarDefaultVariableType("");
-      }
-    },
-    onError: (error) => {
-      toast.error("Failed to create variable", {
-        position: "top-center",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
-    },
-  });
-
-  const { mutate: updateVariableMutation } = useMutation({
-    mutationFn: ({ variableId, data }: { variableId: string; data: VariableUpdateRequest }) =>
-      updateVariable(variableId, data),
-    onSuccess: (response) => {
-      if (response && response.data) {
-        const updatedVariable = response.data;
-        const updatedVariables = variables.map((variable) =>
-          variable.id === updatedVariable.id ? updatedVariable : variable
-        );
-        updateVariables(updatedVariables);
-        
-        queryClient.invalidateQueries({ queryKey: ["variables"] });
-        
-        toast.success("Variable updated successfully", {
-          position: "top-center",
-          description: `"${updatedVariable.name}" has been updated.`,
-        });
-      }
-      setIsUpdatingVariable(false);
-    },
-    onError: (error) => {
-      setIsUpdatingVariable(false);
-      toast.error("Failed to update variable", {
-        position: "top-center",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
-    },
-  });
-
-  // Computed values
-  const updateVariableWithFormulaValue = (variable: VariableResponse): VariableResponse => {
-    if (variable.formula) {
-      const calculatedValue = calculateFormulaValue(variable.formula, variables);
-      return {
-        ...variable,
-        value: calculatedValue || variable.value
-      };
-    }
-    return variable;
-  };
-
-  const filteredVariables = searchQuery.trim()
-    ? variables.filter((variable) =>
-        variable.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // Filter variables that are not already selected
+  const filteredVariables =
+    searchQuery === ""
+      ? []
+      : Array.isArray(variablesData?.data)
+        ? (variablesData.data as VariableResponse[]).filter(
+          (variable) =>
+            variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            !variables.some((v) => v.id === variable.id)
+        )
+        : [];
 
   // Event handlers
   const handleSelectVariable = (variable: VariableResponse) => {
-    setSearchQuery("");
-    setIsSearchOpen(false);
-    // Additional logic for variable selection can be added here
-  };
-
-  const handleAddVariable = () => {
-    if (!newVarName.trim()) return;
-
-    const variableData = {
-      name: newVarName.trim(),
-      description: newVarDescription.trim() || undefined,
-      value: newVarDefaultValue,
-      variable_type: newVarDefaultVariableType || undefined,
+    const newVar: VariableResponse = {
+      id: variable.id.toString(),
+      name: variable.name,
+      description: variable.description,
+      value: variable.value,
+      is_global: variable.is_global,
+      variable_type: variable.variable_type,
+      created_at: variable.created_at,
+      updated_at: variable.updated_at,
+      created_by: variable.created_by,
+      updated_by: variable.updated_by,
     };
 
-    createVariableMutation(variableData);
+    if (!variables.some((v) => v.id === newVar.id)) {
+      const updatedVariables = [...variables, newVar];
+      updateVariables(updatedVariables);
+    }
+
+    setIsSearchOpen(false);
+    setSearchQuery("");
+  };
+
+  const handleRemoveVariable = (variableId: string) => {
+    const variableToRemove = variables.find((v) => v.id === variableId);
+    const updatedVariables = variables.filter((v) => v.id !== variableId);
+    updateVariables(updatedVariables);
+
+    if (variableToRemove) {
+      toast.success("Variable removed", {
+        position: "top-center",
+        description: `"${variableToRemove.name}" has been removed.`,
+      });
+    }
   };
 
   const handleOpenEditVariableDialog = (variable: VariableResponse) => {
-    setCurrentVariableId(variable.id);
-    setEditVariableName(variable.name);
-    setEditVariableDescription(variable.description || "");
-    setEditVariableValue(variable.value || 0);
-    setEditVariableType(variable.variable_type?.id || "");
-    setEditVariableFormula(variable.formula || "");
+    setVariableToEdit(variable);
     setShowEditVariableDialog(true);
-  };
-
-  const handleEditVariable = () => {
-    if (!editVariableName.trim() || !currentVariableId) return;
-
-    setIsUpdatingVariable(true);
-    
-    let processedFormula = editVariableFormula;
-    if (editVariableFormula) {
-      const namePattern = /\{([^{}]+)\}/g;
-      processedFormula = editVariableFormula.replace(namePattern, (match, variableName) => {
-        const exactIdMatch = variables.find(v => v.id === variableName);
-        if (exactIdMatch) return match;
-        
-        const variable = variables.find(v => v.name === variableName);
-        return variable ? `{${variable.id}}` : match;
-      });
-    }
-
-    const variableData = {
-      name: editVariableName.trim(),
-      description: editVariableDescription.trim() || undefined,
-      value: processedFormula ? undefined : editVariableValue,
-      formula: processedFormula || undefined,
-      variable_type: editVariableType || undefined,
-    };
-
-    updateVariableMutation({
-      variableId: currentVariableId,
-      data: variableData,
-    });
-
-    setShowEditVariableDialog(false);
-    setCurrentVariableId(null);
-  };
-
-  const startInlineEdit = (variable: VariableResponse) => {
-    setInlineEditingVariableId(variable.id);
-    setInlineEditValue(variable.value || 0);
-  };
-
-  const saveInlineEdit = (variableId: string) => {
-    const variableData = {
-      value: inlineEditValue,
-    };
-
-    updateVariableMutation({
-      variableId,
-      data: variableData,
-    });
-
-    setInlineEditingVariableId(null);
-  };
-
-  const cancelInlineEdit = () => {
-    setInlineEditingVariableId(null);
   };
 
   return (
@@ -272,13 +101,11 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
             <span>Variables</span>
           </div>
         </div>
-        
         <div>
           <div className="space-y-4">
-            {/* Search Input */}
             <div className="relative">
               <div className="relative w-full mb-2">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search variables..."
                   value={searchQuery}
@@ -320,7 +147,7 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
                       }
                     }
                   }}
-                  className="w-full pl-8 pr-4"
+                  className="w-full pl-8 pr-4 rounded-full"
                 />
                 {variablesLoading && (
                   <div className="absolute right-2 top-2.5">
@@ -329,7 +156,6 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
                 )}
               </div>
 
-              {/* Search Results Dropdown */}
               {searchQuery.trim() && isSearchOpen && (
                 <div className="absolute z-10 w-full border rounded-md bg-background shadow-md">
                   <div className="p-2">
@@ -343,12 +169,13 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
                           className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
                           onClick={() => handleSelectVariable(variable)}
                         >
-                          <span>{variable.name}</span>
-                          {variable.value !== undefined && (
-                            <span className="text-muted-foreground">
-                              {variable.value}
-                            </span>
-                          )}
+                          <div className="flex items-center">
+                            <Variable className="mr-2 h-4 w-4" />
+                            <span>{variable.name}</span>
+                          </div>
+                          <Badge variant="outline" className="ml-2">
+                            {variable.variable_type?.name || "Unknown"}
+                          </Badge>
                         </div>
                       ))
                     ) : (
@@ -358,179 +185,105 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
                             .toLowerCase()
                             .includes(searchQuery.toLowerCase())
                         ) ? (
-                          <span>No matching variables found</span>
+                          <span className="text-muted-foreground">
+                            Variable already added
+                          </span>
                         ) : (
-                          <span>Press Enter to create "{searchQuery}"</span>
+                          <div>
+                            <span className="text-muted-foreground">
+                              "{searchQuery}" doesn't exist.
+                            </span>
+                            <p className="text-xs mt-1 text-primary">
+                              Press Enter to create this variable
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
               )}
-
-              {/* Add Variable Dialog */}
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center">
-                      <BracesIcon className="mr-2 h-4 w-4" />
-                      Add Proposal Variable
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="var-name">Variable Name</Label>
-                      <Input
-                        id="var-name"
-                        placeholder="Wall Length"
-                        value={newVarName}
-                        onChange={(e) => setNewVarName(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="var-value">Default Value</Label>
-                      <Input
-                        id="var-value"
-                        type="number"
-                        placeholder="0"
-                        value={newVarDefaultValue}
-                        onChange={(e) => setNewVarDefaultValue(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="var-description">Description</Label>
-                      <Textarea
-                        id="var-description"
-                        placeholder="What this variable represents (optional)"
-                        value={newVarDescription}
-                        onChange={(e) => setNewVarDescription(e.target.value)}
-                        className="min-h-[80px]"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAddDialog(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddVariable}
-                      disabled={isCreatingVariable || !newVarName.trim()}
-                    >
-                      {isCreatingVariable ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        "Add Variable"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
 
-            {/* Variables List */}
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">
-                Variables ({variables.length})
-              </h3>
               {variables.length > 0 ? (
-                <div className="space-y-2">
-                  {variables.map((variable) => {
-                    const variableWithFormula = updateVariableWithFormulaValue(variable);
-                    
-                    return (
-                      <div
-                        key={variable.id}
-                        className="border rounded-md p-3 bg-muted/30 relative group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium text-sm flex items-center">
-                            {variable.name}
-                            {variable.variable_type && (
-                              <span className="ml-2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                {variable.variable_type.name}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {inlineEditingVariableId === variable.id ? (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  value={inlineEditValue}
-                                  onChange={(e) => setInlineEditValue(Number(e.target.value))}
-                                  className="w-16 h-6 text-xs"
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      saveInlineEdit(variable.id);
-                                    } else if (e.key === "Escape") {
-                                      cancelInlineEdit();
-                                    }
-                                  }}
-                                  autoFocus
-                                />
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Group variables by variable_type */}
+                  {Object.entries(
+                    variables.reduce((groups, variable) => {
+                      const typeName = variable.variable_type?.name || "Uncategorized";
+                      if (!groups[typeName]) {
+                        groups[typeName] = [];
+                      }
+                      groups[typeName].push(variable);
+                      return groups;
+                    }, {} as Record<string, typeof variables>)
+                  ).map(([typeName, typeVariables]) => (
+                    <div key={typeName} className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {typeName} ({typeVariables.length})
+                      </h4>
+                      <div className="grid grid-cols-5 gap-2">
+                        {typeVariables.map((variable) => (
+                          <div
+                            key={variable.id}
+                            className="border rounded-md p-2 bg-muted/30 relative group hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="font-medium text-xs truncate pr-1">
+                                {variable.name}
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
-                                  size="sm"
-                                  onClick={() => saveInlineEdit(variable.id)}
-                                  className="h-6 w-6 p-0"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 rounded-full bg-muted/80 text-primary hover:text-primary/80"
+                                  onClick={() => handleOpenEditVariableDialog(variable)}
                                 >
-                                  ✓
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="8"
+                                    height="8"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
                                 </Button>
                                 <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={cancelInlineEdit}
-                                  className="h-6 w-6 p-0"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 rounded-full bg-muted/80 text-destructive hover:text-destructive/80"
+                                  onClick={() => handleRemoveVariable(variable.id)}
                                 >
-                                  ✕
+                                  <X className="h-2 w-2" />
                                 </Button>
                               </div>
-                            ) : (
-                              <>
-                                <span
-                                  className="text-sm cursor-pointer hover:bg-accent px-2 py-1 rounded"
-                                  onClick={() => startInlineEdit(variable)}
-                                >
-                                  {variableWithFormula.value || 0}
-                                </span>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleOpenEditVariableDialog(variable)}
-                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                                >
-                                  ✏️
-                                </Button>
-                              </>
+                            </div>
+                            {variable.description && (
+                              <div className="text-[10px] mt-1 line-clamp-1 text-muted-foreground">
+                                {variable.description}
+                              </div>
                             )}
+                            <div className="text-[10px] mt-1 font-mono text-primary/70">
+                              Value: {variable.value}
+                            </div>
                           </div>
-                        </div>
-                        
-                        {variable.description && (
-                          <div className="text-xs mt-1 text-muted-foreground">
-                            {variable.description}
-                          </div>
-                        )}
-                        
-                        {variable.formula && (
-                          <div className="text-xs mt-1 font-mono bg-muted/50 p-1 rounded">
-                            Formula: {variable.formula}
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground border border-dashed rounded-md">
                   <p className="text-sm">No variables defined</p>
                   <p className="text-xs">
-                    Variables help define dynamic values in your proposals
+                    Variables can be used across all elements
                   </p>
                 </div>
               )}
@@ -539,35 +292,35 @@ export const VariablesColumn: React.FC<VariablesColumnProps> = ({
         </div>
       </div>
 
-      {/* Edit Variable Dialog */}
-      <EditVariableDialog
-        open={showEditVariableDialog}
-        onOpenChange={setShowEditVariableDialog}
-        onEditVariable={handleEditVariable}
-        variableId={currentVariableId || ""}
-        variableName={editVariableName}
-        setVariableName={setEditVariableName}
-        variableDescription={editVariableDescription}
-        setVariableDescription={setEditVariableDescription}
-        variableValue={editVariableValue}
-        setVariableValue={setEditVariableValue}
-        variableType={editVariableType}
-        setVariableType={setEditVariableType}
-        variableFormula={editVariableFormula}
-        setVariableFormula={setEditVariableFormula}
-        variableTypes={
-          Array.isArray((apiVariableTypes as any)?.data)
-            ? (apiVariableTypes as any).data
-            : []
-        }
-        isLoadingVariableTypes={isLoadingVariableTypes}
-        isUpdating={isUpdatingVariable}
-        onCancel={() => {
-          setShowEditVariableDialog(false);
-          setCurrentVariableId(null);
+      {/* Dialogs */}
+      <AddVariableDialog
+        isOpen={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onVariableCreated={(newVariable) => {
+          const updatedVariables = [...variables, newVariable];
+          updateVariables(updatedVariables);
+          toast.success("Variable created successfully", {
+            position: "top-center",
+            description: `"${newVariable.name}" has been added.`,
+          });
         }}
-        variables={variables}
-        updateVariables={updateVariables}
+        initialName={newVarName}
+      />
+
+      <EditVariableDialog
+        isOpen={showEditVariableDialog}
+        onOpenChange={setShowEditVariableDialog}
+        variable={variableToEdit}
+        onVariableUpdated={(updatedVariable) => {
+          const updatedVariables = variables.map((v) =>
+            v.id === updatedVariable.id ? updatedVariable : v
+          );
+          updateVariables(updatedVariables);
+          toast.success("Variable updated successfully", {
+            position: "top-center",
+            description: `"${updatedVariable.name}" has been updated.`,
+          });
+        }}
       />
     </div>
   );

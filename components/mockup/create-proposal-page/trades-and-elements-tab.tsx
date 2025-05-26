@@ -28,15 +28,13 @@ interface TradesAndElementsStepProps {
   updateVariables?: (variables: VariableResponse[]) => void;
 }
 
-export default function TradesAndElementsStep({
+const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
   templateId,
   template,
   updateTrades,
-  updateVariables,
-}: TradesAndElementsStepProps) {
-  const { trades, variables } = data;
-
+  updateVariables = () => { },
+}) => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
@@ -55,18 +53,17 @@ export default function TradesAndElementsStep({
 
       <div className="space-y-6">
         <VariablesColumn 
-          variables={variables || []}
-          updateVariables={updateVariables || (() => {})}
-        />
-        <TradesColumn 
-          trades={trades || []}
-          variables={variables || []}
+          variables={data.variables || []}
+          updateVariables={updateVariables}
+        />        <TradesColumn
+          trades={data.trades || []}
+          variables={data.variables || []}
           updateTrades={updateTrades}
-          updateVariables={updateVariables || (() => {})}
-          templateId={templateId}
-          template={template}
+          updateVariables={updateVariables}
         />
       </div>
     </div>
   );
-}
+};
+
+export default TradesAndElementsStep;
