@@ -16,7 +16,7 @@ import {
 import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
-import { getProposals } from "@/queryOptions/proposals";
+import { getProposals } from "@/query-options/proposals";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function ProposalsPage() {

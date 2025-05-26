@@ -21,7 +21,7 @@ import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { TemplateTour } from "@/components/features/tour-guide/template-tour";
 import { deleteTemplate } from "@/api/templates/delete-template";
-import { getTemplates } from "@/queryOptions/templates";
+import { getTemplates } from "@/query-options/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 
 export default function TemplatesPage() {

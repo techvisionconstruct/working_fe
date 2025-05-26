@@ -9,7 +9,7 @@ import { TemplateDetailedLoader } from "@/components/features/template-page/load
 import { VariableResponse } from "@/types/variables/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
-import { getTemplate } from "@/queryOptions/templates";
+import { getTemplate } from "@/query-options/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 import { Button } from "@/components/shared";

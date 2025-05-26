@@ -26,7 +26,7 @@ import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { updateTemplate } from "@/api/templates/update-template";
 import { updateVariable } from "@/api/variables/update-variable";
-import { getTemplate } from "@/queryOptions/templates";
+import { getTemplate } from "@/query-options/templates";
 
 export default function UpdateTemplate() {
   const router = useRouter();

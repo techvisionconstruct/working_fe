@@ -8,10 +8,11 @@ import { TemplateDetailedLoader } from "@/components/features/template-page/load
 import { VariableResponse } from "@/types/variables/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { ElementResponse } from "@/types/elements/dto";
-import { getTemplate } from "@/queryOptions/templates";
+import { getTemplate } from "@/query-options/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 import Link from "next/link";
+import { Package, Users, BracesIcon, Variable, ChevronRight } from "lucide-react";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
@@ -55,17 +56,22 @@ export default function TemplatedById() {
           priority
         />
       </div>
-      <h2 className="text-4xl font-bold mb-2 tracking-tight leading-tight">
-        {template?.name}
-      </h2>
-      <p className="text-lg text-muted-foreground mb-2">
-        {template?.description}
+      <div>
+        <h2 className="text-4xl font-bold mb-2 tracking-tight leading-tight">
+          {template?.name}
+        </h2>
+      </div>
+      <p className="text-lg text-muted-foreground mb-6">
+        {template?.description || "No description provided"}
       </p>
       {template?.variables.length > 0 && (
-        <div className="mt-8 w-full">
-          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-            Variables
-          </h3>
+        <div className="mt-8 w-full mb-10">
+          <div className="pb-3 border-b mb-4">
+            <div className="text-lg flex font-bold items-center">
+              <Variable size={18} className="mr-1" />
+              <span>Variables</span>
+            </div>
+          </div>
           {(() => {
             // Group variables by variable_type name
             const groupedVariables: Record<string, VariableResponse[]> = {};
@@ -79,7 +85,7 @@ export default function TemplatedById() {
 
             // Return the grouped variables UI in horizontal layout with limited display
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Object.entries(groupedVariables).map(([typeName, variables]) => {
                   const isExpanded = expandedTypes[typeName] || false;
                   const visibleVariables = isExpanded ? variables : variables.slice(0, 3);
@@ -124,61 +130,199 @@ export default function TemplatedById() {
         </div>
       )}
       {template.trades.length > 0 && (
-        <div className="mt-8 w-full">
-          <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-            Trades
-          </h3>
-          <div className="flex flex-col gap-4">
-            {template.trades.map((trade: TradeResponse) => (
-              <div
-                key={trade.id}
-                className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors"
-              >
-                <h4 className="font-medium text-base mb-1">{trade.name}</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {trade.description}
-                </p>
-
-                <div className="mt-2">
-                  <div className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                    Elements
-                  </div>
-                  {trade.elements?.map((element: ElementResponse) => (
-                    <div className="flex flex-col mt-1" key={element.id}>
-                      <div className="flex flex-col p-4 rounded-lg border bg-background hover:shadow-sm transition-all">
-                        <div className="flex items-center justify-between mb-2">
-                          <h5 className="font-medium text-sm">
-                            {element.name}
-                          </h5>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          {element.description}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3 mt-1">
-                          <div className="p-2 rounded-md bg-muted/40 border-l-2 border-primary/40">
-                            <div className="text-xs font-medium text-muted-foreground">Material Formula</div>
-                            <div className="text-sm mt-1 font-mono tracking-tighter leading-none">{element.material_cost_formula ? replaceVariableIdsWithNames(
-                              element.material_cost_formula,
-                              template.variables,
-                              element.material_formula_variables || []
-                            ) : ''}</div>
+        <div className="mt-8 w-full mb-10">
+          <div className="pb-3 border-b mb-4">
+            <div className="text-lg flex font-bold items-center">
+              <Package size={18} className="mr-1" />
+              <span>Trades</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {template.trades.map((trade: TradeResponse) => {
+              const isExpanded = expandedTypes[`trade-${trade.id}`] || false;
+              const elementCount = trade.elements?.length || 0;
+              
+              return (
+                <div
+                  key={trade.id}
+                  className="border-l-4 border-l-primary/20 border border-border/20 bg-background hover:bg-muted/30 transition-all duration-200 overflow-hidden rounded-md"
+                >
+                  {/* Trade Header - Clickable */}
+                  <div 
+                    className="py-3 px-4 cursor-pointer hover:bg-muted/50 transition-colors duration-200 relative group"
+                    onClick={() => setExpandedTypes(prev => ({
+                      ...prev,
+                      [`trade-${trade.id}`]: !prev[`trade-${trade.id}`]
+                    }))}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="flex-shrink-0 transition-transform duration-200"
+                            style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                          >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <div className="p-2 rounded-md bg-muted/40 border-l-2 border-primary/70">
-                            <div className="text-xs font-medium text-muted-foreground">Labor Formula</div>
-                            <div className="text-sm mt-1 font-mono tracking-tighter leading-none">{element.labor_cost_formula ? replaceVariableIdsWithNames(
-                              element.labor_cost_formula,
-                              template.variables,
-                              element.labor_formula_variables || []
-                            ) : ''}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-sm truncate">{trade.name}</h4>
+                              <div className="text-xs px-2 py-0.5 h-5 border rounded-full border-primary/20 text-primary/80">
+                                {elementCount} element{elementCount !== 1 ? 's' : ''}
+                              </div>
+                            </div>
+                            {trade.description && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                {trade.description}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Collapsible Elements Section */}
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/20 overflow-hidden">
+                      <div className="p-4 space-y-3">
+                        {/* Trade Image (when expanded) */}
+                        {trade.image && (
+                          <div className="mb-4">
+                            <div className="relative w-full h-32 sm:h-40 md:h-48 rounded-md overflow-hidden border shadow-sm group hover:shadow-md">
+                              <div className="w-full h-full overflow-hidden">
+                                <Image 
+                                  src={trade.image} 
+                                  alt={trade.name}
+                                  fill
+                                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, (max-width: 1024px) 60vw, 40vw"
+                                  className="object-cover transition-all duration-300 group-hover:scale-105" 
+                                  placeholder="blur"
+                                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                                  priority={true}
+                                />
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                              <div className="absolute bottom-0 left-0 right-0 p-3 transform translate-y-1 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                <div className="text-sm font-medium text-white">{trade.name}</div>
+                                {trade.description && (
+                                  <div className="text-xs text-white/80 mt-1 line-clamp-2">{trade.description}</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Elements List */}
+                        {trade.elements && trade.elements.length > 0 && (
+                          <>
+                            <div className="flex items-center">
+                              <div className="h-0.5 bg-primary/10 flex-grow mr-2"></div>
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Elements</span>
+                              <div className="h-0.5 bg-primary/10 flex-grow ml-2"></div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                              {trade.elements?.map((element: ElementResponse) => (
+                                <div className="border rounded-md p-3 bg-background/80 hover:shadow-sm hover:bg-background transition-all" key={element.id}>
+                                  <div className="flex items-start gap-2">
+                                    <div className="rounded-md bg-primary/10 p-2 flex-shrink-0">
+                                      <BracesIcon className="h-3.5 w-3.5 text-primary/70" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm mb-1">{element.name}</div>
+                                      {element.description && (
+                                        <div className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                          {element.description}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Element Image (if available) */}
+                                  {element.image && (
+                                    <div className="my-3 relative w-full h-28 rounded-md overflow-hidden border shadow-sm">
+                                      <Image 
+                                        src={element.image}
+                                        alt={element.name}
+                                        fill
+                                        className="object-cover"
+                                        placeholder="blur"
+                                        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  {/* Formulas with Better Visual Organization */}
+                                  {(element.material_cost_formula || element.labor_cost_formula) && (
+                                    <div className="space-y-2 mt-2">
+                                      {/* Formula Header */}
+                                      <div className="flex items-center">
+                                        <div className="h-0.5 bg-primary/10 flex-grow mr-2"></div>
+                                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Formulas</span>
+                                        <div className="h-0.5 bg-primary/10 flex-grow ml-2"></div>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {/* Material Formula */}
+                                        {element.material_cost_formula && (
+                                          <div className="bg-muted/30 p-2 rounded-md border border-border/50 hover:border-primary/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                              <span className="text-xs font-medium text-primary/70 flex items-center">
+                                                <Package className="h-3 w-3 mr-0.5" />
+                                                Material
+                                              </span>
+                                            </div>
+                                            <code className="text-xs bg-muted/50 px-2 py-1 rounded text-wrap break-all block">
+                                              {element.material_cost_formula ? replaceVariableIdsWithNames(
+                                                element.material_cost_formula,
+                                                template.variables,
+                                                element.material_formula_variables || []
+                                              ) : ''}
+                                            </code>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Labor Formula */}
+                                        {element.labor_cost_formula && (
+                                          <div className="bg-muted/30 p-2 rounded-md border border-border/50 hover:border-primary/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                              <span className="text-xs font-medium text-primary/70 flex items-center">
+                                                <Users className="h-3 w-3 mr-0.5" />
+                                                Labor
+                                              </span>
+                                            </div>
+                                            <code className="text-xs bg-muted/50 px-2 py-1 rounded text-wrap break-all block">
+                                              {element.labor_cost_formula ? replaceVariableIdsWithNames(
+                                                element.labor_cost_formula,
+                                                template.variables,
+                                                element.labor_formula_variables || []
+                                              ) : ''}
+                                            </code>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      )}
+      
+      {/* Empty State - No Content */}
+      {(!template?.variables || template.variables.length === 0) && (!template?.trades || template.trades.length === 0) && (
+        <div className="text-center py-16 text-muted-foreground border border-dashed rounded-md my-8">
+          <p className="text-lg">No content</p>
+          <p className="text-sm mt-1">This template has no variables or trades defined</p>
         </div>
       )}
     </div>

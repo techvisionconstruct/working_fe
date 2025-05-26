@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent, Alert, Button } from "@/compo
 import { ProposalDetails } from "@/components/features/proposal-page/proposal-details";
 import { ContractDetails } from "@/components/features/proposal-page/contract-details";
 import { ProposalDetailedLoader } from "@/components/features/proposal-page/loader-detailed";
-import { getProposal } from "@/queryOptions/proposals";
+import { getProposal } from "@/query-options/proposals";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 import { Pencil } from "lucide-react";
 

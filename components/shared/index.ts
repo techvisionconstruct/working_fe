@@ -144,6 +144,17 @@ export { Checkbox } from "./checkbox/checkbox";
  */
 export { Separator } from "./separator/separator";
 /**
+ * Page Header
+ */
+export { 
+  PageHeader, 
+  SaveDraftAction, 
+  NewTemplateAction, 
+  EditAction, 
+  DeleteAction, 
+  SettingsAction 
+} from "./page-header";
+/**
  * Sheet
  */
 export { Sheet } from "./sheet/sheet";

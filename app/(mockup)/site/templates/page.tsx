@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, Button } from "@/components/shared";
 import { useQuery } from "@tanstack/react-query";
-import { getTemplates } from "@/queryOptions/templates";
+import { getTemplates } from "@/query-options/templates";
 import { TemplateResponse } from "@/types/templates/dto";
 import { GridCard } from "@/components/mockup/template-page/grid-card";
 import { Header } from "@/components/mockup/template-page/header";

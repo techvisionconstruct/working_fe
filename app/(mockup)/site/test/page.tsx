@@ -2,7 +2,7 @@
 
 import AddVariableDialog from "@/components/mockup/create-template-page/add-variable-dialog";
 import { Input } from "@/components/shared";
-import { getProducts } from "@/queryOptions/products";
+import { getProducts } from "@/query-options/products";
 import { ProductResponse } from "@/types/products/dto";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";

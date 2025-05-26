@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, Button } from "@/components/shared";
 import { useQuery } from "@tanstack/react-query";
-import { getProposals } from "@/queryOptions/proposals";
+import { getProposals } from "@/query-options/proposals";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { Header } from "@/components/mockup/proposal-page/header";
 import { Filters } from "@/components/mockup/proposal-page/filters";
