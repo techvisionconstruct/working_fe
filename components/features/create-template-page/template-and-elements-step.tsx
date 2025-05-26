@@ -57,9 +57,9 @@ import {
   DialogTitle as ConfirmDialogTitle,
   DialogFooter as ConfirmDialogFooter,
 } from "@/components/shared";
-import { getVariables } from "@/queryOptions/variables";
-import { getTrades } from "@/queryOptions/trades";
-import { getElements } from "@/queryOptions/elements";
+import { getVariables } from "@/query-options/variables";
+import { getTrades } from "@/query-options/trades";
+import { getElements } from "@/query-options/elements";
 import { ProductResponse } from "@/types/products/dto";
 import { cn } from "@/lib/utils";
 

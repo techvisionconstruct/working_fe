@@ -22,7 +22,7 @@ import { FormulaToken, useFormula } from "../hooks/use-formula";
 import { toast } from "sonner";
 import { ProductResponse } from "@/types/products/dto";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/queryOptions/products";
+import { getProducts } from "@/query-options/products";
 
 // Storage keys for formulas - make them unique to avoid conflicts
 const STORAGE_PREFIX = 'proposal_element_dialog_';

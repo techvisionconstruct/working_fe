@@ -16,8 +16,8 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getAllVariables } from "@/api/variables/get-all-variables";
 import { FormulaToken } from "../hooks/use-formula";
-import { getVariables } from "@/queryOptions/variables";
-import { getProducts } from "@/queryOptions/products";
+import { getVariables } from "@/query-options/variables";
+import { getProducts } from "@/query-options/products";
 
 interface FormulaBuilderProps {
   formulaTokens: FormulaToken[];

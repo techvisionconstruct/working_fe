@@ -42,7 +42,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { ContractCreateRequest } from "@/types/contracts/dto";
-import { getContract } from "@/queryOptions/contracts";
+import { getContract } from "@/query-options/contracts";
 
 interface TermSection {
   id: number;

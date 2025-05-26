@@ -53,9 +53,9 @@ import { TradeResponse } from "@/types/trades/dto";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
-import { getTrades } from "@/queryOptions/trades";
-import { getElements } from "@/queryOptions/elements";
-import { getVariables } from "@/queryOptions/variables";
+import { getTrades } from "@/query-options/trades";
+import { getElements } from "@/query-options/elements";
+import { getVariables } from "@/query-options/variables";
 
 declare global {
   interface Window {
