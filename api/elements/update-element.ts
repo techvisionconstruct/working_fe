@@ -1,17 +1,20 @@
+'use client';
+
 import {
-    ElementCreateRequest,
-    ElementUpdateRequest,
-  } from "@/types/elements/dto";
-  import Cookies from "js-cookie";
-  
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const TOKEN = Cookies.get("auth-token");
+  ElementCreateRequest,
+  ElementUpdateRequest,
+} from "@/types/elements/dto";
+import Cookies from "js-cookie";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const TOKEN = Cookies.get("auth-token");
 
 export async function updateElement(
   elementId: string,
   element: ElementUpdateRequest
 ) {
-  try {    const payload: Record<string, any> = {};
+  try {
+    const payload: Record<string, any> = {};
     if (element.name !== undefined) payload.name = element.name;
     if (element.description !== undefined)
       payload.description = element.description;

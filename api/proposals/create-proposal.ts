@@ -1,3 +1,5 @@
+'use client';
+
 import { ProposalCreateRequest } from "@/types/proposals/dto";
 import Cookies from "js-cookie";
 
@@ -12,10 +14,6 @@ export async function createProposal(proposal: ProposalCreateRequest) {
     if (proposal.description) payload.description = proposal.description;
     if (proposal.status) payload.status = proposal.status;
     if (proposal.template) payload.template = proposal.template;
-    if (proposal.trades && Array.isArray(proposal.trades))
-      payload.trades = proposal.trades;
-    if (proposal.variables && Array.isArray(proposal.variables))
-      payload.variables = proposal.variables;
     if (proposal.image) payload.image = proposal.image;
     if (proposal.owner) payload.owner = proposal.owner;
     if (proposal.client_name) payload.client_name = proposal.client_name;

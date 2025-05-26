@@ -1,3 +1,5 @@
+'use client';
+
 import { SignInRequest, SignInResponse } from '@/types/auth/dto';
 import Cookie from 'js-cookie';
 

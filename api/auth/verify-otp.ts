@@ -1,3 +1,5 @@
+'use client';
+
 import { VerifyOtpRequest, VerifyOtpResponse } from '@/types/auth/dto';
 import Cookie from 'js-cookie';
 

@@ -1,3 +1,5 @@
+'use client';
+
 import { ContractCreateRequest } from "@/types/contracts/dto";
 import Cookies from "js-cookie";
 

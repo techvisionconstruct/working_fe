@@ -1,3 +1,5 @@
+'use client';
+
 import { TradeCreateRequest } from "@/types/trades/dto";
 import Cookies from "js-cookie";
 
