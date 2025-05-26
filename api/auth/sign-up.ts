@@ -1,3 +1,5 @@
+'use client';
+
 import { SignUpRequest, SignUpResponse } from '@/types/auth/dto';
 
 export const signUp = async (userData: SignUpRequest): Promise<SignUpResponse> => {

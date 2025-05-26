@@ -1,3 +1,5 @@
+'use client';
+
 import {
   ElementCreateRequest,
 } from "@/types/elements/dto";

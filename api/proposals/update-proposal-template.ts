@@ -1,3 +1,5 @@
+'use client';
+
 import { TemplateUpdateRequest } from "@/types/templates/dto";
 import Cookies from "js-cookie";
 
