@@ -335,9 +335,9 @@ export default function EditTemplate() {
       </div>
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold">Edit Template</h1>
+        <h1 className="text-2xl font-bold">{templateData?.name || "Edit Template"}</h1>
         <p className="text-muted-foreground text-sm">
-          Update your template design and configuration
+          {templateData?.description || "Update your template design and configuration"}
         </p>
       </div>
 
