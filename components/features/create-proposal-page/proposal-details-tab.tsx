@@ -95,8 +95,9 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
       document.head.removeChild(script);
 
     };
-  }, []);
+  }, [data]);
 
+  // Update the initAutocomplete function to preserve other fields:
   const initAutocomplete = () => {
     // Project location autocomplete
     if (autocompleteInput.current) {
@@ -111,7 +112,11 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
-          handleChange('location', place.formatted_address);
+          // Only update the location field
+          updateData({
+            ...data,
+            location: place.formatted_address
+          });
         }
       });
     }
@@ -129,7 +134,11 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
       clientAutocomplete.addListener('place_changed', () => {
         const place = clientAutocomplete.getPlace();
         if (place.formatted_address) {
-          handleChange('client_address', place.formatted_address);
+          // Only update the client_address field
+          updateData({
+            ...data,
+            client_address: place.formatted_address
+          });
         }
       });
     }
