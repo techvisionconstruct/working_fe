@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleButton } from "../google-login/google-button";
-import { signIn } from "@/api/auth/sign-in";
+import { signIn } from "@/api-calls/auth/sign-in";
 import Link from "next/link";
 
 export function LoginForm({

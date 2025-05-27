@@ -1,4 +1,4 @@
-import { getAllVariables } from "@/api/variables/get-all-variables";
+import { getAllVariables } from "@/api-calls/variables/get-all-variables";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getVariables(page = 1, pageSize = 10, searchQuery?: string) {

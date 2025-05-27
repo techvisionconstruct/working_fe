@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { updateTrade } from "@/api/trades/update-trade";
+import { updateTrade } from "@/api-calls/trades/update-trade";
 import { toast } from "sonner";
 
 interface TradeUpdateData {

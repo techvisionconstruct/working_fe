@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createVariable } from "@/api/variables/create-variable";
+import { createVariable } from "@/api-calls/variables/create-variable";
 import { VariableResponse } from "@/types/variables/dto";
 
 interface UseVariableDialogProps {

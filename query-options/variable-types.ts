@@ -1,4 +1,4 @@
-import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
+import { getAllVariableTypes } from "@/api-calls/variable-types/get-all-variable-types";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getVariablesTypes() {

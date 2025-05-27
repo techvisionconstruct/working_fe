@@ -23,7 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { TradeResponse } from "@/types/trades/dto";
-import { updateTrade } from "@/api/trades/update-trade";
+import { updateTrade } from "@/api-calls/trades/update-trade";
 
 interface EditTradeDialogProps {
   isOpen: boolean;

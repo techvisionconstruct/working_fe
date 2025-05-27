@@ -36,8 +36,8 @@ import {
   personalInfoSchema,
   verificationSchema,
 } from "@/zod-schemas/register/register-schema";
-import { signUp } from "@/api/auth/sign-up";
-import { verifyOtp } from "@/api/auth/verify-otp";
+import { signUp } from "@/api-calls/auth/sign-up";
+import { verifyOtp } from "@/api-calls/auth/verify-otp";
 import { GoogleButton } from "../google-login/google-button";
 
 type PersonalInfoValues = z.infer<typeof personalInfoSchema>;

@@ -1,5 +1,5 @@
-import { getAllContracts } from "@/api/contracts/get-all-contracts";
-import { getContractById } from "@/api/contracts/get-contract-by-id";
+import { getAllContracts } from "@/api-calls/contracts/get-all-contracts";
+import { getContractById } from "@/api-calls/contracts/get-contract-by-id";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getContracts(page = 1, pageSize = 10, searchQuery?: string) {

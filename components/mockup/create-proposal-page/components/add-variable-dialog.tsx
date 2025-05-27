@@ -21,7 +21,7 @@ import {
 } from "@/components/shared";
 import { BracesIcon, X, Loader2 } from "lucide-react";
 import { VariableResponse } from "@/types/variables/dto";
-import { createVariable } from "@/api/variables/create-variable";
+import { createVariable } from "@/api-calls/variables/create-variable";
 import { getVariablesTypes } from "@/query-options/variable-types";
 
 interface AddVariableDialogProps {

@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createContract } from "@/api/contracts/create-contract";
-import { updateContract } from "@/api/contracts/update-contract";
-import { updateProposal } from "@/api/proposals/update-proposal";
+import { createContract } from "@/api-calls/contracts/create-contract";
+import { updateContract } from "@/api-calls/contracts/update-contract";
+import { updateProposal } from "@/api-calls/proposals/update-proposal";
 import {
   Card,
   CardContent,

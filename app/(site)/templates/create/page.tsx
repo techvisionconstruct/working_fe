@@ -21,8 +21,8 @@ import {
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
-import { createTemplate } from "@/api/templates/create-template";
-import { updateTemplate } from "@/api/templates/update-template";
+import { createTemplate } from "@/api-calls/templates/create-template";
+import { updateTemplate } from "@/api-calls/templates/update-template";
 
 export default function CreateTemplate() {
   const router = useRouter();
