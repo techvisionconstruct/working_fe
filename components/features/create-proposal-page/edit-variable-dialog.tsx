@@ -46,7 +46,7 @@ interface EditVariableDialogProps {
   isUpdating: boolean;
   onCancel: () => void;
   variables?: any[];
-  updateVariables?: (variables: any[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
