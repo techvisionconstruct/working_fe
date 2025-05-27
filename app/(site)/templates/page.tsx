@@ -23,6 +23,7 @@ import { TemplateTour } from "@/components/features/tour-guide/template-tour";
 import { deleteTemplate } from "@/api/templates/delete-template";
 import { getTemplates } from "@/query-options/templates";
 import { AlertError } from "@/components/features/alert-error/alert-error";
+import { toast } from "sonner";
 
 export default function TemplatesPage() {
   const [tab, setTab] = useState("grid");
@@ -32,11 +33,15 @@ export default function TemplatesPage() {
   const queryClient = useQueryClient();
 
   const { data: templates, isError, isPending } = useQuery(getTemplates());
-
   const { mutate: deleteTemplateMutation } = useMutation({
     mutationFn: (templateId: string) => deleteTemplate(templateId),
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["template"] });
+      toast.success("Template deleted successfully");
+    },
+    onError: (error) => {
+      console.error("Error deleting template:", error);
+      toast.error("Failed to delete template. Please try again.");
     },
   });
 
@@ -101,9 +106,11 @@ export default function TemplatesPage() {
             templates={templateData}
             onDeleteTemplate={deleteTemplateMutation}
           />
-        </TabsContent>
-        <TabsContent value="list">
-          <TemplateList templates={templateData} />
+        </TabsContent>        <TabsContent value="list">
+          <TemplateList 
+            templates={templateData} 
+            onDeleteTemplate={deleteTemplateMutation}
+          />
         </TabsContent>
       </Tabs>
 

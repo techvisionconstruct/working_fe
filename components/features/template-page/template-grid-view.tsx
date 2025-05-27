@@ -26,10 +26,12 @@ export function TemplateGridView({ templates, onDeleteTemplate }: TemplateGridVi
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {originalTemplates.map((template) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">      {originalTemplates.map((template) => (
         <div key={template.id} className="h-full relative">
           <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative `}>
+            <div className="absolute top-2 right-2 z-10">
+              <TemplateDropdownMenu templateId={template.id} onDelete={handleDelete} />
+            </div>
             <Link 
               href={`/templates/${template.id}`}
               className="flex flex-col h-full"
