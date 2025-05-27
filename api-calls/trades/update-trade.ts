@@ -1,4 +1,4 @@
-'use client';
+
 
 import { TradeUpdateRequest } from "@/types/trades/dto";
 import Cookies from "js-cookie";

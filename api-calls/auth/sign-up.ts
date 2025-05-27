@@ -1,4 +1,3 @@
-'use client';
 
 import { SignUpRequest, SignUpResponse } from '@/types/auth/dto';
 

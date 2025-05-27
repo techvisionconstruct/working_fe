@@ -1,4 +1,4 @@
-'use client';
+
 
 import { ProposalCreateRequest } from "@/types/proposals/dto";
 import Cookies from "js-cookie";

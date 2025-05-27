@@ -1,4 +1,4 @@
-'use client';
+
 
 import { VariableCreateRequest } from "@/types/variables/dto";
 import Cookies from "js-cookie";

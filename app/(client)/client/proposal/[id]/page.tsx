@@ -1,4 +1,4 @@
-"use client";
+;
 
 import React from "react";
 import { getProposalById } from "@/api-calls/proposals/get-proposal-by-id";

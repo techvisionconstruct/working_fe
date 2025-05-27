@@ -1,4 +1,4 @@
-'use client';
+
 
 import { ProfileUpdateRequest } from "@/types/user-profile/dto";
 import Cookies from "js-cookie";

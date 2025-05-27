@@ -1,4 +1,4 @@
-'use client';
+
 
 import { ContractSignRequest } from "@/types/contracts/dto";
 import Cookies from "js-cookie";
