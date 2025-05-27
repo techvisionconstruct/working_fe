@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { TemplateDropdownMenu } from "./template-dropdown-menu";
 
 // Consistent default image across the application
@@ -21,8 +22,26 @@ export function TemplateList({ templates, onDeleteTemplate }: TemplateListProps)
     onDeleteTemplate(templateId);
   };
 
+  if (templates.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
+        <h3 className="text-lg font-medium">No templates found</h3>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          You haven't created any templates yet or none match your search.
+        </p>
+        <Link
+          href="/templates/create"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90"
+        >
+          Create Your First Template
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">      <div className="rounded-md border">
+    <div className="space-y-5"><div className="rounded-md border">
         {templates.map((template, index) => (
           <div
             key={template.id}

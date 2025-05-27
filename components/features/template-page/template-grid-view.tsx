@@ -5,6 +5,7 @@ import {
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { TemplateViewProps } from "@/types/templates/dto";
 import { UseMutateFunction } from "@tanstack/react-query";
 import { TemplateDropdownMenu } from "./template-dropdown-menu";
@@ -25,8 +26,26 @@ export function TemplateGridView({ templates, onDeleteTemplate }: TemplateGridVi
     onDeleteTemplate(templateId);
   };
 
+  if (originalTemplates.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
+        <h3 className="text-lg font-medium">No templates found</h3>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          You haven't created any templates yet or none match your search.
+        </p>
+        <Link
+          href="/templates/create"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90"
+        >
+          Create Your First Template
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">      {originalTemplates.map((template) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{originalTemplates.map((template) => (
         <div key={template.id} className="h-full relative">
           <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative `}>
             <div className="absolute top-2 right-2 z-10">
