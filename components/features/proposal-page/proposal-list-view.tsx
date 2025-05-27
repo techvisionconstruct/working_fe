@@ -3,6 +3,7 @@ import { Badge } from "@/components/shared";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { ProposalDropdownMenu } from "./proposal-dropdown-menu";
 
@@ -18,8 +19,26 @@ export function ProposalList({ proposals, onDeleteProposal }: ProposalListProps)
     }
   };
 
+  if (proposals.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
+        <h3 className="text-lg font-medium">No proposals found</h3>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          You haven't created any proposals yet or none match your search.
+        </p>
+        <Link
+          href="/proposals/create"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90"
+        >
+          Create Your First Proposal
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">      <div className="rounded-md border">
+    <div className="space-y-5"><div className="rounded-md border">
         {proposals.map((proposal, index) => (
           <div
             key={proposal.id}
