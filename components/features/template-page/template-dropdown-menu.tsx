@@ -4,6 +4,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
   DropdownMenuContent,
+  DropdownMenuSeparator,
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogContent,
@@ -14,7 +15,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from "@/components/shared";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Trash2, Pencil } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
 interface TemplateDropdownMenuProps {
@@ -29,16 +31,22 @@ export function TemplateDropdownMenu({ templateId, onDelete }: TemplateDropdownM
           <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
             <MoreVertical className="h-4 w-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {/* Additional menu items can be added here */}
+        </DropdownMenuTrigger>        <DropdownMenuContent align="end">
+          <Link href={`/templates/${templateId}/edit`}>
+            <DropdownMenuItem>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Template
+            </DropdownMenuItem>
+          </Link>
+          <DropdownMenuSeparator />
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <DropdownMenuItem 
                 className="text-red-600" 
+                onSelect={(e) => e.preventDefault()}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete Item
+                Delete Template
               </DropdownMenuItem>
             </AlertDialogTrigger>
             <AlertDialogContent>

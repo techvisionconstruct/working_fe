@@ -6,24 +6,37 @@ import { TemplateViewProps } from "@/types/templates/dto";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
+import { TemplateDropdownMenu } from "./template-dropdown-menu";
 
 // Consistent default image across the application
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b";
 
-export function TemplateList({ templates }: TemplateViewProps) {
+interface TemplateListProps extends TemplateViewProps {
+  onDeleteTemplate: (templateId: string) => void;
+}
+
+export function TemplateList({ templates, onDeleteTemplate }: TemplateListProps) {
+  const handleDelete = (templateId: string) => {
+    onDeleteTemplate(templateId);
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="rounded-md border">
+    <div className="space-y-5">      <div className="rounded-md border">
         {templates.map((template, index) => (
           <div
             key={template.id}
             className={cn(
-              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs",
+              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs relative",
               index !== templates.length - 1 && "border-b",
               index % 2 === 0 && "bg-muted/50"
             )}
           >
-            <Image
+            <div className="absolute top-2 right-2 z-10">
+              <TemplateDropdownMenu templateId={template.id} onDelete={handleDelete} />
+            </div>
+            <Link href={`/templates/${template.id}`} className="flex gap-4 flex-1">
+              <Image
               src={template.image || DEFAULT_IMAGE}
               alt={`${template.name} thumbnail`}
               width={40}
@@ -62,11 +75,11 @@ export function TemplateList({ templates }: TemplateViewProps) {
                     +{template.variables.length - 3} more
                   </Badge>
                 )}
-              </div>
-            </div>
+              </div>            </div>
             <div className="text-sm text-muted-foreground whitespace-nowrap">
               {format(new Date(template.updated_at), "MMM d, yyyy")}
             </div>
+            </Link>
           </div>
         ))}
       </div>

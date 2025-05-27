@@ -3,7 +3,7 @@
 import { ProposalList } from "@/components/features/proposal-page/proposal-list-view";
 import { ProposalGridView } from "@/components/features/proposal-page/proposal-grid-view";
 import { ProposalLoader } from "@/components/features/proposal-page/loader";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
   Tabs,
@@ -17,18 +17,34 @@ import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
 import { getProposals } from "@/query-options/proposals";
+import { deleteProposal } from "@/api/proposals/delete-proposal";
 import { AlertError } from "@/components/features/alert-error/alert-error";
+import { toast } from "sonner";
 
 export default function ProposalsPage() {
   const [tab, setTab] = useState("grid");
   const [search, setSearch] = useState("");
   const [isTourRunning, setIsTourRunning] = useState(false);
 
+  const queryClient = useQueryClient();
+
   const {
     data: proposals,
     isError,
     isPending,
   } = useQuery(getProposals());
+  const { mutate: deleteProposalMutation } = useMutation({
+    mutationFn: (proposalId: string) => deleteProposal(proposalId),
+    onSuccess: () => {
+      // Invalidate and refetch proposals
+      queryClient.invalidateQueries({ queryKey: ["proposal"] });
+      toast.success("Proposal deleted successfully");
+    },
+    onError: (error) => {
+      console.error("Error deleting proposal:", error);
+      toast.error("Failed to delete proposal. Please try again.");
+    },
+  });
 
   const startTour = () => {
     setIsTourRunning(true);
@@ -84,13 +100,18 @@ export default function ProposalsPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
+      </div>      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
-          <ProposalGridView proposals={proposalData} />
+          <ProposalGridView 
+            proposals={proposalData} 
+            onDeleteProposal={deleteProposalMutation}
+          />
         </TabsContent>
         <TabsContent value="list">
-          <ProposalList proposals={proposalData} />
+          <ProposalList 
+            proposals={proposalData} 
+            onDeleteProposal={deleteProposalMutation}
+          />
         </TabsContent>
       </Tabs>
 

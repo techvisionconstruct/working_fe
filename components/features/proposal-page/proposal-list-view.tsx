@@ -2,26 +2,37 @@ import React from "react";
 import { Badge } from "@/components/shared";
 import { format } from "date-fns";
 import Image from "next/image";
+import Link from "next/link";
 import { ProposalResponse } from "@/types/proposals/dto";
+import { ProposalDropdownMenu } from "./proposal-dropdown-menu";
 
 interface ProposalListProps {
   proposals: ProposalResponse[];
+  onDeleteProposal?: (proposalId: string) => void;
 }
 
-export function ProposalList({ proposals }: ProposalListProps) {
+export function ProposalList({ proposals, onDeleteProposal }: ProposalListProps) {
+  const handleDelete = (proposalId: string) => {
+    if (onDeleteProposal) {
+      onDeleteProposal(proposalId);
+    }
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="rounded-md border">
+    <div className="space-y-5">      <div className="rounded-md border">
         {proposals.map((proposal, index) => (
           <div
             key={proposal.id}
             className={[
-              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs",
+              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs relative",
               index !== proposals.length - 1 ? "border-b" : "",
               index % 2 === 0 ? "bg-muted/50" : "",
             ].join(" ")}
-          >
-            <Image
+          >            <div className="absolute top-2 right-2 z-10">
+              <ProposalDropdownMenu proposalId={proposal.id} onDelete={handleDelete} />
+            </div>
+            <Link href={`/proposals/${proposal.id}`} className="flex gap-4 flex-1">
+              <Image
               src={
                 proposal.image ||
                 "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
@@ -64,11 +75,11 @@ export function ProposalList({ proposals }: ProposalListProps) {
                         </Badge>
                       )}
                   </div>
-                )}
-            </div>
+                )}            </div>
             <div className="text-sm text-muted-foreground whitespace-nowrap">
               {format(new Date(proposal.updated_at), "MMM d, yyyy")}
             </div>
+            </Link>
           </div>
         ))}
       </div>

@@ -3,18 +3,28 @@ import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { ProposalResponse } from "@/types/proposals/dto";
+import { ProposalDropdownMenu } from "./proposal-dropdown-menu";
 
 interface ProposalGridViewProps {
   proposals: ProposalResponse[];
+  onDeleteProposal?: (proposalId: string) => void;
 }
 
-export function ProposalGridView({ proposals }: ProposalGridViewProps) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+export function ProposalGridView({ proposals, onDeleteProposal }: ProposalGridViewProps) {
+  const handleDelete = (proposalId: string) => {
+    if (onDeleteProposal) {
+      onDeleteProposal(proposalId);
+    }
+  };
+
+  return (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {proposals.map((proposal) => (
-        <Link href={`/proposals/${proposal.id}`} key={proposal.id} className="h-full">
-          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full">
-            <div className="flex gap-4">
+        <div key={proposal.id} className="h-full relative">
+          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full">            <div className="absolute top-2 right-2 z-10">
+              <ProposalDropdownMenu proposalId={proposal.id} onDelete={handleDelete} />
+            </div>
+            <Link href={`/proposals/${proposal.id}`} className="flex flex-col h-full">
+              <div className="flex gap-4">
               <Image
                 src={proposal.image || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
                 width={64}
@@ -55,13 +65,13 @@ export function ProposalGridView({ proposals }: ProposalGridViewProps) {
                     </Badge>
                   )}
                 </div>
-              )}
-              <div className="text-xs text-muted-foreground mt-2">
+              )}              <div className="text-xs text-muted-foreground mt-2">
                 Updated: {format(new Date(proposal.updated_at), "MMM d, yyyy")}
               </div>
             </div>
+            </Link>
           </Card>
-        </Link>
+        </div>
       ))}
     </div>
   );
