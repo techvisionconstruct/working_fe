@@ -670,10 +670,27 @@ export function FormulaBuilder({
                     className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${selectedSuggestion === index
                       ? "bg-accent text-accent-foreground"
                       : ""
-                      }`}
-                    onClick={() => {
+                      }`}                    onClick={() => {
                       if (isCreateSuggestion) {
                         safeCreateVariable(item.name);
+                      } else if (isProduct) {
+                        // Handle product selection
+                        addFormulaToken(item.id, item.title, "product");
+                      } else {
+                        // Handle existing variable selection
+                        if (updateVariables && !variables.some((v) => v.id === item.id)) {
+                          updateVariables((currentVariables) => {
+                            if (currentVariables.some((v) => v.id === item.id)) {
+                              return currentVariables;
+                            }
+                            return [...currentVariables, item];
+                          });
+
+                          toast.success("Variable automatically added", {
+                            description: `"${item.name}" has been added to your template.`,
+                          });
+                        }
+                        addFormulaToken(item.name, item.name, "variable");
                       }
                     }}
                   >
