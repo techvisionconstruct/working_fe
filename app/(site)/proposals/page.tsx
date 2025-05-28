@@ -32,17 +32,17 @@ export default function ProposalsPage() {
     data: proposals,
     isError,
     isPending,
-  } = useQuery(getProposals());
-  const { mutate: deleteProposalMutation } = useMutation({
+  } = useQuery(getProposals());  const { mutate: deleteProposalMutation, isPending: isDeleting } = useMutation({
     mutationFn: (proposalId: string) => deleteProposal(proposalId),
     onSuccess: () => {
       // Invalidate and refetch proposals
       queryClient.invalidateQueries({ queryKey: ["proposal"] });
       toast.success("Proposal deleted successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error deleting proposal:", error);
-      toast.error("Failed to delete proposal. Please try again.");
+      const errorMessage = error?.message || "Failed to delete proposal. Please try again.";
+      toast.error(errorMessage);
     },
   });
 
@@ -105,12 +105,14 @@ export default function ProposalsPage() {
           <ProposalGridView 
             proposals={proposalData} 
             onDeleteProposal={deleteProposalMutation}
+            isDeleting={isDeleting}
           />
         </TabsContent>
         <TabsContent value="list">
           <ProposalList 
             proposals={proposalData} 
             onDeleteProposal={deleteProposalMutation}
+            isDeleting={isDeleting}
           />
         </TabsContent>
       </Tabs>

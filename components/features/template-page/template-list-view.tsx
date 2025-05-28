@@ -15,9 +15,10 @@ const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba
 
 interface TemplateListProps extends TemplateViewProps {
   onDeleteTemplate: (templateId: string) => void;
+  isDeleting?: boolean;
 }
 
-export function TemplateList({ templates, onDeleteTemplate }: TemplateListProps) {
+export function TemplateList({ templates, onDeleteTemplate, isDeleting }: TemplateListProps) {
   const handleDelete = (templateId: string) => {
     onDeleteTemplate(templateId);
   };
@@ -50,9 +51,12 @@ export function TemplateList({ templates, onDeleteTemplate }: TemplateListProps)
               index !== templates.length - 1 && "border-b",
               index % 2 === 0 && "bg-muted/50"
             )}
-          >
-            <div className="absolute top-2 right-2 z-10">
-              <TemplateDropdownMenu templateId={template.id} onDelete={handleDelete} />
+          >            <div className="absolute top-2 right-2 z-10">
+              <TemplateDropdownMenu 
+                templateId={template.id} 
+                onDelete={handleDelete} 
+                isDeleting={isDeleting}
+              />
             </div>
             <Link href={`/templates/${template.id}`} className="flex gap-4 flex-1">
               <Image

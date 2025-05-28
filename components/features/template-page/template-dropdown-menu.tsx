@@ -15,35 +15,54 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from "@/components/shared";
-import { MoreVertical, Trash2, Pencil } from "lucide-react";
+import { MoreVertical, Trash2, Pencil, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
 
 interface TemplateDropdownMenuProps {
   templateId: string;
   onDelete: (templateId: string, e?: React.MouseEvent) => void;
+  isDeleting?: boolean;
 }
 
-export function TemplateDropdownMenu({ templateId, onDelete }: TemplateDropdownMenuProps) {
+export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: TemplateDropdownMenuProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleDelete = () => {
+    onDelete(templateId);
+    setIsDialogOpen(false);
+  };
+
   return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-            <MoreVertical className="h-4 w-4" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 p-0"
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MoreVertical className="h-4 w-4" />
+            )}
           </Button>
-        </DropdownMenuTrigger>        <DropdownMenuContent align="end">
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
           <Link href={`/templates/${templateId}/edit`}>
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled={isDeleting}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit Template
             </DropdownMenuItem>
           </Link>
           <DropdownMenuSeparator />
-          <AlertDialog>
+          <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <AlertDialogTrigger asChild>
               <DropdownMenuItem 
                 className="text-red-600" 
                 onSelect={(e) => e.preventDefault()}
+                disabled={isDeleting}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Template
@@ -58,14 +77,20 @@ export function TemplateDropdownMenu({ templateId, onDelete }: TemplateDropdownM
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   className="bg-red-600 hover:bg-red-700"
-                  onClick={(e) => {
-                    onDelete(templateId);
-                  }}
+                  onClick={handleDelete}
+                  disabled={isDeleting}
                 >
-                  Delete
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
