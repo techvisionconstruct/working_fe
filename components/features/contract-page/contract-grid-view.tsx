@@ -21,13 +21,20 @@ interface ContractGridViewProps {
   onContractClick?: (contractUuid: string) => void;
 }
 
-export function ContractGridView({ contracts = [], proposals = [], onContractClick }: ContractGridViewProps) {
+export function ContractGridView({
+  contracts = [],
+  proposals = [],
+  onContractClick,
+}: ContractGridViewProps) {
   console.log("Contracts", contracts);
-  
+
   if (contracts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
+        <FileText
+          className="h-16 w-16 text-muted-foreground mb-4"
+          strokeWidth={1}
+        />
         <h3 className="text-lg font-medium">No contracts found</h3>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           You haven't created any contracts yet or none match your search.
@@ -49,29 +56,46 @@ export function ContractGridView({ contracts = [], proposals = [], onContractCli
   };
 
   // Helper function to check if a signature exists (text or image)
-  const isSignatureProvided = (contract: any, party: 'contractor' | 'client') => {
-    // Check for direct initials property
-    if (party === 'contractor' && contract.contractorInitials) return true;
-    if (party === 'client' && contract.clientInitials) return true;
-    
-    // Check for direct image property
-    if (party === 'contractor' && contract.contractorImage) return true;
-    if (party === 'client' && contract.clientImage) return true;
-    
-    // Check in signatures object
+  const isSignatureProvided = (
+    contract: any,
+    party: "contractor" | "client"
+  ) => {
+    // Check flat fields
+    if (party === "contractor") {
+      if (contract.contractor_initials || contract.contractor_signature)
+        return true;
+    }
+    if (party === "client") {
+      if (contract.client_initials || contract.client_signature) return true;
+    }
+
+    // Check for older camelCase fallbacks
+    if (
+      party === "contractor" &&
+      (contract.contractorInitials || contract.contractorImage)
+    )
+      return true;
+    if (party === "client" && (contract.clientInitials || contract.clientImage))
+      return true;
+
+    // Check in signatures object (optional pattern)
     if (contract.signatures && contract.signatures[party]) {
       return !!contract.signatures[party].value;
     }
-    
+
     return false;
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {contracts.map((contract) => {
-        const matchingProposal = proposals && Array.isArray(proposals)
-          ? proposals.find((proposal: any) => proposal.contract && (proposal.contract.id === contract.id))
-          : undefined;
+        const matchingProposal =
+          proposals && Array.isArray(proposals)
+            ? proposals.find(
+                (proposal: any) =>
+                  proposal.contract && proposal.contract.id === contract.id
+              )
+            : undefined;
 
         return (
           <div
@@ -94,43 +118,55 @@ export function ContractGridView({ contracts = [], proposals = [], onContractCli
                   </div>
                 </div>
               </CardHeader>
-            
+
               <CardContent className="p-4 pt-1 space-y-4">
                 {/* Signature Status - Prominent Display */}
                 <div className="rounded-lg grid grid-cols-2 gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`flex items-center gap-2 p-2.5 rounded-md ${
-                        isSignatureProvided(contract, 'contractor')
-                          ? "bg-green-50/80 text-green-700"
-                          : "bg-muted/30 text-muted-foreground"
-                      }`}>
-                        {isSignatureProvided(contract, 'contractor') ? (
+                      <div
+                        className={`flex items-center gap-2 p-2.5 rounded-md ${
+                          isSignatureProvided(contract, "contractor")
+                            ? "bg-green-50/80 text-green-700"
+                            : "bg-muted/30 text-muted-foreground"
+                        }`}
+                      >
+                        {isSignatureProvided(contract, "contractor") ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
                         )}
                         <div className="flex flex-col">
-                          <span className="text-xs font-medium">Contractor</span>
+                          <span className="text-xs font-medium">
+                            Contractor
+                          </span>
                           <span className="text-xs opacity-80">
-                            {isSignatureProvided(contract, 'contractor') ? "Signed" : "Pending"}
+                            {isSignatureProvided(contract, "contractor")
+                              ? "Signed"
+                              : "Pending"}
                           </span>
                         </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Contractor ${isSignatureProvided(contract, 'contractor') ? "Signed" : "Not Signed"}`}
+                      {`Contractor ${
+                        isSignatureProvided(contract, "contractor")
+                          ? "Signed"
+                          : "Not Signed"
+                      }`}
                     </TooltipContent>
                   </Tooltip>
-                  
+
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`flex items-center gap-2 p-2.5 rounded-md ${
-                        isSignatureProvided(contract, 'client')
-                          ? "bg-green-50/80 text-green-700"
-                          : "bg-muted/30 text-muted-foreground"
-                      }`}>
-                        {isSignatureProvided(contract, 'client') ? (
+                      <div
+                        className={`flex items-center gap-2 p-2.5 rounded-md ${
+                          isSignatureProvided(contract, "client")
+                            ? "bg-green-50/80 text-green-700"
+                            : "bg-muted/30 text-muted-foreground"
+                        }`}
+                      >
+                        {isSignatureProvided(contract, "client") ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
@@ -138,13 +174,19 @@ export function ContractGridView({ contracts = [], proposals = [], onContractCli
                         <div className="flex flex-col">
                           <span className="text-xs font-medium">Client</span>
                           <span className="text-xs opacity-80">
-                            {isSignatureProvided(contract, 'client') ? "Signed" : "Pending"}
+                            {isSignatureProvided(contract, "client")
+                              ? "Signed"
+                              : "Pending"}
                           </span>
                         </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Client ${isSignatureProvided(contract, 'client') ? "Signed" : "Not Signed"}`}
+                      {`Client ${
+                        isSignatureProvided(contract, "client")
+                          ? "Signed"
+                          : "Not Signed"
+                      }`}
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -153,7 +195,7 @@ export function ContractGridView({ contracts = [], proposals = [], onContractCli
                   {contract.description || "No description provided"}
                 </p>
               </CardContent>
-              
+
               <CardFooter className="p-4 pt-3 flex justify-between items-center border-t bg-muted/5">
                 <div className="flex items-center text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5 mr-1.5" />

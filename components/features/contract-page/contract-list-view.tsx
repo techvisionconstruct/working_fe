@@ -7,7 +7,14 @@ import {
   TooltipContent,
   Card,
 } from "@/components/shared";
-import { Eye, FileText, CheckCircle2, XCircle, CalendarDays, User } from "lucide-react";
+import {
+  Eye,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  CalendarDays,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -17,11 +24,17 @@ interface ContractListProps {
   onContractClick?: (contractUuid: string) => void;
 }
 
-export function ContractList({ contracts = [], onContractClick }: ContractListProps) {
+export function ContractList({
+  contracts = [],
+  onContractClick,
+}: ContractListProps) {
   if (contracts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
+        <FileText
+          className="h-16 w-16 text-muted-foreground mb-4"
+          strokeWidth={1}
+        />
         <h3 className="text-lg font-medium">No contracts found</h3>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           You haven't created any contracts yet or none match your search.
@@ -37,20 +50,33 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
   }
 
   // Helper function to check if a signature exists (text or image)
-  const isSignatureProvided = (contract: any, party: 'contractor' | 'client') => {
-    // Check for direct initials property
-    if (party === 'contractor' && contract.contractorInitials) return true;
-    if (party === 'client' && contract.clientInitials) return true;
-    
-    // Check for direct image property
-    if (party === 'contractor' && contract.contractorImage) return true;
-    if (party === 'client' && contract.clientImage) return true;
-    
-    // Check in signatures object
+  const isSignatureProvided = (
+    contract: any,
+    party: "contractor" | "client"
+  ) => {
+    // Check flat fields
+    if (party === "contractor") {
+      if (contract.contractor_initials || contract.contractor_signature)
+        return true;
+    }
+    if (party === "client") {
+      if (contract.client_initials || contract.client_signature) return true;
+    }
+
+    // Check for older camelCase fallbacks
+    if (
+      party === "contractor" &&
+      (contract.contractorInitials || contract.contractorImage)
+    )
+      return true;
+    if (party === "client" && (contract.clientInitials || contract.clientImage))
+      return true;
+
+    // Check in signatures object (optional pattern)
     if (contract.signatures && contract.signatures[party]) {
       return !!contract.signatures[party].value;
     }
-    
+
     return false;
   };
 
@@ -79,7 +105,7 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                   {contract.contractName || "Untitled Contract"}
                 </h3>
               </div>
-              
+
               <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1.5 mb-2">
                 <div className="flex items-center">
                   <User className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
@@ -94,61 +120,79 @@ export function ContractList({ contracts = [], onContractClick }: ContractListPr
                   </span>
                 </div>
               </div>
-              
+
               <p className="text-sm text-muted-foreground line-clamp-2 max-w-2xl">
                 {contract.contractDescription || "No description provided"}
               </p>
             </div>
-            
+
             {/* Signature status - prominent display */}
-            <div className="flex gap-3 p-4 border-t md:border-t-0 md:border-l md:pl-4 md:pr-6
-                            flex-row md:items-center md:w-auto md:min-w-[240px]">
+            <div
+              className="flex gap-3 p-4 border-t md:border-t-0 md:border-l md:pl-4 md:pr-6
+                            flex-row md:items-center md:w-auto md:min-w-[240px]"
+            >
               <div className="flex flex-1 md:flex-none gap-2 md:gap-3">
                 <div className="flex items-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
-                        isSignatureProvided(contract, 'contractor')
-                          ? "bg-green-50/80 text-green-700"
-                          : "bg-muted/30 text-muted-foreground"
-                        }`}>
-                        {isSignatureProvided(contract, 'contractor') ? (
+                      <div
+                        className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
+                          isSignatureProvided(contract, "contractor")
+                            ? "bg-green-50/80 text-green-700"
+                            : "bg-muted/30 text-muted-foreground"
+                        }`}
+                      >
+                        {isSignatureProvided(contract, "contractor") ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
                         )}
-                        <span className="font-medium text-xs whitespace-nowrap">Contractor</span>
+                        <span className="font-medium text-xs whitespace-nowrap">
+                          Contractor
+                        </span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Contractor ${isSignatureProvided(contract, 'contractor') ? "Signed" : "Not Signed"}`}
+                      {`Contractor ${
+                        isSignatureProvided(contract, "contractor")
+                          ? "Signed"
+                          : "Not Signed"
+                      }`}
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                
+
                 <div className="flex items-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
-                        isSignatureProvided(contract, 'client')
-                          ? "bg-green-50/80 text-green-700"
-                          : "bg-muted/30 text-muted-foreground"
-                        }`}>
-                        {isSignatureProvided(contract, 'client') ? (
+                      <div
+                        className={`flex items-center gap-2 py-1.5 px-2.5 rounded-md ${
+                          isSignatureProvided(contract, "client")
+                            ? "bg-green-50/80 text-green-700"
+                            : "bg-muted/30 text-muted-foreground"
+                        }`}
+                      >
+                        {isSignatureProvided(contract, "client") ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground/70" />
                         )}
-                        <span className="font-medium text-xs whitespace-nowrap">Client</span>
+                        <span className="font-medium text-xs whitespace-nowrap">
+                          Client
+                        </span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Client ${isSignatureProvided(contract, 'client') ? "Signed" : "Not Signed"}`}
+                      {`Client ${
+                        isSignatureProvided(contract, "client")
+                          ? "Signed"
+                          : "Not Signed"
+                      }`}
                     </TooltipContent>
                   </Tooltip>
                 </div>
               </div>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
