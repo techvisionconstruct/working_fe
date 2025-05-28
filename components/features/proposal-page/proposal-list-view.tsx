@@ -10,9 +10,10 @@ import { ProposalDropdownMenu } from "./proposal-dropdown-menu";
 interface ProposalListProps {
   proposals: ProposalResponse[];
   onDeleteProposal?: (proposalId: string) => void;
+  isDeleting?: boolean;
 }
 
-export function ProposalList({ proposals, onDeleteProposal }: ProposalListProps) {
+export function ProposalList({ proposals, onDeleteProposal, isDeleting }: ProposalListProps) {
   const handleDelete = (proposalId: string) => {
     if (onDeleteProposal) {
       onDeleteProposal(proposalId);
@@ -48,7 +49,11 @@ export function ProposalList({ proposals, onDeleteProposal }: ProposalListProps)
               index % 2 === 0 ? "bg-muted/50" : "",
             ].join(" ")}
           >            <div className="absolute top-2 right-2 z-10">
-              <ProposalDropdownMenu proposalId={proposal.id} onDelete={handleDelete} />
+              <ProposalDropdownMenu 
+                proposalId={proposal.id} 
+                onDelete={handleDelete} 
+                isDeleting={isDeleting}
+              />
             </div>
             <Link href={`/proposals/${proposal.id}`} className="flex gap-4 flex-1">
               <Image

@@ -15,26 +15,51 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from "@/components/shared";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
 
 interface ProposalDropdownMenuProps {
   proposalId: string;
   onDelete?: (proposalId: string) => void;
+  isDeleting?: boolean;
 }
 
-export function ProposalDropdownMenu({ proposalId, onDelete }: ProposalDropdownMenuProps) {
+export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: ProposalDropdownMenuProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(proposalId);
+      setIsDialogOpen(false);
+    }
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
+        {isDeleting ? (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 p-0"
+            disabled={true}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 p-0"
+            disabled={false}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <Link href={`/proposals/${proposalId}/edit`}>
-          <DropdownMenuItem>
+          <DropdownMenuItem disabled={isDeleting}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit Proposal
           </DropdownMenuItem>
@@ -42,11 +67,12 @@ export function ProposalDropdownMenu({ proposalId, onDelete }: ProposalDropdownM
         {onDelete && (
           <>
             <DropdownMenuSeparator />
-            <AlertDialog>
+            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem 
                   className="text-red-600" 
                   onSelect={(e) => e.preventDefault()}
+                  disabled={isDeleting}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Proposal
@@ -61,12 +87,20 @@ export function ProposalDropdownMenu({ proposalId, onDelete }: ProposalDropdownM
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     className="bg-red-600 hover:bg-red-700"
-                    onClick={() => onDelete(proposalId)}
+                    onClick={handleDelete}
+                    disabled={isDeleting}
                   >
-                    Delete
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete'
+                    )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

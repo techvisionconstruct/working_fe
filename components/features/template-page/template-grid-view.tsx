@@ -16,9 +16,10 @@ const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1488590528505-98d2b5aba
 
 interface TemplateGridViewProps extends TemplateViewProps {
   onDeleteTemplate: (templateId: string) => void;
+  isDeleting?: boolean;
 }
 
-export function TemplateGridView({ templates, onDeleteTemplate }: TemplateGridViewProps) {
+export function TemplateGridView({ templates, onDeleteTemplate, isDeleting }: TemplateGridViewProps) {
 
   const originalTemplates = templates.filter((template) => template.origin === "original");
   
@@ -47,9 +48,12 @@ export function TemplateGridView({ templates, onDeleteTemplate }: TemplateGridVi
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{originalTemplates.map((template) => (
         <div key={template.id} className="h-full relative">
-          <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative `}>
-            <div className="absolute top-2 right-2 z-10">
-              <TemplateDropdownMenu templateId={template.id} onDelete={handleDelete} />
+          <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative `}>            <div className="absolute top-2 right-2 z-10">
+              <TemplateDropdownMenu 
+                templateId={template.id} 
+                onDelete={handleDelete} 
+                isDeleting={isDeleting}
+              />
             </div>
             <Link 
               href={`/templates/${template.id}`}

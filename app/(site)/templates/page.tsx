@@ -32,16 +32,16 @@ export default function TemplatesPage() {
 
   const queryClient = useQueryClient();
 
-  const { data: templates, isError, isPending } = useQuery(getTemplates());
-  const { mutate: deleteTemplateMutation } = useMutation({
+  const { data: templates, isError, isPending } = useQuery(getTemplates());  const { mutate: deleteTemplateMutation, isPending: isDeleting } = useMutation({
     mutationFn: (templateId: string) => deleteTemplate(templateId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["template"] });
       toast.success("Template deleted successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error deleting template:", error);
-      toast.error("Failed to delete template. Please try again.");
+      const errorMessage = error?.message || "Failed to delete template. Please try again.";
+      toast.error(errorMessage);
     },
   });
 
@@ -99,17 +99,19 @@ export default function TemplatesPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
+      </div>      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsContent value="grid">
           <TemplateGridView
             templates={templateData}
             onDeleteTemplate={deleteTemplateMutation}
+            isDeleting={isDeleting}
           />
-        </TabsContent>        <TabsContent value="list">
+        </TabsContent>
+        <TabsContent value="list">
           <TemplateList 
             templates={templateData} 
             onDeleteTemplate={deleteTemplateMutation}
+            isDeleting={isDeleting}
           />
         </TabsContent>
       </Tabs>
