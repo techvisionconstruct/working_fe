@@ -455,12 +455,32 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
                 updateFormData({
                   trades: trades.map((trade) => trade.id),
                 });
+                // Update the created proposal with the new trades
+                if (createdProposal && createdProposal.template && createdProposal.template.id) {
+                  setCreatedProposal({
+                    ...createdProposal,
+                    template: {
+                      ...createdProposal.template,
+                      trades: trades,
+                    },
+                  });
+                }
               }}
               updateVariables={(variables) => {
                 setVariableObjects(variables);
                 updateFormData({
                   variables: variables.map((variable) => variable.id),
                 });
+                // Update the created proposal with the new variables
+                if (createdProposal && createdProposal.template && createdProposal.template.id) {
+                  setCreatedProposal({
+                    ...createdProposal,
+                    template: {
+                      ...createdProposal.template,
+                      variables: variables,
+                    },
+                  });
+                }
               }}
             />
             <div className="flex justify-between mt-6">

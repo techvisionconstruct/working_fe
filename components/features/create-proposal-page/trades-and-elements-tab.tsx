@@ -907,8 +907,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             elementsToUpdate.push({
               elementId: element.id,
               data: {
+                name: element.name,
+                description: element.description || undefined,
+                image: element.image || undefined,
                 material_cost_formula: element.material_cost_formula,
                 labor_cost_formula: element.labor_cost_formula,
+                markup: element.markup,
+                material_formula_variables: element.material_formula_variables,
+                labor_formula_variables: element.labor_formula_variables,
               },
             });
           }
@@ -1089,6 +1095,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       setIsGlobalMarkupEnabled(false);
     }
 
+    const elementToUpdate = trades
+      .find(trade => trade.id === tradeId)
+      ?.elements?.find(element => element.id === elementId);
+
+    if (!elementToUpdate) return;
+
     const updatedTrades = trades.map(trade => {
       if (trade.id === tradeId) {
         return {
@@ -1112,7 +1124,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     updateElementMutation({
       elementId,
       data: {
-        markup: newMarkup
+        name: elementToUpdate.name,
+        description: elementToUpdate.description || undefined,
+        image: elementToUpdate.image || undefined,
+        material_cost_formula: elementToUpdate.material_cost_formula,
+        labor_cost_formula: elementToUpdate.labor_cost_formula,
+        markup: newMarkup,
+        material_formula_variables: elementToUpdate.material_formula_variables,
+        labor_formula_variables: elementToUpdate.labor_formula_variables,
       }
     });
     
@@ -1464,8 +1483,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             elementsToUpdate.push({
               elementId: element.id,
               data: {
+                name: element.name,
+                description: element.description || undefined,
+                image: element.image || undefined,
                 material_cost_formula: element.material_cost_formula,
                 labor_cost_formula: element.labor_cost_formula,
+                markup: element.markup,
+                material_formula_variables: element.material_formula_variables,
+                labor_formula_variables: element.labor_formula_variables,
               },
             });
           }
