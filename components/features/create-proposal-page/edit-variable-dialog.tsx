@@ -122,7 +122,7 @@ const EditVariableDialog: React.FC<EditVariableDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <BracesIcon className="mr-2 h-4 w-4" />

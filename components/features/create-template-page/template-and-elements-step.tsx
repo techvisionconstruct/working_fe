@@ -1140,11 +1140,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Add variable dialog */}
+                  )}                  {/* Add variable dialog */}
                   <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-4xl">
                       <DialogHeader>
                         <DialogTitle className="flex items-center">
                           <BracesIcon className="mr-2 h-4 w-4" />
@@ -1558,12 +1556,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       </div>
                     </div>
                   )}
-                  {/* Dialog for adding a new trade */}
-                  <Dialog
+                  {/* Dialog for adding a new trade */}                  <Dialog
                     open={showAddTradeDialog}
                     onOpenChange={setShowAddTradeDialog}
                   >
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-4xl">
                       <DialogHeader>
                         <DialogTitle className="flex items-center">
                           <BracesIcon className="mr-2 h-4 w-4" />
@@ -1627,15 +1624,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                           <Label htmlFor="trade-image">
                             Trade Image
                             <span className="text-gray-500">&#40;Optional&#41;</span>
-                          </Label>
-                          <ImageUpload
+                          </Label>                          <ImageUpload
                             value={newTradeImage}
                             onChange={(value) => {
                               console.log("Image selected:", value);
                               setNewTradeImage(value || "");
                             }}
                             placeholder="Click or drag to upload a trade image"
-                            maxSizeMB={5}
                             height={160}
                             className="w-full"
                           />
@@ -2158,10 +2153,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             console.error("Error setting up variable creation:", err);
           }
         }}
-      />
-
-      <Dialog open={showEditVariableDialog} onOpenChange={setShowEditVariableDialog}>
-        <DialogContent className="sm:max-w-md">
+      />      <Dialog open={showEditVariableDialog} onOpenChange={setShowEditVariableDialog}>
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <BracesIcon className="mr-2 h-4 w-4" />
@@ -2280,10 +2273,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={showEditTradeDialog} onOpenChange={setShowEditTradeDialog}>
-        <DialogContent className="sm:max-w-md">
+      </Dialog>      <Dialog open={showEditTradeDialog} onOpenChange={setShowEditTradeDialog}>
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <BracesIcon className="mr-2 h-4 w-4" />
@@ -2341,15 +2332,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             <div className="grid gap-2">
               <Label htmlFor="edit-trade-image">
                 Trade Image <span className="text-gray-500">&#40;Optional&#41;</span>
-              </Label>
-              <ImageUpload
+              </Label>              <ImageUpload
                 value={newTradeImage || ""}
                 onChange={(value) => {
                   console.log("Edit trade image selected:", value);
                   setNewTradeImage(value || "");
                 }}
                 placeholder="Click or drag to upload a trade image"
-                maxSizeMB={5}
                 height={160}
                 className="w-full"
               />

@@ -639,84 +639,95 @@ export function ElementDialog({
         onOpenChange(open);
       }}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <BracesIcon className="mr-2 h-4 w-4" />
             {dialogTitle}
           </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-5 py-5">
-          <div className="grid gap-2">
-            <Label htmlFor="element-name">
-              Element Name <span className="text-red-500">*</span>
-            </Label>
-            <div className="relative">
-              <Input
-                id="element-name"
-                placeholder="Wall Framing"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => handleElementBlur("name")}
-                className={
-                  elementErrors.name && elementTouched.name
-                    ? "border-red-500 pr-10"
-                    : "pr-10"
-                }
-              />
-              {name && (
-                <button
-                  type="button"
-                  onClick={() => setName("")}
-                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                  tabIndex={-1}
-                  aria-label="Clear element name"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                </button>
-              )}
-            </div>
-            {elementErrors.name && elementTouched.name && (
-              <p className="text-xs text-red-500">{elementErrors.name}</p>
-            )}
-          </div>
+        </DialogHeader>        <div className="grid gap-5 py-5">
+          {/* Two-column layout for Name/Description and Image */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* First column: Name and Description */}
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="element-name">
+                  Element Name <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="element-name"
+                    placeholder="Wall Framing"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={() => handleElementBlur("name")}
+                    className={
+                      elementErrors.name && elementTouched.name
+                        ? "border-red-500 pr-10"
+                        : "pr-10"
+                    }
+                  />
+                  {name && (
+                    <button
+                      type="button"
+                      onClick={() => setName("")}
+                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                      tabIndex={-1}
+                      aria-label="Clear element name"
+                    >
+                      <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                    </button>
+                  )}
+                </div>
+                {elementErrors.name && elementTouched.name && (
+                  <p className="text-xs text-red-500">{elementErrors.name}</p>
+                )}
+              </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="element-description">
-              Description{" "}
-              <span className="text-gray-500">&#40;Optional&#41;</span>
-            </Label>
-            <div className="relative">
-              <Textarea
-                id="element-description"
-                placeholder="Description of this element"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="min-h-[60px] pr-10"
+              <div className="grid gap-2">
+                <Label htmlFor="element-description">
+                  Description{" "}
+                  <span className="text-gray-500">&#40;Optional&#41;</span>
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    id="element-description"
+                    placeholder="Description of this element"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[60px] pr-10"
+                  />
+                  {description && (
+                    <button
+                      type="button"
+                      onClick={() => setDescription("")}
+                      className="absolute right-2 top-2.5 flex items-center focus:outline-none"
+                      tabIndex={-1}
+                      aria-label="Clear description"
+                    >
+                      <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Second column: Image */}
+            <div className="grid gap-2">
+              <Label htmlFor="element-image">
+                Element Image{" "}
+                <span className="text-gray-500">&#40;Optional&#41;</span>
+              </Label>
+              <ImageUpload
+                value={image || elementToEdit?.image || ""}
+                onChange={(value) => {
+                  console.log("Element image changed:", value);
+                  setImage(value);
+                }}
+                placeholder="Click or drag to upload element image"
+                height={200}
               />
-              {description && (
-                <button
-                  type="button"
-                  onClick={() => setDescription("")}
-                  className="absolute right-2 top-2.5 flex items-center focus:outline-none"
-                  tabIndex={-1}
-                  aria-label="Clear description"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                </button>
-              )}
-            </div>          </div>          <div className="grid gap-2">            <Label htmlFor="element-image">
-              Element Image{" "}
-              <span className="text-gray-500">&#40;Optional&#41;</span>
-            </Label>            <ImageUpload
-              value={image || elementToEdit?.image || ""}
-              onChange={(value) => {
-                console.log("Element image changed:", value);
-                setImage(value);
-              }}
-              placeholder="Click or drag to upload element image"
-              height={200}
-            />
+            </div>
           </div>
 
           {/* Material Cost Formula */}

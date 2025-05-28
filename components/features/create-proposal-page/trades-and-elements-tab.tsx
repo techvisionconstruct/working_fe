@@ -1649,10 +1649,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         )}
                       </div>
                     </div>
-                  )}
-
-                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogContent className="sm:max-w-md">
+                  )}                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                    <DialogContent className="sm:max-w-4xl">
                       <DialogHeader>
                         <DialogTitle className="flex items-center">
                           <BracesIcon className="mr-2 h-4 w-4" />

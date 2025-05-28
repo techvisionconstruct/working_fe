@@ -12,7 +12,6 @@ interface ImageUploadProps {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
-  maxSizeMB?: number;
   aspect?: "square" | "rectangle" | "auto";
   height?: number;
 }
@@ -23,10 +22,9 @@ export function ImageUpload({
   className,
   disabled = false,
   placeholder = "Click or drag to upload an image",
-  maxSizeMB = 5,
   aspect = "auto",
   height = 200,
-}: ImageUploadProps) {  const [isDragging, setIsDragging] = useState(false);
+}: ImageUploadProps) {const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [localImage, setLocalImage] = useState<string>(value || "");
@@ -52,13 +50,7 @@ export function ImageUpload({
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-  };
-  const processFile = (file: File) => {
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      alert(`File is too large. Maximum size is ${maxSizeMB}MB.`);
-      return;
-    }
-
+  };  const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("Only image files are allowed.");
       return;
@@ -189,14 +181,10 @@ export function ImageUpload({
                 </div>
                 <span className="text-xs text-muted-foreground mt-1">{uploadProgress}%</span>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center px-4">
+            ) : (              <div className="flex flex-col items-center justify-center text-center px-4">
                 <Upload className="w-10 h-10 mb-2 text-muted-foreground/70" />
                 <p className="text-sm font-medium text-muted-foreground">
                   {placeholder}
-                </p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  Max size: {maxSizeMB}MB
                 </p>
               </div>
             )}
