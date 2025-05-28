@@ -17,7 +17,7 @@ import { LayoutGrid, List, Search, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { ProposalTour } from "@/components/features/tour-guide/proposal-tour";
 import { getProposals } from "@/query-options/proposals";
-import { deleteProposal } from "@/api/proposals/delete-proposal";
+import { deleteProposal } from "@/api-calls/proposals/delete-proposal";
 import { AlertError } from "@/components/features/alert-error/alert-error";
 import { toast } from "sonner";
 

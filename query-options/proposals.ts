@@ -1,5 +1,5 @@
-import { getAllProposals } from "@/api/proposals/get-all-proposals";
-import { getProposalById } from "@/api/proposals/get-proposal-by-id";
+import { getAllProposals } from "@/api-calls/proposals/get-all-proposals";
+import { getProposalById } from "@/api-calls/proposals/get-proposal-by-id";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getProposals(page = 1, pageSize = 10, searchQuery?: string) {

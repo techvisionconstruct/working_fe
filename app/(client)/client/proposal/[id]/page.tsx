@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getProposalById } from "@/api/proposals/get-proposal-by-id";
+import { getProposalById } from "@/api-calls/proposals/get-proposal-by-id";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProposalDetails } from "@/components/features/client/proposal-details";

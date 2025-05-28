@@ -1,4 +1,4 @@
-import { getAllProducts } from "@/api/products/get-all-products";
+import { getAllProducts } from "@/api-calls/products/get-all-products";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getProducts(page = 1, pageSize = 10, searchQuery?: string) {

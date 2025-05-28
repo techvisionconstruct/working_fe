@@ -17,7 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { postContract, updateContract } from "@/api/server/contracts";
+import { postContract, updateContract } from "@/api-calls/server/contracts";
 import { toast } from "sonner";
 
 interface TermSection {

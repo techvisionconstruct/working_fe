@@ -17,7 +17,7 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { clientSignature, updateContract } from "@/api/server/contracts";
+import { clientSignature, updateContract } from "@/api-calls/server/contracts";
 import { toast } from "sonner";
 import { VariableResponse } from "@/types/variables/dto";
 import { TradeResponse } from "@/types/trades/dto";

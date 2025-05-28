@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createTrade } from "@/api/trades/create-trade";
-import { updateTrade } from "@/api/trades/update-trade";
+import { createTrade } from "@/api-calls/trades/create-trade";
+import { updateTrade } from "@/api-calls/trades/update-trade";
 import { TradeResponse } from "@/types/trades/dto";
 
 interface UseTradeDialogProps {

@@ -13,8 +13,8 @@ import ProposalDetailsStep from "@/components/features/create-proposal-page/prop
 import TradesAndElementsStep from "@/components/features/create-proposal-page/trades-and-elements-tab";
 import StepIndicator from "@/components/features/create-proposal-page/step-indicator";
 
-import { createProposal } from "@/api/proposals/create-proposal";
-import { updateTemplate } from "@/api/templates/update-template";
+import { createProposal } from "@/api-calls/proposals/create-proposal";
+import { updateTemplate } from "@/api-calls/templates/update-template";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import {
@@ -23,7 +23,7 @@ import {
 } from "@/types/templates/dto";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { CreateContract } from "@/components/features/create-proposal-page/create-contract";
-import { createContract } from "@/api/contracts/create-contract";
+import { createContract } from "@/api-calls/contracts/create-contract";
 import { ContractCreateRequest } from "@/types/contracts/dto";
 
 interface ProposalDetailsProps {
