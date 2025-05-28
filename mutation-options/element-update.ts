@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { updateElement } from "@/api/elements/update-element";
+import { updateElement } from "@/api-calls/elements/update-element";
 import { toast } from "sonner";
 
 interface ElementUpdateVariables {

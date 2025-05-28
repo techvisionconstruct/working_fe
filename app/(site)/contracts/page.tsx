@@ -1,7 +1,7 @@
 "use client";
 
-import { getAllContracts } from "@/api/contracts/get-all-contracts";
-import { getAllProposals } from "@/api/proposals/get-all-proposals";
+import { getAllContracts } from "@/api-calls/contracts/get-all-contracts";
+import { getAllProposals } from "@/api-calls/proposals/get-all-proposals";
 import { ContractList } from "@/components/features/contract-page/contract-list-view";
 import { ContractGridView } from "@/components/features/contract-page/contract-grid-view";
 import { ContractLoader } from "@/components/features/contract-page/loader";

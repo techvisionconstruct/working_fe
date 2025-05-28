@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, Button, Input, Badge } from "@/components/shared";
 import { Search, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getAllTemplates } from "@/api/templates/get-all-templates";
+import { getAllTemplates } from "@/api-calls/templates/get-all-templates";
 import { TemplateResponse } from "@/types/templates/dto";
 import Image from "next/image";
 import { format } from "date-fns";

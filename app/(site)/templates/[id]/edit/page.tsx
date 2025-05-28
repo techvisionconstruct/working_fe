@@ -21,8 +21,8 @@ import {
 } from "@/types/templates/dto";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import { updateTemplate } from "@/api/templates/update-template";
-import { updateVariable } from "@/api/variables/update-variable";
+import { updateTemplate } from "@/api-calls/templates/update-template";
+import { updateVariable } from "@/api-calls/variables/update-variable";
 import { getTemplate } from "@/query-options/templates";
 
 export default function EditTemplate() {

@@ -36,15 +36,15 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllVariables } from "@/api/variables/get-all-variables";
-import { getAllVariableTypes } from "@/api/variable-types/get-all-variable-types";
-import { updateTrade } from "@/api/trades/update-trade";
-import { getAllTrades } from "@/api/trades/get-all-trades";
-import { getAllElements } from "@/api/elements/get-all-elements";
-import { createVariable } from "@/api/variables/create-variable";
-import { createTrade } from "@/api/trades/create-trade";
-import { createElement } from "@/api/elements/create-element";
-import { updateElement } from "@/api/elements/update-element";
+import { getAllVariables } from "@/api-calls/variables/get-all-variables";
+import { getAllVariableTypes } from "@/api-calls/variable-types/get-all-variable-types";
+import { updateTrade } from "@/api-calls/trades/update-trade";
+import { getAllTrades } from "@/api-calls/trades/get-all-trades";
+import { getAllElements } from "@/api-calls/elements/get-all-elements";
+import { createVariable } from "@/api-calls/variables/create-variable";
+import { createTrade } from "@/api-calls/trades/create-trade";
+import { createElement } from "@/api-calls/elements/create-element";
+import { updateElement } from "@/api-calls/elements/update-element";
 import { VariableResponse } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { TradeResponse } from "@/types/trades/dto";

@@ -15,9 +15,9 @@ import { CreateContract } from "@/components/mockup/create-proposal-page/create-
 import VerticalStepIndicator from "@/components/mockup/create-template-page/vertical-step-indicator";
 import { Header } from "@/components/mockup/create-template-page/header";
 
-import { createProposal } from "@/api/proposals/create-proposal";
-import { updateTemplate } from "@/api/templates/update-template";
-import { createContract } from "@/api/contracts/create-contract";
+import { createProposal } from "@/api-calls/proposals/create-proposal";
+import { updateTemplate } from "@/api-calls/templates/update-template";
+import { createContract } from "@/api-calls/contracts/create-contract";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
 import { ProposalCreateRequest, ProposalResponse } from "@/types/proposals/dto";

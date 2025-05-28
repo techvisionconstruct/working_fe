@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { useUser } from "@/components/contexts/user-context";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserProfile } from '@/api/user-profile/update-user-profile';
+import { updateUserProfile } from '@/api-calls/user-profile/update-user-profile';
 import { ProfileUpdateRequest } from '@/types/user-profile/dto';
 import { toast } from 'sonner';
 
