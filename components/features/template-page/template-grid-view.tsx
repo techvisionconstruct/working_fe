@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { TemplateViewProps } from "@/types/templates/dto";
 import { UseMutateFunction } from "@tanstack/react-query";
 import { TemplateDropdownMenu } from "./template-dropdown-menu";

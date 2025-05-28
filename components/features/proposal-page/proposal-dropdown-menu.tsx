@@ -25,6 +25,7 @@ interface ProposalDropdownMenuProps {
   isDeleting?: boolean;
 }
 
+
 export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: ProposalDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
