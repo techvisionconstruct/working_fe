@@ -16,7 +16,7 @@ interface AddElementDialogProps {
   }) => void;
   newElementName: string;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   isCreatingElement: boolean;
   // Global markup props
   isGlobalMarkupEnabled?: boolean;

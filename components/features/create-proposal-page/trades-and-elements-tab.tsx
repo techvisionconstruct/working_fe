@@ -128,6 +128,18 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const queryClient = useQueryClient();
   const variables = data.variables || [];
 
+  // Create a wrapper function to convert simple function to React state setter
+  const updateVariablesWrapper: React.Dispatch<React.SetStateAction<VariableResponse[]>> = (newVariables) => {
+    if (typeof newVariables === 'function') {
+      // If it's a function, call it with current variables and pass the result to updateVariables
+      const updatedVariables = newVariables(variables);
+      updateVariables(updatedVariables);
+    } else {
+      // If it's an array, pass it directly
+      updateVariables(newVariables);
+    }
+  };
+
   const updateVariableWithFormulaValue = (variable: VariableResponse): VariableResponse => {
     if (variable.formula) {
       const calculatedValue = calculateFormulaValue(variable.formula, variables);
@@ -1574,9 +1586,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                         if (searchQuery.trim()) {
                           setIsSearchOpen(true);
                         }
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => setIsSearchOpen(false), 200);
+                      }}                      onBlur={() => {
+                        setTimeout(() => setIsSearchOpen(false), 300);
                       }}
                       onClick={() => {
                         if (searchQuery.trim()) {
@@ -2086,10 +2097,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     onCancel={() => {
                       setShowEditVariableDialog(false);
                       setCurrentVariableId(null);
-                    }}
-                    variables={variables}
-                    updateVariables={updateVariables}
-                  />                  <AddTradeDialog
+                    }}                    variables={variables}
+                    updateVariables={updateVariablesWrapper}
+                  /><AddTradeDialog
                     open={showAddTradeDialog}
                     onOpenChange={setShowAddTradeDialog}
                     onAddTrade={handleAddTrade}
@@ -2099,18 +2109,16 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                     setNewTradeDescription={setNewTradeDescription}
                     newTradeImage={newTradeImage}
                     setNewTradeImage={setNewTradeImage}
-                    isCreatingTrade={isCreatingTrade}
-                  /><AddElementDialog
+                    isCreatingTrade={isCreatingTrade}                  />                  <AddElementDialog
                     open={showAddElementDialog}
                     onOpenChange={setShowAddElementDialog}
                     onAddElement={handleAddElement}
                     newElementName={newElementName}
                     variables={variables}
-                    updateVariables={updateVariables}
+                    updateVariables={updateVariablesWrapper}
                     isCreatingElement={isCreatingElement}
                     isGlobalMarkupEnabled={isGlobalMarkupEnabled}
-                    globalMarkupValue={globalMarkupValue}
-                  />                  <EditElementDialog
+                    globalMarkupValue={globalMarkupValue}/><EditElementDialog
                     open={showEditElementDialog}
                     onOpenChange={setShowEditElementDialog}
                     onEditElement={handleEditElement}
@@ -2120,10 +2128,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             .flatMap((trade) => trade.elements || [])
                             .find((element) => element.id === currentElementId) ||
                           null
-                        : null
-                    }
-                    variables={variables}
-                    updateVariables={updateVariables}
+                        : null                    }                    variables={variables}
+                    updateVariables={updateVariablesWrapper}
                     isUpdatingElement={isUpdatingElement}
                     elementMarkup={elementMarkup}
                     onCancel={() => {
