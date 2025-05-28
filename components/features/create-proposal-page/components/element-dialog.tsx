@@ -798,7 +798,7 @@ export function ElementDialog({
                   type="number"
                   min="0"
                   max="100"
-                  placeholder={isGlobalMarkupEnabled ? globalMarkupValue.toString() : "15"}
+                  placeholder={isGlobalMarkupEnabled ? globalMarkupValue.toString() : "i.e. 1%, 15%, 20%"}
                   value={markup || ''}
                   onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
                   className={isGlobalMarkupEnabled && markup === globalMarkupValue ? 'border-primary/30' : ''}
