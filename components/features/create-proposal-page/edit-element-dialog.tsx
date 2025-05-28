@@ -17,10 +17,9 @@ interface EditElementDialogProps {
     materialFormula: string;
     laborFormula: string;
     markup: number;
-  }) => void;
-  elementToEdit: ElementResponse | null;
+  }) => void;  elementToEdit: ElementResponse | null;
   variables: VariableResponse[];
-  updateVariables?: (variables: VariableResponse[]) => void;
+  updateVariables?: React.Dispatch<React.SetStateAction<VariableResponse[]>>;
   isUpdatingElement: boolean;
   elementMarkup: number;
   onCancel: () => void;
