@@ -46,18 +46,28 @@ export function TemplateGridView({ templates, onDeleteTemplate, isDeleting }: Te
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{originalTemplates.map((template) => (
-        <div key={template.id} className="h-full relative">
-          <Card className={`flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative `}>            <div className="absolute top-2 right-2 z-10">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {originalTemplates.map((template) => (
+        <div key={template.id} className="h-full relative group">
+          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative">
+            {/* Update dropdown container with better z-index and positioning */}
+            <div className="absolute top-2 right-2" style={{ zIndex: 1000 }}>
               <TemplateDropdownMenu 
                 templateId={template.id} 
                 onDelete={handleDelete} 
                 isDeleting={isDeleting}
               />
             </div>
+            
             <Link 
               href={`/templates/${template.id}`}
               className="flex flex-col h-full"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('[role="menuitem"]') || target.closest('button')) {
+                  e.preventDefault();
+                }
+              }}
             >
               <div className="flex gap-4">
                 <Image

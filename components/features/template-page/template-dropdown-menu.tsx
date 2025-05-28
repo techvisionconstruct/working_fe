@@ -28,7 +28,6 @@ interface TemplateDropdownMenuProps {
 export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: TemplateDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  // Close dropdown when delete operation completes
   useEffect(() => {
     if (!isDeleting && isDropdownOpen) {
       setIsDropdownOpen(false);
@@ -40,69 +39,67 @@ export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: Templ
     setIsDialogOpen(false);
   };
 
+
   return (
-      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 p-0"
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MoreVertical className="h-4 w-4" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <Link href={`/templates/${templateId}/edit`}>
-            <DropdownMenuItem disabled={isDeleting}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Template
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 p-0 hover:bg-muted"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" align="end" sideOffset={5}>
+        <Link href={`/templates/${templateId}/edit`} passHref legacyBehavior>
+          <DropdownMenuItem className="cursor-pointer">
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Template
+          </DropdownMenuItem>
+        </Link>
+        <DropdownMenuSeparator />
+        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem 
+              className="text-red-600 cursor-pointer"
+              onSelect={(event) => {
+                event.preventDefault();
+                setIsDialogOpen(true);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Template
             </DropdownMenuItem>
-          </Link>
-          <DropdownMenuSeparator />
-          <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <DropdownMenuItem 
-                className="text-red-600" 
-                onSelect={(e) => e.preventDefault()}
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                template and remove it from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handleDelete}
                 disabled={isDeleting}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Template
-              </DropdownMenuItem>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  template and remove it from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

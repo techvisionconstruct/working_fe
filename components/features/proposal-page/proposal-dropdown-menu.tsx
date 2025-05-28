@@ -27,14 +27,6 @@ interface ProposalDropdownMenuProps {
 
 export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: ProposalDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Close dropdown when delete operation completes
-  useEffect(() => {
-    if (!isDeleting && isDropdownOpen) {
-      setIsDropdownOpen(false);
-    }
-  }, [isDeleting, isDropdownOpen]);
 
   const handleDelete = () => {
     if (onDelete) {
@@ -42,32 +34,21 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
       setIsDialogOpen(false);
     }
   };
+
   return (
-    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {isDeleting ? (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 p-0"
-            disabled={true}
-          >
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </Button>
-        ) : (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 p-0"
-            disabled={false}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 p-0 hover:bg-muted"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <Link href={`/proposals/${proposalId}/edit`}>
-          <DropdownMenuItem disabled={isDeleting}>
+      <DropdownMenuContent side="bottom" align="end" sideOffset={5}>
+        <Link href={`/proposals/${proposalId}/edit`} passHref legacyBehavior>
+          <DropdownMenuItem className="cursor-pointer">
             <Pencil className="mr-2 h-4 w-4" />
             Edit Proposal
           </DropdownMenuItem>
@@ -78,9 +59,11 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
             <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem 
-                  className="text-red-600" 
-                  onSelect={(e) => e.preventDefault()}
-                  disabled={isDeleting}
+                  className="text-red-600 cursor-pointer"
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setIsDialogOpen(true);
+                  }}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Proposal

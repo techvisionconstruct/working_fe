@@ -39,15 +39,26 @@ export function ProposalGridView({ proposals, onDeleteProposal, isDeleting }: Pr
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {proposals.map((proposal) => (
-        <div key={proposal.id} className="h-full relative">
-          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative">            <div className="absolute top-2 right-2 z-10">
+        <div key={proposal.id} className="h-full relative group">
+          <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative">
+            <div className="absolute top-2 right-2" style={{ zIndex: 1000 }}>
               <ProposalDropdownMenu 
                 proposalId={proposal.id} 
                 onDelete={handleDelete} 
                 isDeleting={isDeleting}
               />
             </div>
-            <Link href={`/proposals/${proposal.id}`} className="flex flex-col h-full">
+            
+            <Link 
+              href={`/proposals/${proposal.id}`} 
+              className="flex flex-col h-full"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('[role="menuitem"]') || target.closest('button')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <div className="flex gap-4">
                 <Image
                   src={proposal.image || "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"}
