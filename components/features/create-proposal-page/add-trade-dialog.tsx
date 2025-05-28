@@ -40,9 +40,8 @@ const AddTradeDialog: React.FC<AddTradeDialogProps> = ({
   setNewTradeImage,
   isCreatingTrade,
 }) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+  return (    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <BracesIcon className="mr-2 h-4 w-4" />
@@ -74,7 +73,6 @@ const AddTradeDialog: React.FC<AddTradeDialogProps> = ({
               value={newTradeImage}
               onChange={(value) => setNewTradeImage(value)}
               placeholder="Upload an image for this trade..."
-              maxSizeMB={5}
               className="w-full"
             />
           </div>
