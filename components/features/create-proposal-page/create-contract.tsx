@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContract } from "@/api/contracts/create-contract";
@@ -45,6 +46,7 @@ import { ContractCreateRequest } from "@/types/contracts/dto";
 import { getContract } from "@/query-options/contracts";
 
 interface TermSection {
+  isNew?: boolean;
   id: number;
   title: string;
   description: string;
@@ -88,6 +90,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const [tempValue, setTempValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const skipNextOutsideClick = useRef(false);
 
   // Update temp value when prop value changes
   useEffect(() => {
@@ -97,6 +100,11 @@ const EditableField: React.FC<EditableFieldProps> = ({
   // Handle clicks outside the textarea to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
       if (
         isEditing &&
         inputRef.current &&
@@ -104,13 +112,6 @@ const EditableField: React.FC<EditableFieldProps> = ({
       ) {
         handleSave();
       }
-    };
-
-    if (isEditing) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditing, tempValue]);
 
@@ -135,6 +136,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   };
 
   const handleCancel = () => {
+    skipNextOutsideClick.current = true;
     setTempValue(value);
     setIsEditing(false);
   };
@@ -220,6 +222,7 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   const [tempValue, setTempValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextOutsideClick = useRef(false);
 
   // Update temp value when prop value changes
   useEffect(() => {
@@ -229,6 +232,11 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   // Handle clicks outside to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
       if (
         isEditing &&
         inputRef.current &&
@@ -236,13 +244,6 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
       ) {
         handleSave();
       }
-    };
-
-    if (isEditing) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditing, tempValue]);
 
@@ -267,6 +268,7 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   };
 
   const handleCancel = () => {
+    skipNextOutsideClick.current = true;
     setTempValue(value);
     setIsEditing(false);
   };
@@ -345,7 +347,6 @@ export function CreateContract({
   // Add local contract state
   const { data: contract } = useQuery(getContract(contract_id as string));
 
-
   // Use localContract if available, otherwise fallback to proposal.contract
 
   console.log("Contract data:", contract);
@@ -383,7 +384,9 @@ export function CreateContract({
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
-Client: ${contract?.client_name || "[CLIENT_NAME]"}, with a primary address at ${
+Client: ${
+    contract?.client_name || "[CLIENT_NAME]"
+  }, with a primary address at ${
     contract?.client_address || "[CLIENT_ADDRESS]"
   }.
 
@@ -543,12 +546,12 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       ...prev,
       {
         id: newId,
-        title: "New Section",
-        description: "Enter section content here.",
+        title: "",
+        description: "",
+        isNew: true, // 🔥 Add this!
       },
     ]);
 
-    // Start editing the new section
     setEditingTermSectionId(newId);
   };
 
@@ -850,6 +853,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     const [isSaving, setIsSaving] = useState(false);
     const titleRef = useRef<HTMLInputElement>(null);
     const descriptionRef = useRef<HTMLTextAreaElement>(null);
+    const skipNextOutsideClick = useRef(false);
 
     useEffect(() => {
       setIsEditing(editingTermSectionId === section.id);
@@ -858,7 +862,11 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     // Handle clicks outside to save - improved to avoid saving when editing text
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        // Don't save if click is inside title input, description textarea or buttons area
+        if (skipNextOutsideClick.current) {
+          skipNextOutsideClick.current = false;
+          return;
+        }
+
         if (
           isEditing &&
           titleRef.current &&
@@ -896,9 +904,15 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     };
 
     const handleCancel = () => {
-      setTitle(section.title);
-      setDescription(section.description);
-      setEditingTermSectionId(null);
+      skipNextOutsideClick.current = true;
+
+      if (section.isNew) {
+        onRemove();
+      } else {
+        setTitle(section.title);
+        setDescription(section.description);
+        setEditingTermSectionId(null);
+      }
     };
 
     if (isEditing) {
@@ -1138,6 +1152,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       console.error("Error in saveContractInfoChanges:", error);
     }
   };
+
   return (
     <div className="w-full mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -1388,7 +1403,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                         > = {};
                         proposal.template.variables.forEach((variable) => {
                           const typeName =
-                            variable.variable_type?.name || "Other";
+                            variable.variable_types?.name || "Other";
                           if (!groupedVariables[typeName]) {
                             groupedVariables[typeName] = [];
                           }
@@ -1444,7 +1459,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                             <div
                               key={trade.id}
                               className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                            >                              <div className="flex items-center gap-3 mb-4">
+                            >
+                              {" "}
+                              <div className="flex items-center gap-3 mb-4">
                                 {trade.image && (
                                   <div className="h-10 w-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                     <img
@@ -1459,14 +1476,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                                   {trade.name || "Trade Name"}
                                 </h4>
                               </div>
-
                               {trade.elements && trade.elements.length > 0 && (
                                 <div className="space-y-2">
                                   {trade.elements.map((element: any) => (
                                     <div
                                       key={element.id}
                                       className="bg-gray-50 rounded-md p-3 border border-gray-100 hover:border-primary/20 transition-colors"
-                                    >                                      <div className="flex items-start gap-3 mb-1">
+                                    >
+                                      {" "}
+                                      <div className="flex items-start gap-3 mb-1">
+                                        {" "}
                                         {element.image && (
                                           <div className="h-11 w-11 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                             <img
@@ -1502,12 +1521,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                                           </div>
                                         </div>
                                       </div>
-
                                       <p className="text-xs text-gray-600 line-clamp-2">
                                         {element.description ||
                                           "No description available"}
                                       </p>
-
                                       <div className="flex flex-wrap items-center gap-2 mt-2">
                                         <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
                                           Material: $
