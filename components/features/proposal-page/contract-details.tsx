@@ -47,6 +47,7 @@ interface TermSection {
   id: number;
   title: string;
   description: string;
+  isNew?: boolean;
 }
 
 interface Signature {
@@ -87,6 +88,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const [tempValue, setTempValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const skipNextOutsideClick = useRef(false);
 
   // Update temp value when prop value changes
   useEffect(() => {
@@ -96,6 +98,11 @@ const EditableField: React.FC<EditableFieldProps> = ({
   // Handle clicks outside the textarea to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
       if (
         isEditing &&
         inputRef.current &&
@@ -103,13 +110,6 @@ const EditableField: React.FC<EditableFieldProps> = ({
       ) {
         handleSave();
       }
-    };
-
-    if (isEditing) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditing, tempValue]);
 
@@ -154,15 +154,30 @@ const EditableField: React.FC<EditableFieldProps> = ({
         <div className="flex justify-end mt-2 space-x-2 items-center">
           <div className="flex items-center gap-1">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -204,6 +219,7 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   const [tempValue, setTempValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextOutsideClick = useRef(false);
 
   // Update temp value when prop value changes
   useEffect(() => {
@@ -213,24 +229,26 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   // Handle clicks outside to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isEditing && inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
+      if (
+        isEditing &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
         handleSave();
       }
     };
-    
-    if (isEditing) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isEditing, tempValue]);
-  
+
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       handleCancel();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       handleSave();
     }
@@ -267,15 +285,30 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
           />
           <div className="flex items-center gap-1">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -315,20 +348,24 @@ export function ContractDetails({ proposal }: { proposal: ProposalResponse }) {
     useState(false);
   const [isEditingServiceAgreementBody, setIsEditingServiceAgreementBody] =
     useState(false);
-  const [editingTermSectionId, setEditingTermSectionId] = useState<number | null>(
-    null
-  );
+  const [editingTermSectionId, setEditingTermSectionId] = useState<
+    number | null
+  >(null);
 
   // Client information states with detailed saving status
   const [clientName, setClientName] = useState(proposal.client_name || "");
   const [clientEmail, setClientEmail] = useState(proposal.client_email || "");
   const [clientPhone, setClientPhone] = useState(proposal.client_phone || "");
-  const [clientAddress, setClientAddress] = useState(proposal.client_address || "");
+  const [clientAddress, setClientAddress] = useState(
+    proposal.client_address || ""
+  );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
 
   // Add state for editable contract name and description
   const [contractName, setContractName] = useState(proposal.name || "");
-  const [contractDescription, setContractDescription] = useState(proposal.description || "");
+  const [contractDescription, setContractDescription] = useState(
+    proposal.description || ""
+  );
 
   // Default service agreement content with title as first line
   const defaultServiceAgreement = `SERVICE AGREEMENT
@@ -336,7 +373,9 @@ export function ContractDetails({ proposal }: { proposal: ProposalResponse }) {
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
-Client: ${proposal.client_name || "[CLIENT_NAME]"}, with a primary address at ${proposal.client_address || "[CLIENT_ADDRESS]"}.
+Client: ${proposal.client_name || "[CLIENT_NAME]"}, with a primary address at ${
+    proposal.client_address || "[CLIENT_ADDRESS]"
+  }.
 
 1. SCOPE OF SERVICES:
 The Service Provider agrees to perform the services as outlined in the attached Proposal.
@@ -629,13 +668,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   // Update proposal mutation with enhanced feedback and better error handling
   const updateProposalMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: any;
-    }) => updateProposal(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateProposal(id, data),
     onSuccess: () => {
       toast.success("Client information updated successfully!", {
         id: "client-info-update",
@@ -644,17 +678,17 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     onError: (error: any) => {
       // Improve error message handling
       let errorMessage = "Failed to update client information";
-      
+
       if (error instanceof Error) {
         try {
           // Check if it's a JSON string (from our API)
           const parsedError = JSON.parse(error.message);
-          if (typeof parsedError === 'object') {
+          if (typeof parsedError === "object") {
             // Format nested validation errors if present
-            if (parsedError.detail && typeof parsedError.detail === 'object') {
+            if (parsedError.detail && typeof parsedError.detail === "object") {
               errorMessage = Object.entries(parsedError.detail)
                 .map(([field, errors]) => `${field}: ${errors}`)
-                .join(', ');
+                .join(", ");
             } else {
               errorMessage = error.message;
             }
@@ -666,7 +700,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
           errorMessage = error.message;
         }
       }
-      
+
       toast.error(errorMessage, {
         id: "client-info-update-error",
       });
@@ -695,7 +729,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       if (!proposal.id) {
         return;
       }
-      
+
       if (
         proposal.client_name !== clientName ||
         proposal.client_email !== clientEmail ||
@@ -703,32 +737,41 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
         proposal.client_address !== clientAddress
       ) {
         setIsClientInfoSaving(true);
-        
+
         const updatedFields: Record<string, string> = {
           // Always include name which is a required field
           name: proposal.name || "",
         };
-        
+
         // Only include fields that have actually changed and have valid values
         if (proposal.client_name !== clientName && clientName !== undefined) {
           updatedFields.client_name = clientName;
         }
-        
-        if (proposal.client_email !== clientEmail && clientEmail !== undefined) {
+
+        if (
+          proposal.client_email !== clientEmail &&
+          clientEmail !== undefined
+        ) {
           updatedFields.client_email = clientEmail;
         }
-        
-        if (proposal.client_phone !== clientPhone && clientPhone !== undefined) {
+
+        if (
+          proposal.client_phone !== clientPhone &&
+          clientPhone !== undefined
+        ) {
           updatedFields.client_phone = clientPhone;
         }
-        
-        if (proposal.client_address !== clientAddress && clientAddress !== undefined) {
+
+        if (
+          proposal.client_address !== clientAddress &&
+          clientAddress !== undefined
+        ) {
           updatedFields.client_address = clientAddress;
         }
-        
+
         updateProposalMutation.mutate({
           id: proposal.id,
-          data: updatedFields
+          data: updatedFields,
         });
       } else {
         setIsClientInfoSaving(false);
@@ -750,15 +793,15 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
         // Always include name which is a required field on the backend
         name: proposal.name || "",
       };
-      
+
       if (clientName) clientData.client_name = clientName;
       if (clientEmail) clientData.client_email = clientEmail;
       if (clientPhone) clientData.client_phone = clientPhone || ""; // Send empty string instead of undefined if blank
       if (clientAddress) clientData.client_address = clientAddress || ""; // Send empty string instead of undefined if blank
-      
+
       await updateProposalMutation.mutateAsync({
         id: proposal.id,
-        data: clientData
+        data: clientData,
       });
     } catch (error) {
       console.error("Error in saveClientInfoChanges:", error);
@@ -799,13 +842,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     onRemove: () => void;
     onSave: () => void;
   }> = ({ section, index, onRemove, onSave }) => {
-    const [isEditing, setIsEditing] = useState(editingTermSectionId === section.id);
+    const [isEditing, setIsEditing] = useState(
+      editingTermSectionId === section.id
+    );
     const [title, setTitle] = useState(section.title);
     const [description, setDescription] = useState(section.description);
     const [isSaving, setIsSaving] = useState(false);
     const titleRef = useRef<HTMLInputElement>(null);
     const descriptionRef = useRef<HTMLTextAreaElement>(null);
-    
+    const skipNextOutsideClick = useRef(false);
+
     useEffect(() => {
       setIsEditing(editingTermSectionId === section.id);
     }, [editingTermSectionId, section.id]);
@@ -813,25 +859,35 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     // Handle clicks outside to save - improved to avoid saving when editing text
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        // Don't save if click is inside title input, description textarea or buttons area
+        if (skipNextOutsideClick.current) {
+          skipNextOutsideClick.current = false;
+          return;
+        }
+
         if (
-          isEditing && 
-          titleRef.current && 
-          descriptionRef.current && 
+          isEditing &&
+          titleRef.current &&
+          descriptionRef.current &&
           !titleRef.current.contains(event.target as Node) &&
           !descriptionRef.current.contains(event.target as Node) &&
-          !(event.target instanceof Element && event.target.closest('.term-section-buttons')) &&
-          !(event.target instanceof Element && event.target.closest('.term-section-actions'))
+          !(
+            event.target instanceof Element &&
+            event.target.closest(".term-section-buttons")
+          ) &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(".term-section-actions")
+          )
         ) {
           handleSave();
         }
       };
-      
+
       if (isEditing) {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
       }
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener("mousedown", handleClickOutside);
       };
     }, [isEditing, title, description]);
 
@@ -845,9 +901,15 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     };
 
     const handleCancel = () => {
-      setTitle(section.title);
-      setDescription(section.description);
-      setEditingTermSectionId(null);
+      skipNextOutsideClick.current = true;
+
+      if (section.isNew) {
+        onRemove();
+      } else {
+        setTitle(section.title);
+        setDescription(section.description);
+        setEditingTermSectionId(null);
+      }
     };
 
     if (isEditing) {
@@ -889,18 +951,33 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
               className="min-h-[80px]"
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2 term-section-actions">
             {isSaving ? (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleCancel}
+                >
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleSave}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleSave}
+                >
                   <Check className="h-4 w-4" />
                 </Button>
               </>
@@ -938,7 +1015,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     const termsString = termsSections
       .map((section) => `${section.title}: ${section.description}`)
       .join("\n");
-    
+
     const payload: ContractCreateRequest = {
       name: proposal?.name || "",
       description: proposal?.description || "",
@@ -955,7 +1032,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       service_agreement_content: `${serviceAgreementTitle}\n${serviceAgreementBody}`,
       proposal_id: proposal?.id || undefined,
     };
-    
+
     if (proposal.contract && proposal.contract.id) {
       updateContractMutation.mutate({
         id: proposal.contract.id,
@@ -1016,19 +1093,22 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     if (contract && contract.id) {
       const autoSaveTimer = setTimeout(() => {
         // Don't auto-save if we're creating a new contract or if there's an ongoing update
-        if (!updateContractMutation.isPending && !createContractMutation.isPending) {
+        if (
+          !updateContractMutation.isPending &&
+          !createContractMutation.isPending
+        ) {
           handleSubmit();
         }
       }, 500);
-      
+
       return () => clearTimeout(autoSaveTimer);
     }
   }, [
     // Dependencies - changes to any of these will trigger auto-save
     serviceAgreementTitle,
-    serviceAgreementBody, 
+    serviceAgreementBody,
     termsSections,
-    signatures
+    signatures,
   ]);
 
   // Add auto-save for contract name and description
@@ -1055,8 +1135,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
         id: proposal.id,
         data: {
           name: contractName,
-          description: contractDescription
-        }
+          description: contractDescription,
+        },
       });
 
       // If we have a contract, also update it
@@ -1065,8 +1145,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
           id: contract.id,
           contract: {
             name: contractName,
-            description: contractDescription
-          }
+            description: contractDescription,
+          },
         });
       }
     } catch (error) {
@@ -1117,7 +1197,12 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                   />
                   <div className="flex justify-center space-x-2">
                     {updateContractMutation.isPending ? (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        disabled
+                      >
                         <Loader2 className="h-4 w-4 animate-spin" />
                       </Button>
                     ) : (
@@ -1189,7 +1274,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                     />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Project Description</p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Project Description
+                    </p>
                     <EditableField
                       value={contractDescription}
                       onChange={setContractDescription}
@@ -1331,7 +1418,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                         > = {};
                         proposal.template.variables.forEach((variable) => {
                           const typeName =
-                            variable.variable_type?.name || "Other";
+                            variable.variable_types?.name || "Other";
                           if (!groupedVariables[typeName]) {
                             groupedVariables[typeName] = [];
                           }
@@ -1387,7 +1474,11 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                             <div
                               key={trade.id}
                               className="bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                            >                              <div className="flex items-center gap-3 mb-4">                                {trade.image && (
+                            >
+                              {" "}
+                              <div className="flex items-center gap-3 mb-4">
+                                {" "}
+                                {trade.image && (
                                   <div className="h-10 w-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                     <img
                                       src={trade.image}
@@ -1401,14 +1492,17 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                                   {trade.name || "Trade Name"}
                                 </h4>
                               </div>
-
                               {trade.elements && trade.elements.length > 0 && (
                                 <div className="space-y-2">
                                   {trade.elements.map((element: any) => (
                                     <div
                                       key={element.id}
                                       className="bg-gray-50 rounded-md p-3 border border-gray-100 hover:border-primary/20 transition-colors"
-                                    >                                      <div className="flex items-start gap-3 mb-1">                                        {element.image && (
+                                    >
+                                      {" "}
+                                      <div className="flex items-start gap-3 mb-1">
+                                        {" "}
+                                        {element.image && (
                                           <div className="h-11 w-11 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                             <img
                                               src={element.image}
@@ -1443,12 +1537,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                                           </div>
                                         </div>
                                       </div>
-
                                       <p className="text-xs text-gray-600 line-clamp-2">
                                         {element.description ||
                                           "No description available"}
                                       </p>
-
                                       <div className="flex flex-wrap items-center gap-2 mt-2">
                                         <span className="inline-flex items-center text-xs bg-white px-2 py-1 rounded text-gray-600 border border-gray-200">
                                           Material: $
@@ -1670,8 +1762,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                       </div>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      Date:{" "}
-                      {proposal.contract?.contractor_signed_at || "N/A"}
+                      Date: {proposal.contract?.contractor_signed_at || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -1693,9 +1784,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 variant="default"
                 className="w-full flex items-center justify-center gap-2 mt-2"
                 disabled={
-                  isSending ||
-                  !proposal.client_email ||
-                  isContractSigned
+                  isSending || !proposal.client_email || isContractSigned
                 }
                 onClick={async () => {
                   // 1. Update the contract before sending
@@ -1707,7 +1796,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                         description: contractDescription,
                         service_agreement_content: `${serviceAgreementTitle}\n${serviceAgreementBody}`,
                         terms: termsSections
-                          .map((section) => `${section.title}: ${section.description}`)
+                          .map(
+                            (section) =>
+                              `${section.title}: ${section.description}`
+                          )
                           .join("\n"),
                         contractor_initials:
                           signatures.contractor?.type === "text"
@@ -1725,19 +1817,19 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                   }
 
                   // 2. Confirm with the user before sending
-                  if (typeof window !== 'undefined') {
+                  if (typeof window !== "undefined") {
                     // Custom modal for confirmation
-                    const modal = document.createElement('div');
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100vw';
-                    modal.style.height = '100vh';
-                    modal.style.background = 'rgba(0,0,0,0.35)';
-                    modal.style.display = 'flex';
-                    modal.style.alignItems = 'center';
-                    modal.style.justifyContent = 'center';
-                    modal.style.zIndex = '9999';
+                    const modal = document.createElement("div");
+                    modal.style.position = "fixed";
+                    modal.style.top = "0";
+                    modal.style.left = "0";
+                    modal.style.width = "100vw";
+                    modal.style.height = "100vh";
+                    modal.style.background = "rgba(0,0,0,0.35)";
+                    modal.style.display = "flex";
+                    modal.style.alignItems = "center";
+                    modal.style.justifyContent = "center";
+                    modal.style.zIndex = "9999";
                     modal.innerHTML = `
                       <div style="background: white; border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.15); padding: 2.5rem 2rem; max-width: 95vw; width: 400px; text-align: center;">
                         <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #e11d48;">Send Contract to Client?</h2>
@@ -1750,15 +1842,19 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                     `;
                     document.body.appendChild(modal);
                     await new Promise<void>((resolve) => {
-                      modal.querySelector('#modal-cancel-btn')?.addEventListener('click', () => {
-                        document.body.removeChild(modal);
-                        resolve();
-                      });
-                      modal.querySelector('#modal-confirm-btn')?.addEventListener('click', async () => {
-                        document.body.removeChild(modal);
-                        await sendProposalToClient();
-                        resolve();
-                      });
+                      modal
+                        .querySelector("#modal-cancel-btn")
+                        ?.addEventListener("click", () => {
+                          document.body.removeChild(modal);
+                          resolve();
+                        });
+                      modal
+                        .querySelector("#modal-confirm-btn")
+                        ?.addEventListener("click", async () => {
+                          document.body.removeChild(modal);
+                          await sendProposalToClient();
+                          resolve();
+                        });
                     });
                   }
                 }}
@@ -1813,7 +1909,10 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 >
                   {createContractMutation.isPending ? (
                     <>
-                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                      <svg
+                        className="animate-spin h-4 w-4 mr-2"
+                        viewBox="0 0 24 24"
+                      >
                         <circle
                           className="opacity-25"
                           cx="12"
