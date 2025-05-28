@@ -49,7 +49,6 @@ import { updateProposalTemplate } from "@/api/proposals/update-proposal-template
 import { VariableResponse, VariableUpdateRequest } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
 import { TradeResponse } from "@/types/trades/dto";
-
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 import { replaceVariableNamesWithIds } from "@/helpers/replace-variable-names-with-ids";
 import { TemplateResponse } from "@/types/templates/dto";
@@ -127,10 +126,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const variables = data.variables || [];
-
   // Create a wrapper function to convert simple function to React state setter
-  const updateVariablesWrapper: React.Dispatch<React.SetStateAction<VariableResponse[]>> = (newVariables) => {
-    if (typeof newVariables === 'function') {
+  const updateVariablesWrapper: React.Dispatch<React.SetStateAction<VariableResponse[]>> = (newVariables) => {    if (typeof newVariables === 'function') {
       // If it's a function, call it with current variables and pass the result to updateVariables
       const updatedVariables = newVariables(variables);
       updateVariables(updatedVariables);
@@ -139,6 +136,20 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       updateVariables(newVariables);
     }
   };
+
+  // Helper function to extract variable names from formulas
+  const extractVariableNamesFromFormula = (formula: string): string[] => {
+    if (!formula) return [];
+    const variableNameRegex = /\{([^}]+)\}/g;
+    const matches = formula.match(variableNameRegex);
+    if (!matches) return [];
+    return matches.map((match) => match.substring(1, match.length - 1));
+  };
+
+  // API Query for variables (for auto-importing)
+  const { data: variablesData } = useQuery(
+    getVariables(1, 1000) // Get a large number to ensure we have all available variables
+  );
 
   const updateVariableWithFormulaValue = (variable: VariableResponse): VariableResponse => {
     if (variable.formula) {
@@ -228,8 +239,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   );
   const { data: elementsData, isLoading: elementsLoading } = useQuery(
     getElements(1, 10, elementSearchQuery)
-  );
-  const { data: variablesData, isLoading: variablesLoading } = useQuery(
+  );  const { data: searchVariablesData, isLoading: variablesLoading } = useQuery(
     getVariables(1, 10, searchQuery)
   );
 
@@ -250,13 +260,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       delete window.openVariableDialog;
     };
   }, []);
-
   const { mutate: createVariableMutation } = useMutation({
     mutationFn: createVariable,
     onSuccess: (response) => {
       if (response && response.data) {
         const createdVariable = response.data;
         updateVariables([...variables, createdVariable]);
+
+        // Invalidate related queries to refetch updated data
+        queryClient.invalidateQueries({ queryKey: ["variables"] });
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
 
         if (pendingVariableCallback) {
           try {
@@ -335,7 +349,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setIsSubmitting(true);
     createVariableMutation(variableData);
   };
-
   const { mutate: updateVariableMutation } = useMutation({
     mutationFn: ({
       variableId,
@@ -345,6 +358,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       data: VariableUpdateRequest;
     }) => updateVariable(variableId, data),
     onSuccess: (response) => {
+      // Invalidate related queries to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ["variables"] });
+      queryClient.invalidateQueries({ queryKey: ["elements"] });
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      
       toast.success("Variable updated successfully");
       setShowEditVariableDialog(false);
       setCurrentVariableId(null);
@@ -356,11 +374,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const { mutate: createTradeMutation, isPending: isCreatingTrade } =
     useMutation({
-      mutationFn: createTrade,
-      onSuccess: (response) => {
+      mutationFn: createTrade,      onSuccess: (response) => {
         if (response && response.data) {
           const createdTrade = response.data;
           updateTrades([...trades, createdTrade]);
+          
+          // Invalidate related queries to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          
           toast.success("Trade created successfully", {
             position: "top-center",
             description: `"${createdTrade.name}" has been added to your proposal.`,
@@ -382,14 +404,18 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
 
   const { mutate: updateTradeMutation, isPending: isUpdatingTrade } =
-    useMutation({
-      mutationFn: ({
+    useMutation({      mutationFn: ({
         tradeId,
         data,
       }: {
         tradeId: string;
         data: { elements: string[] };
       }) => updateTrade(tradeId, data),
+      onSuccess: () => {
+        // Invalidate related queries to refetch updated data
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+      },
     });
 
   const { mutate: updateTemplateMutation, isPending: isUpdatingTemplate } =
@@ -400,8 +426,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }: {
         templateId: string;
         data: { variables?: string[]; trades?: string[] };
-      }) => updateProposalTemplate(templateId, data),
-      onSuccess: () => {
+      }) => updateProposalTemplate(templateId, data),      onSuccess: () => {
+        // Invalidate related queries to refetch updated data
+        queryClient.invalidateQueries({ queryKey: ["variables"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        
         toast.success("Template updated successfully", {
           position: "top-center",
           description:
@@ -422,10 +452,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const { mutate: updateElementMutation, isPending: isUpdatingElement } =
     useMutation({
       mutationFn: ({ elementId, data }: { elementId: string; data: any }) =>
-        updateElement(elementId, data),
-      onSuccess: (response) => {
+        updateElement(elementId, data),      onSuccess: (response) => {
         if (response && response.data) {
           const updatedElement = response.data;
+
+          // Invalidate related queries to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
+          queryClient.invalidateQueries({ queryKey: ["variables"] });
 
           const updatedTrades = trades.map((trade) => {
             if (
@@ -465,10 +499,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const { mutate: createElementMutation, isPending: isCreatingElement } =
     useMutation({
-      mutationFn: createElement,
-      onSuccess: (response) => {
+      mutationFn: createElement,      onSuccess: (response) => {
         if (response && response.data) {
           const createdElement = response.data;
+
+          // Invalidate related queries to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
+          queryClient.invalidateQueries({ queryKey: ["variables"] });
 
           const updatedTrades = trades.map((trade) => {
             if (trade.id === currentTradeId) {
@@ -521,12 +559,11 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
-
   const filteredVariables =
     searchQuery === ""
       ? []
-      : Array.isArray(variablesData?.data)
-      ? (variablesData.data as VariableResponse[]).filter(
+      : Array.isArray(searchVariablesData?.data)
+      ? (searchVariablesData.data as VariableResponse[]).filter(
           (variable) =>
             variable.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
             variable.origin === "original"
@@ -781,11 +818,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       updated_at: variable.updated_at,
       created_by: variable.created_by,
       updated_by: variable.updated_by,
-    };
-
-    if (!variables.some((v) => v.id === newVar.id)) {
+    };    if (!variables.some((v) => v.id === newVar.id)) {
       const updatedVariables = [...variables, newVar];
       updateVariables(updatedVariables);
+
+      // Invalidate queries when a variable is added
+      queryClient.invalidateQueries({ queryKey: ["variables"] });
+      queryClient.invalidateQueries({ queryKey: ["elements"] });
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
 
       if (templateId) {
         updateTemplateMutation({
@@ -798,10 +838,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setIsSearchOpen(false);
     setSearchQuery("");
   };
-
   const handleRemoveVariable = (variableId: string) => {
     const updatedVariables = variables.filter((v) => v.id !== variableId);
     updateVariables(updatedVariables);
+
+    // Invalidate queries when a variable is removed
+    queryClient.invalidateQueries({ queryKey: ["variables"] });
+    queryClient.invalidateQueries({ queryKey: ["elements"] });
+    queryClient.invalidateQueries({ queryKey: ["trades"] });
 
     if (templateId) {
       updateTemplateMutation({
@@ -829,7 +873,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       setInlineEditingVariableId("zero-values-ready");
     }
   }, [variables]);
-
   useEffect(() => {
     if (variables.length > 0) {
       const updatedVariables = variables.map(updateVariableWithFormulaValue);
@@ -839,9 +882,14 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       
       if (hasChanges) {
         updateVariables(updatedVariables);
+        
+        // Invalidate queries when variables are updated due to formula calculations
+        queryClient.invalidateQueries({ queryKey: ["variables"] });
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
       }
     }
-  }, [variables, updateVariables]);
+  }, [variables, updateVariables, queryClient]);
 
   const startInlineValueEdit = (variable: VariableResponse) => {
     setInlineEditingVariableId(variable.id);
@@ -922,12 +970,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }
     });
 
-    const variableElementsToUpdate = elementsToUpdate;
-
-    updateVariableMutation({
+    const variableElementsToUpdate = elementsToUpdate;    updateVariableMutation({
       variableId: variableId,
       data: variableData,
     });
+
+    // Immediately invalidate variables query to reflect updates
+    queryClient.invalidateQueries({ queryKey: ["variables"] });
 
     setTimeout(() => {
       if (variableElementsToUpdate.length > 0) {
@@ -944,6 +993,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setIsUpdatingVariable(false);
         }, 2000);
       } else {
+        // Still invalidate queries even if no elements need updates
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
         setIsUpdatingVariable(false);
       }
     }, 1000);
@@ -1063,7 +1115,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       });
   };
-
   const isFirstGlobalMarkupRender = useRef(true);  useEffect(() => {
 
     if (isFirstGlobalMarkupRender.current) {
@@ -1075,16 +1126,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
       const timer = setTimeout(() => {
         if (isGlobalMarkupEnabled) {
-
           applyGlobalMarkup(globalMarkupValue);
+        } else {
+          // Even when disabling markup, refresh the queries
+          queryClient.invalidateQueries({ queryKey: ["elements"] });
+          queryClient.invalidateQueries({ queryKey: ["trades"] });
         }
-
       }, 100);
       
-
       return () => clearTimeout(timer);
     }
-  }, [isGlobalMarkupEnabled, globalMarkupValue]);
+  }, [isGlobalMarkupEnabled, globalMarkupValue, queryClient, trades]);
 
   const startEditingElementMarkup = (element: ElementResponse) => {
     setEditingMarkupElementId(element.id);
@@ -1137,18 +1189,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     
     setEditingMarkupElementId(null);
   };
-
   const cancelEditingMarkup = () => {
     setEditingMarkupElementId(null);
-  };
-
-  // Add this helper function to extract variable names from formulas
-  const extractVariableNamesFromFormula = (formula: string): string[] => {
-    if (!formula) return [];
-    const variableNameRegex = /\{([^}]+)\}/g;
-    const matches = formula.match(variableNameRegex);
-    if (!matches) return [];
-    return matches.map(match => match.substring(1, match.length - 1));
   };
 
   const handleSelectTrade = (trade: TradeResponse) => {
@@ -1162,10 +1204,12 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       updated_at: trade.updated_at,
       created_by: trade.created_by,
       updated_by: trade.updated_by,
-    };
-
-    if (!trades.some((t) => t.id === newTrade.id)) {
+    };    if (!trades.some((t) => t.id === newTrade.id)) {
       updateTrades([...trades, newTrade]);
+      
+      // Invalidate queries when a trade is added
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      queryClient.invalidateQueries({ queryKey: ["elements"] });
       
       // Auto-import variables from element formulas
       if (newTrade.elements && newTrade.elements.length > 0) {
@@ -1498,12 +1542,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }
     });
 
-    const variableElementsToUpdate = elementsToUpdate;
-
-    updateVariableMutation({
+    const variableElementsToUpdate = elementsToUpdate;    updateVariableMutation({
       variableId: currentVariableId,
       data: variableData,
     });
+
+    // Immediately invalidate variables query to reflect updates
+    queryClient.invalidateQueries({ queryKey: ["variables"] });
 
     setTimeout(() => {
       if (variableElementsToUpdate.length > 0) {
@@ -1521,6 +1566,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           setIsUpdatingVariable(false);
         }, 2000);
       } else {
+        // Still invalidate queries even if no elements need updates
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
         setIsUpdatingVariable(false);
       }
     }, 1000);

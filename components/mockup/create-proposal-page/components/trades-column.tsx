@@ -126,6 +126,73 @@ export const TradesColumn: React.FC<TradesColumnProps> = ({
                 data: { elements: updatedElements },
               });
             }
+          }          // Auto-import variables from element formulas
+          if (variablesData?.data) {
+            const variablesToAdd: VariableResponse[] = [];
+
+            // Extract variable names from material formula
+            if (createdElement.material_cost_formula) {
+              const materialFormulaVariableNames = extractVariableNamesFromFormula(
+                replaceVariableIdsWithNames(
+                  createdElement.material_cost_formula,
+                  variables,
+                  createdElement.material_formula_variables || []
+                )
+              );
+
+              materialFormulaVariableNames.forEach((varName) => {
+                // Find in available variables but not in current variables
+                const availableVariable = (variablesData.data as VariableResponse[]).find(
+                  (v: VariableResponse) =>
+                    v.name === varName &&
+                    !variables.some((existingVar) => existingVar.name === varName)
+                );
+
+                if (
+                  availableVariable &&
+                  !variablesToAdd.some((v) => v.id === availableVariable.id)
+                ) {
+                  variablesToAdd.push(availableVariable);
+                }
+              });
+            }
+
+            // Extract variable names from labor formula
+            if (createdElement.labor_cost_formula) {
+              const laborFormulaVariableNames = extractVariableNamesFromFormula(
+                replaceVariableIdsWithNames(
+                  createdElement.labor_cost_formula,
+                  variables,
+                  createdElement.labor_formula_variables || []
+                )
+              );
+
+              laborFormulaVariableNames.forEach((varName) => {
+                // Find in available variables but not in current variables
+                const availableVariable = (variablesData.data as VariableResponse[]).find(
+                  (v: VariableResponse) =>
+                    v.name === varName &&
+                    !variables.some((existingVar) => existingVar.name === varName)
+                );
+
+                if (
+                  availableVariable &&
+                  !variablesToAdd.some((v) => v.id === availableVariable.id)
+                ) {
+                  variablesToAdd.push(availableVariable);
+                }
+              });
+            }
+
+            // Add the variables to the variables list
+            if (variablesToAdd.length > 0) {
+              handleUpdateVariables([...variables, ...variablesToAdd]);
+
+              toast.success(`${variablesToAdd.length} variables automatically added`, {
+                position: "top-center",
+                description: `Required variables for formulas have been imported.`,
+              });
+            }
           }
 
           toast.success("Element created successfully", {

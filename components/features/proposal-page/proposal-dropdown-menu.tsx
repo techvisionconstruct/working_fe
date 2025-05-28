@@ -17,7 +17,7 @@ import {
 } from "@/components/shared";
 import { MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ProposalDropdownMenuProps {
   proposalId: string;
@@ -27,6 +27,14 @@ interface ProposalDropdownMenuProps {
 
 export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: ProposalDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Close dropdown when delete operation completes
+  useEffect(() => {
+    if (!isDeleting && isDropdownOpen) {
+      setIsDropdownOpen(false);
+    }
+  }, [isDeleting, isDropdownOpen]);
 
   const handleDelete = () => {
     if (onDelete) {
@@ -35,7 +43,7 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
     }
   };
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
         {isDeleting ? (
           <Button 

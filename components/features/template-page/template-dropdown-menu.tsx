@@ -17,7 +17,7 @@ import {
 } from "@/components/shared";
 import { MoreVertical, Trash2, Pencil, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface TemplateDropdownMenuProps {
   templateId: string;
@@ -27,6 +27,13 @@ interface TemplateDropdownMenuProps {
 
 export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: TemplateDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Close dropdown when delete operation completes
+  useEffect(() => {
+    if (!isDeleting && isDropdownOpen) {
+      setIsDropdownOpen(false);
+    }
+  }, [isDeleting, isDropdownOpen]);
 
   const handleDelete = () => {
     onDelete(templateId);
@@ -34,7 +41,7 @@ export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: Templ
   };
 
   return (
-      <DropdownMenu>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button 
             variant="ghost" 
