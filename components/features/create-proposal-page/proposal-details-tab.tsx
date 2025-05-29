@@ -42,7 +42,7 @@ const ProposalDetailsTab: React.FC<ProposalDetailsTabProps> = ({ data, updateDat
     data.valid_until ? new Date(data.valid_until) : undefined
   );
   const autocompleteInput = useRef<HTMLInputElement>(null);
-  const clientAddressInput = useRef<HTMLInputElement>(null);
+  const clientAddressInput = useRef<HTMLTextAreaElement>(null);
 
   const handleChange = (field: string, value: string) => {
     updateData({
