@@ -8,15 +8,13 @@ import { ProposalDropdownMenu } from "./proposal-dropdown-menu";
 
 interface ProposalGridViewProps {
   proposals: ProposalResponse[];
-  onDeleteProposal?: (proposalId: string) => void;
+  onDeleteProposal: (proposalId: string) => void;
   isDeleting?: boolean;
 }
 
 export function ProposalGridView({ proposals, onDeleteProposal, isDeleting }: ProposalGridViewProps) {
   const handleDelete = (proposalId: string) => {
-    if (onDeleteProposal) {
-      onDeleteProposal(proposalId);
-    }
+    onDeleteProposal(proposalId);
   };
 
   if (proposals.length === 0) {
@@ -44,13 +42,13 @@ export function ProposalGridView({ proposals, onDeleteProposal, isDeleting }: Pr
             <div className="absolute top-2 right-2" style={{ zIndex: 1000 }}>
               <ProposalDropdownMenu 
                 proposalId={proposal.id} 
-                onDelete={handleDelete} 
+                onDelete={handleDelete}
                 isDeleting={isDeleting}
               />
             </div>
             
             <Link 
-              href={`/proposals/${proposal.id}`} 
+              href={`/proposals/${proposal.id}`}
               className="flex flex-col h-full"
               onClick={(e) => {
                 const target = e.target as HTMLElement;

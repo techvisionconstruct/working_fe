@@ -39,23 +39,35 @@ export function ProposalList({ proposals, onDeleteProposal, isDeleting }: Propos
   }
 
   return (
-    <div className="space-y-5"><div className="rounded-md border">
+    <div className="space-y-5">
+      <div className="rounded-md border">
         {proposals.map((proposal, index) => (
           <div
             key={proposal.id}
             className={[
-              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs relative",
+              "flex gap-4 p-4 transition-colors hover:bg-accent/60 hover:shadow-xs relative",
               index !== proposals.length - 1 ? "border-b" : "",
               index % 2 === 0 ? "bg-muted/50" : "",
             ].join(" ")}
-          >            <div className="absolute top-2 right-2 z-10">
+          >
+            <div className="absolute top-2 right-2" style={{ zIndex: 1000 }}>
               <ProposalDropdownMenu 
                 proposalId={proposal.id} 
                 onDelete={handleDelete} 
                 isDeleting={isDeleting}
               />
             </div>
-            <Link href={`/proposals/${proposal.id}`} className="flex gap-4 flex-1">
+            
+            <Link 
+              href={`/proposals/${proposal.id}`} 
+              className="flex gap-4 flex-1"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('[role="menuitem"]') || target.closest('button')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <Image
               src={
                 proposal.image ||

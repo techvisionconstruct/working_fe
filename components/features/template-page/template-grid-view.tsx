@@ -20,14 +20,11 @@ interface TemplateGridViewProps extends TemplateViewProps {
 }
 
 export function TemplateGridView({ templates, onDeleteTemplate, isDeleting }: TemplateGridViewProps) {
-
-  const originalTemplates = templates.filter((template) => template.origin === "original");
-  
   const handleDelete = (templateId: string) => {
     onDeleteTemplate(templateId);
   };
 
-  if (originalTemplates.length === 0) {
+  if (templates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <FileText className="h-16 w-16 text-muted-foreground mb-4" strokeWidth={1} />
@@ -47,7 +44,7 @@ export function TemplateGridView({ templates, onDeleteTemplate, isDeleting }: Te
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {originalTemplates.map((template) => (
+      {templates.map((template) => (
         <div key={template.id} className="h-full relative group">
           <Card className="flex flex-col p-4 hover:shadow-lg transition-shadow h-full relative">
             {/* Update dropdown container with better z-index and positioning */}

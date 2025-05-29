@@ -42,23 +42,35 @@ export function TemplateList({ templates, onDeleteTemplate, isDeleting }: Templa
   }
 
   return (
-    <div className="space-y-5"><div className="rounded-md border">
+    <div className="space-y-5">
+      <div className="rounded-md border">
         {templates.map((template, index) => (
           <div
             key={template.id}
             className={cn(
-              "flex gap-4 p-4 transition-colors cursor-pointer hover:bg-accent/60 hover:shadow-xs relative",
+              "flex gap-4 p-4 transition-colors hover:bg-accent/60 hover:shadow-xs relative",
               index !== templates.length - 1 && "border-b",
               index % 2 === 0 && "bg-muted/50"
             )}
-          >            <div className="absolute top-2 right-2 z-10">
+          >
+            <div className="absolute top-2 right-2" style={{ zIndex: 1000 }}>
               <TemplateDropdownMenu 
                 templateId={template.id} 
                 onDelete={handleDelete} 
                 isDeleting={isDeleting}
               />
             </div>
-            <Link href={`/templates/${template.id}`} className="flex gap-4 flex-1">
+            
+            <Link 
+              href={`/templates/${template.id}`} 
+              className="flex gap-4 flex-1"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('[role="menuitem"]') || target.closest('button')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <Image
               src={template.image || DEFAULT_IMAGE}
               alt={`${template.name} thumbnail`}
