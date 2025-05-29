@@ -513,6 +513,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       name: trade.name,
       description: trade.description,
       origin: trade.origin,
+      image: trade.image || "",
       elements: trade.elements,
       created_at: trade.created_at,
       updated_at: trade.updated_at,
