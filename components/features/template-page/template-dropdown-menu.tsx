@@ -27,18 +27,13 @@ interface TemplateDropdownMenuProps {
 
 export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: TemplateDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  useEffect(() => {
-    if (!isDeleting && isDropdownOpen) {
-      setIsDropdownOpen(false);
-    }
-  }, [isDeleting, isDropdownOpen]);
 
   const handleDelete = () => {
     onDelete(templateId);
     setIsDialogOpen(false);
   };
 
+  const editUrl = `${process.env.NEXT_PUBLIC_API_URL}/templates/${templateId}/edit`;
 
   return (
     <DropdownMenu>
@@ -52,7 +47,7 @@ export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: Templ
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" sideOffset={5}>
-        <Link href={`/templates/${templateId}/edit`} passHref legacyBehavior>
+        <Link href={editUrl} passHref legacyBehavior>
           <DropdownMenuItem className="cursor-pointer">
             <Pencil className="mr-2 h-4 w-4" />
             Edit Template

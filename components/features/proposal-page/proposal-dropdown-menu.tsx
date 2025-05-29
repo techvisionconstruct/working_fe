@@ -36,6 +36,8 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
     }
   };
 
+  const editUrl = `${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposalId}/edit`;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -48,7 +50,7 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" sideOffset={5}>
-        <Link href={`/proposals/${proposalId}/edit`} passHref legacyBehavior>
+        <Link href={editUrl} passHref legacyBehavior>
           <DropdownMenuItem className="cursor-pointer">
             <Pencil className="mr-2 h-4 w-4" />
             Edit Proposal
