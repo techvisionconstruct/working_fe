@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Card,
   CardHeader,
@@ -117,6 +117,48 @@ const calculateFormulaValue = (formula: string, variables: VariableResponse[]): 
   }
 };
 
+// Memoized cost calculation helper
+const useMemoizedElementCosts = (elements: ElementResponse[], variables: VariableResponse[]) => {
+  return useMemo(() => {
+    const elementCosts: Record<string, { materialCost: number | null; laborCost: number | null; totalCost: number }> = {};
+    
+    elements.forEach(element => {
+      let materialCost: number;
+      let laborCost: number;
+      
+      // If there's a formula, calculate base cost and apply markup
+      // If there's no formula, use backend value (which already includes markup)
+      if (element.material_cost_formula) {
+        const baseMaterialCost = calculateFormulaValue(element.material_cost_formula, variables) || 0;
+        const markupMultiplier = 1 + ((element.markup || 0) / 100);
+        materialCost = baseMaterialCost * markupMultiplier;
+      } else {
+        // Backend value already includes markup
+        materialCost = element.material_cost || 0;
+      }
+      
+      if (element.labor_cost_formula) {
+        const baseLaborCost = calculateFormulaValue(element.labor_cost_formula, variables) || 0;
+        const markupMultiplier = 1 + ((element.markup || 0) / 100);
+        laborCost = baseLaborCost * markupMultiplier;
+      } else {
+        // Backend value already includes markup
+        laborCost = element.labor_cost || 0;
+      }
+      
+      const totalCost = materialCost + laborCost;
+      
+      elementCosts[element.id] = {
+        materialCost,
+        laborCost,
+        totalCost
+      };
+    });
+    
+    return elementCosts;
+  }, [elements, variables]);
+};
+
 const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   data,
   templateId,
@@ -221,11 +263,13 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const [pendingVariableCallback, setPendingVariableCallback] = useState<
     ((newVariable: VariableResponse) => void) | null
   >(null);
-
   const [isGlobalMarkupEnabled, setIsGlobalMarkupEnabled] = useState(false);
   const [globalMarkupValue, setGlobalMarkupValue] = useState(1);
   const [editingMarkupElementId, setEditingMarkupElementId] = useState<string | null>(null);
   const [inlineMarkupValue, setInlineMarkupValue] = useState(0);
+  
+  // State for tracking element cost loading states
+  const [updatingElementCosts, setUpdatingElementCosts] = useState<Set<string>>(new Set());
 
   const toggleFormulaDisplay = (variableId: string) => {
     setShowingFormulaIds(prev => ({
@@ -242,12 +286,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   );  const { data: searchVariablesData, isLoading: variablesLoading } = useQuery(
     getVariables(1, 10, searchQuery)
   );
-
   const { data: apiVariableTypes = [], isLoading: isLoadingVariableTypes } =
     useQuery({
       queryKey: ["variable-types"],
       queryFn: () => getAllVariableTypes(),
     });
+
+  // Memoized cost calculations for all elements
+  const allElements = trades.flatMap(trade => trade.elements || []);
+  const elementCosts = useMemoizedElementCosts(allElements, variables);
 
   useEffect(() => {
     window.openVariableDialog = (variableName: string, callback: (newVar: any) => void) => {
@@ -348,8 +395,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     };
     setIsSubmitting(true);
     createVariableMutation(variableData);
-  };
-  const { mutate: updateVariableMutation } = useMutation({
+  };  const { mutate: updateVariableMutation } = useMutation({
     mutationFn: ({
       variableId,
       data,
@@ -358,10 +404,26 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       data: VariableUpdateRequest;
     }) => updateVariable(variableId, data),
     onSuccess: (response) => {
-      // Invalidate related queries to refetch updated data
-      queryClient.invalidateQueries({ queryKey: ["variables"] });
-      queryClient.invalidateQueries({ queryKey: ["elements"] });
-      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      if (response && response.data) {
+        const updatedVariable = response.data;
+        
+        // Update variable data in cache directly using setQueryData
+        queryClient.setQueryData(['variables'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data?.map((variable: any) =>
+              variable.id === updatedVariable.id ? updatedVariable : variable
+            ) || []
+          };
+        });
+
+        // Update local variables state
+        const updatedVariables = variables.map(v => 
+          v.id === updatedVariable.id ? updatedVariable : v
+        );
+        updateVariables(updatedVariables);
+      }
       
       toast.success("Variable updated successfully");
       setShowEditVariableDialog(false);
@@ -448,7 +510,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         });
       },
     });
-
   const { mutate: updateElementMutation, isPending: isUpdatingElement } =
     useMutation({
       mutationFn: ({ elementId, data }: { elementId: string; data: any }) =>
@@ -456,10 +517,35 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         if (response && response.data) {
           const updatedElement = response.data;
 
-          // Invalidate related queries to refetch updated data
-          queryClient.invalidateQueries({ queryKey: ["elements"] });
-          queryClient.invalidateQueries({ queryKey: ["trades"] });
-          queryClient.invalidateQueries({ queryKey: ["variables"] });
+          // Update element data in cache directly using setQueryData
+          queryClient.setQueryData(['elements'], (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data?.map((element: any) =>
+                element.id === updatedElement.id ? updatedElement : element
+              ) || []
+            };
+          });
+
+          // Update trades data in cache directly
+          queryClient.setQueryData(['trades'], (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data?.map((trade: any) => {
+                if (trade.elements && trade.elements.some((e: any) => e.id === updatedElement.id)) {
+                  return {
+                    ...trade,
+                    elements: trade.elements.map((element: any) =>
+                      element.id === updatedElement.id ? updatedElement : element
+                    ),
+                  };
+                }
+                return trade;
+              }) || []
+            };
+          });
 
           const updatedTrades = trades.map((trade) => {
             if (
@@ -895,7 +981,6 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setInlineEditingVariableId(variable.id);
     setInlineEditValue(variable.value || 0);
   };
-
   const saveInlineValueEdit = (variableId: string, newValue: number) => {
     if (inlineEditingVariableId === "zero-values-ready") {
       if (variableId !== "zero-values-ready") {
@@ -916,6 +1001,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       variable_type: variableToUpdate.variable_type?.id || "",
     };
 
+    // Update local variables immediately
     const updatedVariables = variables.map((variable) => {
       if (variable.id === variableId) {
         return {
@@ -927,7 +1013,10 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
     updateVariables(updatedVariables);
 
+    // Find elements that need cost recalculation
     const elementsToUpdate: { elementId: string; data: any }[] = [];
+    const elementIds: string[] = [];
+    
     trades.forEach((trade) => {
       if (trade.elements) {
         trade.elements.forEach((element) => {
@@ -952,6 +1041,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           }
 
           if (needsUpdate) {
+            elementIds.push(element.id);
             elementsToUpdate.push({
               elementId: element.id,
               data: {
@@ -970,35 +1060,87 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       }
     });
 
-    const variableElementsToUpdate = elementsToUpdate;    updateVariableMutation({
+    // Set loading state for affected elements
+    setUpdatingElementCosts(new Set(elementIds));
+
+    // Update variable first with proper cache handling
+    updateVariableMutation({
       variableId: variableId,
       data: variableData,
     });
 
-    // Immediately invalidate variables query to reflect updates
-    queryClient.invalidateQueries({ queryKey: ["variables"] });
+    // Update elements that depend on this variable
+    if (elementsToUpdate.length > 0) {
+      Promise.all(
+        elementsToUpdate.map(({ elementId, data }) => 
+          updateElement(elementId, data)
+        )
+      ).then((responses) => {
+        // Update caches directly with response data
+        responses.forEach((response) => {
+          if (response && response.data) {
+            const updatedElement = response.data;
+            
+            // Update elements cache
+            queryClient.setQueryData(['elements'], (oldData: any) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                data: oldData.data?.map((element: any) =>
+                  element.id === updatedElement.id ? updatedElement : element
+                ) || []
+              };
+            });
 
-    setTimeout(() => {
-      if (variableElementsToUpdate.length > 0) {
-        variableElementsToUpdate.forEach(({ elementId, data }) => {
-          updateElementMutation({
-            elementId,
-            data,
-          });
+            // Update trades cache
+            queryClient.setQueryData(['trades'], (oldData: any) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                data: oldData.data?.map((trade: any) => {
+                  if (trade.elements && trade.elements.some((e: any) => e.id === updatedElement.id)) {
+                    return {
+                      ...trade,
+                      elements: trade.elements.map((element: any) =>
+                        element.id === updatedElement.id ? updatedElement : element
+                      ),
+                    };
+                  }
+                  return trade;
+                }) || []
+              };
+            });
+
+            // Update local trades state
+            const updatedTrades = trades.map((trade) => {
+              if (trade.elements && trade.elements.some((e) => e.id === updatedElement.id)) {
+                return {
+                  ...trade,
+                  elements: trade.elements.map((element) =>
+                    element.id === updatedElement.id ? updatedElement : element
+                  ),
+                };
+              }
+              return trade;
+            });
+            updateTrades(updatedTrades);
+          }
         });
 
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["elements"] });
-          queryClient.invalidateQueries({ queryKey: ["trades"] });
-          setIsUpdatingVariable(false);
-        }, 2000);
-      } else {
-        // Still invalidate queries even if no elements need updates
-        queryClient.invalidateQueries({ queryKey: ["elements"] });
-        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        // Clear loading states
+        setUpdatingElementCosts(new Set());
         setIsUpdatingVariable(false);
-      }
-    }, 1000);
+        
+        toast.success(`Updated ${elementsToUpdate.length} elements with new variable value`);
+      }).catch((error) => {
+        console.error('Error updating elements:', error);
+        setUpdatingElementCosts(new Set());
+        setIsUpdatingVariable(false);
+        toast.error('Failed to update some elements');
+      });
+    } else {
+      setIsUpdatingVariable(false);
+    }
 
     if (isZeroOrEmpty(newValue)) {
       setInlineEditingVariableId("zero-values-ready");
@@ -1009,13 +1151,15 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
   const cancelInlineValueEdit = () => {
     setInlineEditingVariableId(null);
-  };  const applyGlobalMarkup = (markupValue: number) => {
+  };  const applyGlobalMarkup = (markupValue: number, showToast: boolean = true) => {
     // Validate the markup value
     if (markupValue < 0 || isNaN(markupValue)) {
-      toast.error("Invalid markup value", {
-        position: "top-center",
-        description: "Markup value must be a positive number"
-      });
+      if (showToast) {
+        toast.error("Invalid markup value", {
+          position: "top-center",
+          description: "Markup value must be a positive number"
+        });
+      }
       return;
     }
     
@@ -1028,17 +1172,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
     
     if (elementCount === 0) {
-      toast.info("No elements to update", {
-        position: "top-center",
-        description: "Add elements before applying global markup"
-      });
+      if (showToast) {
+        toast.info("No elements to update", {
+          position: "top-center",
+          description: "Add elements before applying global markup"
+        });
+      }
       return;
     }
     
 
-    const loadingToast = toast.loading(`Updating ${elementCount} elements with ${markupValue}% markup...`, {
+    const loadingToast = showToast ? toast.loading(`Updating ${elementCount} elements with ${markupValue}% markup...`, {
       position: "top-center"
-    });
+    }) : null;
 
     const updatePromises: Promise<{tradeId: string, updatedElement: any}>[] = [];
 
@@ -1089,17 +1235,17 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           }) || []
         }));
 
-        updateTrades(updatedTrades);
-
-        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        updateTrades(updatedTrades);        queryClient.invalidateQueries({ queryKey: ["elements"] });
         queryClient.invalidateQueries({ queryKey: ["trades"] });
         
 
-        toast.dismiss(loadingToast);
-        toast.success(`Applied ${markupValue}% markup to all elements`, {
-          position: "top-center",
-          description: `Updated ${results.length} elements with ${markupValue}% markup.`
-        });
+        if (showToast && loadingToast) {
+          toast.dismiss(loadingToast);
+          toast.success(`Applied ${markupValue}% markup to all elements`, {
+            position: "top-center",
+            description: `Updated ${results.length} elements with ${markupValue}% markup.`
+          });
+        }
       })      .catch(error => {
         console.error("Error applying global markup:", error);
         
@@ -1108,25 +1254,56 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         queryClient.invalidateQueries({ queryKey: ["trades"] });
         
 
-        toast.dismiss(loadingToast);
-        toast.error("Error applying global markup", {
-          position: "top-center",
-          description: error instanceof Error ? error.message : "Failed to update one or more elements. The original values have been restored."
-        });
+        if (showToast && loadingToast) {
+          toast.dismiss(loadingToast);
+          toast.error("Error applying global markup", {
+            position: "top-center",
+            description: error instanceof Error ? error.message : "Failed to update one or more elements. The original values have been restored."
+          });
+        }
       });
-  };
-  const isFirstGlobalMarkupRender = useRef(true);  useEffect(() => {
-
+  };  const isFirstGlobalMarkupRender = useRef(true);
+  const prevMarkupEnabledRef = useRef(false);
+  const prevMarkupValueRef = useRef(0);
+  
+  useEffect(() => {
     if (isFirstGlobalMarkupRender.current) {
       isFirstGlobalMarkupRender.current = false;
+      prevMarkupEnabledRef.current = isGlobalMarkupEnabled;
+      prevMarkupValueRef.current = globalMarkupValue;
       return;
     }
-    
-    if (trades.some(trade => (trade.elements || []).length > 0)) {
+      if (trades.some(trade => (trade.elements || []).length > 0)) {
+      const wasJustEnabled = isGlobalMarkupEnabled && !prevMarkupEnabledRef.current;
+      const valueChanged = isGlobalMarkupEnabled && prevMarkupValueRef.current !== globalMarkupValue;
+      const wasJustDisabled = !isGlobalMarkupEnabled && prevMarkupEnabledRef.current;
+      
+      // Show toast if just enabled or value changed while enabled
+      if (wasJustEnabled) {
+        toast.success(`Global markup of ${globalMarkupValue}% enabled`, {
+          position: "top-center",
+          description: "Applied to all elements in this proposal."
+        });
+      } else if (valueChanged) {
+        toast.success(`Global markup updated to ${globalMarkupValue}%`, {
+          position: "top-center",
+          description: "New markup value will be applied to all elements."
+        });
+      } else if (wasJustDisabled) {
+        toast.info("Global markup disabled", {
+          position: "top-center",
+          description: "Individual element markup values will be used instead."
+        });
+      }
+      
+      // Update ref values for next comparison
+      prevMarkupEnabledRef.current = isGlobalMarkupEnabled;
+      prevMarkupValueRef.current = globalMarkupValue;
 
       const timer = setTimeout(() => {
         if (isGlobalMarkupEnabled) {
-          applyGlobalMarkup(globalMarkupValue);
+          // Don't show toast for automatic synchronization
+          applyGlobalMarkup(globalMarkupValue, false);
         } else {
           // Even when disabling markup, refresh the queries
           queryClient.invalidateQueries({ queryKey: ["elements"] });
@@ -2034,19 +2211,29 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                       checked={isGlobalMarkupEnabled}
                       onCheckedChange={setIsGlobalMarkupEnabled}
                     />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
+                  </div>                  <div className="flex items-center space-x-2">
                     <PercentIcon className="h-4 w-4 text-muted-foreground" />
                     <Input
                       type="number"
                       value={globalMarkupValue}
                       onChange={(e) => setGlobalMarkupValue(Number(e.target.value))}
-                      onFocus={(e) => e.target.select()}
+                      onFocus={(e) => {
+                        e.target.select();
+                        if (isGlobalMarkupEnabled) {
+                          // Apply markup when input is focused (if enabled)
+                          applyGlobalMarkup(globalMarkupValue, true);
+                        }
+                      }}
                       className="w-16 h-7 text-sm"
                       disabled={!isGlobalMarkupEnabled}
                       min={0}
                       max={100}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && isGlobalMarkupEnabled) {
+                          // Show toast and apply markup when user presses Enter
+                          applyGlobalMarkup(globalMarkupValue, true);
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -2229,8 +2416,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             material_formula_variables: currentElement.material_formula_variables,
                             labor_formula_variables: currentElement.labor_formula_variables,
                           };
-                          
-                          updateElement(currentElementId, elementData)
+                            updateElement(currentElementId, elementData)
                             .then(() => {
                               const updatedTrades = trades.map(trade => ({
                                 ...trade,
@@ -2244,9 +2430,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
                               updateTrades(updatedTrades);
                               
-                              toast.success(`Applied global markup of ${globalMarkupValue}% to element`, {
-                                position: "top-center"
-                              });
+                              // Removed individual toast since bulk update will handle it
                               
                               queryClient.invalidateQueries({ queryKey: ["elements"] });
                             })
@@ -2480,14 +2664,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                         []
                                                     )}
                                                   </code>
-                                                </div>
-                                                {element.material_cost !==
-                                                  undefined && (
-                                                  <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
-                                                    = $
-                                                    {Number(
-                                                      element.material_cost
-                                                    ).toFixed(2)}
+                                                </div>                                                {(element.material_cost !== undefined || elementCosts[element.id]?.materialCost !== null) && (
+                                                  <div className="flex items-center gap-2">
+                                                    {updatingElementCosts.has(element.id) ? (
+                                                      <div className="flex items-center gap-1 text-xs font-medium bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                        Calculating...
+                                                      </div>
+                                                    ) : (
+                                                      <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
+                                                        = $
+                                                        {Number(
+                                                          elementCosts[element.id]?.materialCost ?? element.material_cost ?? 0
+                                                        ).toFixed(2)}
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 )}
                                               </div>
@@ -2509,14 +2700,21 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                                                         []
                                                                                                        )}
                                                   </code>
-                                                </div>
-                                                {element.labor_cost !==
-                                                  undefined && (
-                                                  <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
-                                                    = $
-                                                    {Number(
-                                                      element.labor_cost
-                                                    ).toFixed(2)}
+                                                </div>                                                {(element.labor_cost !== undefined || elementCosts[element.id]?.laborCost !== null) && (
+                                                  <div className="flex items-center gap-2">
+                                                    {updatingElementCosts.has(element.id) ? (
+                                                      <div className="flex items-center gap-1 text-xs font-medium bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                        Calculating...
+                                                      </div>
+                                                    ) : (
+                                                      <div className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded text-primary">
+                                                        = $
+                                                        {Number(
+                                                          elementCosts[element.id]?.laborCost ?? element.labor_cost ?? 0
+                                                        ).toFixed(2)}
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 )}
                                               </div>
