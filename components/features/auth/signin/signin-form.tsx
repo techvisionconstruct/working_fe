@@ -35,9 +35,12 @@ export function LoginForm({
 
     try {
       await signIn({ email, password });
-      router.push("/templates");
+      window.location.href = "https://app.simpleprojex.com/templates";
+      // router.push("/templates");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       console.error("Sign In error:", err);
     } finally {
       setIsLoading(false);
