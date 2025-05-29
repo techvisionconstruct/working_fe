@@ -1369,19 +1369,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
   const cancelEditingMarkup = () => {
     setEditingMarkupElementId(null);
   };
-
   const handleSelectTrade = (trade: TradeResponse) => {
     const newTrade: TradeResponse = {
       id: trade.id.toString(),
       name: trade.name,
       description: trade.description,
+      image: trade.image, // Added image property to ensure it's preserved
       origin: trade.origin,
       elements: trade.elements,
       created_at: trade.created_at,
       updated_at: trade.updated_at,
       created_by: trade.created_by,
       updated_by: trade.updated_by,
-    };    if (!trades.some((t) => t.id === newTrade.id)) {
+    };if (!trades.some((t) => t.id === newTrade.id)) {
       updateTrades([...trades, newTrade]);
       
       // Invalidate queries when a trade is added
