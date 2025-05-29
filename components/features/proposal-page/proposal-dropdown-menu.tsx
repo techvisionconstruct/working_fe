@@ -13,7 +13,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogAction,
-  AlertDialogCancel
+  AlertDialogCancel,
 } from "@/components/shared";
 import { MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -25,8 +25,11 @@ interface ProposalDropdownMenuProps {
   isDeleting?: boolean;
 }
 
-
-export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: ProposalDropdownMenuProps) {
+export function ProposalDropdownMenu({
+  proposalId,
+  onDelete,
+  isDeleting,
+}: ProposalDropdownMenuProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleDelete = () => {
@@ -36,14 +39,14 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
     }
   };
 
-  const editUrl = `${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposalId}/edit`;
+  const editUrl = `/proposals/${proposalId}/edit`;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="h-8 w-8 p-0 hover:bg-muted"
         >
           <MoreVertical className="h-4 w-4" />
@@ -61,7 +64,7 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
             <DropdownMenuSeparator />
             <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <AlertDialogTrigger asChild>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="text-red-600 cursor-pointer"
                   onSelect={(event) => {
                     event.preventDefault();
@@ -76,13 +79,15 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the
-                    proposal and remove it from our servers.
+                    This action cannot be undone. This will permanently delete
+                    the proposal and remove it from our servers.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
+                  <AlertDialogCancel disabled={isDeleting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
                     className="bg-red-600 hover:bg-red-700"
                     onClick={handleDelete}
                     disabled={isDeleting}
@@ -93,7 +98,7 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
                         Deleting...
                       </>
                     ) : (
-                      'Delete'
+                      "Delete"
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>

@@ -33,7 +33,7 @@ export function TemplateDropdownMenu({ templateId, onDelete, isDeleting }: Templ
     setIsDialogOpen(false);
   };
 
-  const editUrl = `${process.env.NEXT_PUBLIC_API_URL}/templates/${templateId}/edit`;
+  const editUrl = `/templates/${templateId}/edit`;
 
   return (
     <DropdownMenu>
