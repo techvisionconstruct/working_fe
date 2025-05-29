@@ -100,7 +100,15 @@ export default function Navbar() {
                   ? "text-foreground hover:bg-muted"
                   : "text-white hover:bg-white/10"
               }
-              onClick={() => router.replace("/signin")}
+              onClick={() => {
+                if (process.env.NODE_ENV === "production") {
+                  // Redirect to a different URL in production
+                  window.location.href = "https://app.simpleprojex.com/signin";
+                } else {
+                  // Use Next.js router to push to /templates in development or local environments
+                  router.replace("/signin");
+                }
+              }}
             >
               Sign in
             </Button>

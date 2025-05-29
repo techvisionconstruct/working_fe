@@ -35,8 +35,14 @@ export function LoginForm({
 
     try {
       await signIn({ email, password });
-      window.location.href = "https://app.simpleprojex.com/templates";
-      // router.push("/templates");
+
+      if (process.env.NODE_ENV === "production") {
+        // Redirect to a different URL in production
+        window.location.href = "https://app.simpleprojex.com/templates";
+      } else {
+        // Use Next.js router to push to /templates in development or local environments
+        router.push("/templates");
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
