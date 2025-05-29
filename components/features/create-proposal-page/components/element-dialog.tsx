@@ -776,14 +776,12 @@ export function ElementDialog({
                           // First update local state
                           setMarkup(globalMarkupValue);
                           
-                          // Then call the callback to notify parent component
-                          // This is crucial for updating the element in the parent's state
+                          // Then call the callback to notify parent component                          // This is crucial for updating the element in the parent's state
                           if (onUseGlobalMarkup) {
                             onUseGlobalMarkup();
                           }
                           
-                          // Show success message
-                          toast.success(`Applied global markup of ${globalMarkupValue}%`);
+                          // Removed toast since parent will handle bulk update
                         }}
                       >
                         Use Global ({globalMarkupValue}%)

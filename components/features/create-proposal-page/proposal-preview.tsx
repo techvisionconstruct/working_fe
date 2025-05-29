@@ -33,37 +33,8 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
       return "Invalid date";
     }
   };
-
-  // Mock data for the sample trades and elements
-  const sampleTradesAndElements = [
-    {
-      id: '1',
-      name: 'Electrical',
-      elements: [
-        {
-          id: '101',
-          name: 'Lighting Installation',
-          type: 'text'
-        },
-        {
-          id: '102',
-          name: 'Equipment List',
-          type: 'table'
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Plumbing',
-      elements: [
-        {
-          id: '201',
-          name: 'Bathroom Fixtures',
-          type: 'list'
-        }
-      ]
-    }
-  ];
+  // Get actual trades and elements from the proposal
+  const tradesAndElements = proposal?.template?.trades || [];
   
   return (
     <div className="space-y-6">
@@ -105,57 +76,60 @@ export function ProposalPreview({ proposal }: ProposalPreviewProps) {
                 </CardContent>
               </Card>
             </div>
-          )}
-
-          {/* Trades and Elements */}
-          {sampleTradesAndElements.length > 0 && (
+          )}          {/* Trades and Elements */}
+          {tradesAndElements.length > 0 && (
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Project Scope</h2>
               
-              {sampleTradesAndElements.map((trade) => (
+              {tradesAndElements.map((trade: any) => (
                 <div key={trade.id} className="mb-6">
-                  <h3 className="text-lg font-medium mb-3">{trade.name}</h3>
+                  <div className="flex items-center gap-3 mb-3">
+                    {trade.image && (
+                      <div className="h-10 w-10 overflow-hidden rounded-md flex-shrink-0">
+                        <img 
+                          src={trade.image} 
+                          alt={trade.name} 
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <h3 className="text-lg font-medium">{trade.name}</h3>
+                  </div>
                   
-                  {trade.elements.length > 0 ? (
+                  {trade.description && (
+                    <p className="text-sm text-muted-foreground mb-3">{trade.description}</p>
+                  )}
+                  
+                  {trade.elements && trade.elements.length > 0 ? (
                     <div className="space-y-4">
-                      {trade.elements.map((element) => (
+                      {trade.elements.map((element: any) => (
                         <Card key={element.id}>
                           <CardContent className="p-4">
-                            <h4 className="text-md font-medium mb-2">{element.name}</h4>
-                            
-                            {/* Placeholder content based on element type */}
-                            <div className="p-2 border border-dashed rounded-md text-sm text-muted-foreground">
-                              {element.type === 'text' && <p>Text content would be displayed here.</p>}
-                              {element.type === 'table' && (
-                                <table className="min-w-full border-collapse">
-                                  <thead>
-                                    <tr>
-                                      <th className="border p-2">Header 1</th>
-                                      <th className="border p-2">Header 2</th>
-                                      <th className="border p-2">Header 3</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr>
-                                      <td className="border p-2">Sample data</td>
-                                      <td className="border p-2">Sample data</td>
-                                      <td className="border p-2">Sample data</td>
-                                    </tr>
-                                    <tr>
-                                      <td className="border p-2">Sample data</td>
-                                      <td className="border p-2">Sample data</td>
-                                      <td className="border p-2">Sample data</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
+                            <div className="flex items-start gap-3 mb-2">
+                              {element.image && (
+                                <div className="h-11 w-11 overflow-hidden rounded-md flex-shrink-0">
+                                  <img 
+                                    src={element.image} 
+                                    alt={element.name} 
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
                               )}
-                              {element.type === 'list' && (
-                                <ul className="list-disc pl-5">
-                                  <li>Sample list item 1</li>
-                                  <li>Sample list item 2</li>
-                                  <li>Sample list item 3</li>
-                                </ul>
-                              )}
+                              <div className="flex-1">
+                                <h4 className="text-md font-medium">{element.name}</h4>
+                                {element.description && (
+                                  <p className="text-sm text-muted-foreground">{element.description}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-semibold">
+                                  Total: ${((element.material_cost || 0) + (element.labor_cost || 0)).toFixed(2)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Material: ${(element.material_cost || 0).toFixed(2)} | 
+                                  Labor: ${(element.labor_cost || 0).toFixed(2)}
+                                </div>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

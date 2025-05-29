@@ -117,18 +117,12 @@ const EditElementDialog: React.FC<EditElementDialogProps> = ({
                     material_cost_formula: elementToEdit.material_cost_formula,
                     labor_cost_formula: elementToEdit.labor_cost_formula,
                     markup: globalMarkupValue,
-                    // Include any other essential fields required by the API
-                    material_formula_variables: elementToEdit.material_formula_variables,
+                    // Include any other essential fields required by the API                    material_formula_variables: elementToEdit.material_formula_variables,
                     labor_formula_variables: elementToEdit.labor_formula_variables,
                   },
                 });
 
-                toast.success(
-                  `Applied global markup of ${globalMarkupValue}% to element`,
-                  {
-                    position: "top-center",
-                  }
-                );
+                // Removed toast since parent will handle bulk update
               }
             }
           : undefined

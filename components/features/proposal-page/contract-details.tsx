@@ -1418,7 +1418,7 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                         > = {};
                         proposal.template.variables.forEach((variable) => {
                           const typeName =
-                            variable.variable_types?.name || "Other";
+                            variable.variable_type?.name || "Other";
                           if (!groupedVariables[typeName]) {
                             groupedVariables[typeName] = [];
                           }
