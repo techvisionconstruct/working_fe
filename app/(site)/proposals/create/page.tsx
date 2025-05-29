@@ -88,6 +88,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     } else if (currentStep === "details") {
       setCurrentStep("trades");
     } else if (currentStep === "trades") {
+      handleUpdateTemplate();
       setCurrentStep("contract");
     }
   };

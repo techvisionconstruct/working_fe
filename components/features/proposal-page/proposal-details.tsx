@@ -235,13 +235,15 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                     <div
                       key={trade.id}
                       className="rounded-lg border border-border bg-muted/40 px-4 py-3 hover:bg-accent/40 transition-colors w-full"
-                    >                      <div className="flex justify-between items-center">
+                    >
+                      {" "}
+                      <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           {trade.image ? (
                             <div className="h-10 w-10 overflow-hidden rounded-lg flex-shrink-0">
-                              <img 
-                                src={trade.image} 
-                                alt={trade.name} 
+                              <img
+                                src={trade.image}
+                                alt={trade.name}
                                 className="h-full w-full object-cover"
                               />
                             </div>
@@ -267,12 +269,16 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                   key={element.id}
                                   className="flex flex-col p-4 rounded border bg-background w-full"
                                 >
-                                  <div className="flex items-start justify-between">                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">                                        {element.image ? (
+                                  <div className="flex items-start justify-between">
+                                    {" "}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        {" "}
+                                        {element.image ? (
                                           <div className="h-9 w-9 overflow-hidden rounded-lg flex-shrink-0">
-                                            <img 
-                                              src={element.image} 
-                                              alt={element.name} 
+                                            <img
+                                              src={element.image}
+                                              alt={element.name}
                                               className="h-full w-full object-cover"
                                             />
                                           </div>
@@ -301,11 +307,13 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                                         </span>
                                         <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-medium text-muted-foreground border">
                                           Markup: {element.markup || 0}%
-                                        </span>                                        <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
+                                        </span>{" "}
+                                        <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium border border-primary/20 text-primary">
                                           Total: $
-                                          {((Number(element.material_cost || 0) +
-                                            Number(element.labor_cost || 0)) *
-                                            (1 + Number(element.markup || 0) / 100)).toFixed(2)}
+                                          {(
+                                            Number(element.material_cost || 0) +
+                                            Number(element.labor_cost || 0)
+                                          ).toFixed(2)}
                                         </span>
                                       </div>
                                     </div>
