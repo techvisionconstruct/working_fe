@@ -177,31 +177,64 @@ export function ElementDialog({
     }
   };
 
+  // Clear all form data when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear all form fields
+      setImage("");
+      setName("");
+      setDescription("");
+      setMarkup(initialMarkup);
+      
+      // Clear formula tokens
+      setMaterialFormulaTokens([]);
+      setLaborFormulaTokens([]);
+      
+      // Clear localStorage
+      clearFormulaStorage();
+      
+      // Reset errors
+      setMaterialFormulaError(null);
+      setLaborFormulaError(null);
+      setElementErrors({ name: "" });
+      setElementTouched({ name: false });
+      
+      // Reset pending variable
+      pendingVariableRef.current = {
+        variable: null,
+        formulaType: null,
+      };
+    }
+  }, [isOpen, initialMarkup, setMaterialFormulaTokens, setLaborFormulaTokens]);
+
   // Initialize form when opening/editing
   useEffect(() => {
     if (isOpen) {
       // Reset initial render flag when dialog opens
       initialRenderRef.current = true;
 
-      // Always update the name to match either elementToEdit.name or initialName when dialog opens
+      // Always update the form fields when dialog opens
       if (elementToEdit) {
         setName(elementToEdit.name);
+        setDescription(elementToEdit.description || "");
+        setImage(elementToEdit.image || "");
+        setMarkup(elementToEdit.markup || initialMarkup);
       } else {
         setName(initialName);
+        setDescription("");
+        setImage("");
+        setMarkup(initialMarkup);
       }
 
       const wasOpen = localStorage.getItem(storageKeys.IS_OPEN_KEY) === "true";
 
-      if (wasOpen) {
-        // Dialog was previously open - restore formulas from localStorage
+      if (wasOpen && !elementToEdit) {
+        // Dialog was previously open for new element - restore formulas from localStorage
         const { materialTokens, laborTokens } = getFormulasFromStorage();
         if (materialTokens.length > 0) setMaterialFormulaTokens(materialTokens);
         if (laborTokens.length > 0) setLaborFormulaTokens(laborTokens);
       } else if (elementToEdit) {
         // Initialize from element to edit
-        setDescription(elementToEdit.description || "");
-        setMarkup(elementToEdit.markup || 0);
-
         let materialTokens = [],
           laborTokens = [];
 
@@ -213,20 +246,9 @@ export function ElementDialog({
             elementToEdit.material_formula_variables || []
           );
 
-          // But for products, we need to preserve the original IDs for proper submission
-          // So we don't call replaceProductIdsWithNames here
-
           materialTokens = parseFormulaToTokens(displayFormula);
-          console.log("displayFormula", displayFormula);
-          console.log("Initial material tokens:", materialTokens);
-          console.log(
-            "Material formula variables:",
-            elementToEdit.material_formula_variables
-          );
-
-          // After parsing, ensure all product references are correctly identified
+          
           materialTokens = materialTokens.map((token) => {
-            // Strategy 1: Check if this token appears in material_formula_variables as a product
             if (
               elementToEdit.material_formula_variables &&
               elementToEdit.material_formula_variables.length > 0
@@ -240,38 +262,26 @@ export function ElementDialog({
                 );
 
               if (productVariable) {
-                console.log(
-                  "Found product in material_formula_variables:",
-                  productVariable
-                );
                 return {
                   ...token,
                   type: "product" as const,
-                  // Store the ID in text for API submission
                   text: productVariable.id,
-                  // Use displayText for UI with product: prefix
                   displayText: `${productVariable.name || token.text}`,
                 };
               }
             }
 
-            const matchedProduct = productsData.data.find(
+            const matchedProduct = productsData?.data?.find(
               (product: ProductResponse) =>
                 product.title.toLowerCase() === token.text.toLowerCase() ||
                 token.text.includes(product.id)
             );
 
             if (matchedProduct) {
-              console.log(
-                "Found matching product in API data:",
-                matchedProduct
-              );
               return {
                 ...token,
                 type: "product" as const,
-                // Store the ID in text for API submission
                 text: matchedProduct.id,
-                // Use displayText for UI with product: prefix
                 displayText: `${matchedProduct.title}`,
               };
             }
@@ -279,11 +289,7 @@ export function ElementDialog({
             return token;
           });
 
-          console.log("Final processed material tokens:", materialTokens);
-
           setMaterialFormulaTokens(materialTokens);
-
-          // Immediately save to localStorage instead of waiting for the useEffect
           localStorage.setItem(
             storageKeys.MATERIAL_KEY,
             JSON.stringify(materialTokens)
@@ -300,14 +306,9 @@ export function ElementDialog({
             elementToEdit.labor_formula_variables || []
           );
 
-          // But for products, we need to preserve the original IDs for proper submission
-          // So we don't call replaceProductIdsWithNames here
-
           laborTokens = parseFormulaToTokens(displayFormula);
 
-          // After parsing, ensure all product references are correctly identified in labor formula
           laborTokens = laborTokens.map((token) => {
-            // Method 1: Check if displayText starts with "product:" (new method)
             if (
               token.displayText?.startsWith("product:") &&
               token.type !== "product"
@@ -315,19 +316,12 @@ export function ElementDialog({
               return {
                 ...token,
                 type: "product" as const,
-                // Preserve the original text (which should contain the ID)
               };
             }
-
-            // Method 2: Check if text property starts with "product:" for backward compatibility
-          
-
             return token;
           });
 
           setLaborFormulaTokens(laborTokens);
-
-          // Immediately save to localStorage instead of waiting for the useEffect
           localStorage.setItem(
             storageKeys.LABOR_KEY,
             JSON.stringify(laborTokens)
@@ -341,9 +335,7 @@ export function ElementDialog({
           saveFormulasToStorage();
         }, 100);
       } else {
-        // New element, initialize with proper values
-        setDescription("");
-        setMarkup(initialMarkup);
+        // New element, initialize with clean state
         setMaterialFormulaTokens([]);
         setLaborFormulaTokens([]);
 
@@ -352,17 +344,7 @@ export function ElementDialog({
           saveFormulasToStorage();
         }, 100);
       }
-    } else {
-      // Dialog is closing, clear storage
-      clearFormulaStorage();
     }
-
-    // Cleanup on unmount
-    return () => {
-      if (!isOpen) {
-        clearFormulaStorage();
-      }
-    };
   }, [
     isOpen,
     elementToEdit,
@@ -371,6 +353,7 @@ export function ElementDialog({
     filteredVariables,
     parseFormulaToTokens,
     replaceVariableIdsWithNames,
+    productsData?.data,
   ]);
 
   // Save formulas to localStorage whenever they change
@@ -628,16 +611,99 @@ export function ElementDialog({
     setElementTouched((prev) => ({ ...prev, [field]: true }));
   };
 
+  // Clear image when dialog is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setImage("");
+      // Clear other form fields as needed
+    }
+  }, [isOpen]);
+
+  const handleSubmitWithImage = () => {
+    if (!name.trim()) return;
+
+    // Validate formulas
+    if (materialFormulaTokens.length > 0) {
+      const materialValidation = validateFormulaTokens(materialFormulaTokens);
+      if (!materialValidation.isValid) {
+        toast.error("Material formula error", {
+          description: materialValidation.error || "Invalid formula",
+        });
+        return;
+      }
+    }
+
+    if (laborFormulaTokens.length > 0) {
+      const laborValidation = validateFormulaTokens(laborFormulaTokens);
+      if (!laborValidation.isValid) {
+        toast.error("Labor formula error", {
+          description: laborValidation.error || "Invalid formula",
+        });
+        return;
+      }
+    }
+
+    const materialFormula = tokensToFormulaString(materialFormulaTokens);
+    const laborFormula = tokensToFormulaString(laborFormulaTokens);
+
+    // Clear localStorage before submitting
+    clearFormulaStorage();
+    
+    onSubmit({
+      name: name.trim(),
+      description: description.trim(),
+      image,
+      materialFormula,
+      laborFormula,
+      markup,
+    });
+
+    // Clear all form data after submission
+    setImage("");
+    setName("");
+    setDescription("");
+    setMarkup(initialMarkup);
+    setMaterialFormulaTokens([]);
+    setLaborFormulaTokens([]);
+  };
+
+  const handleCancel = () => {
+    // Clear all form data when cancelled
+    setImage("");
+    setName("");
+    setDescription("");
+    setMarkup(initialMarkup);
+    setMaterialFormulaTokens([]);
+    setLaborFormulaTokens([]);
+    clearFormulaStorage();
+    onOpenChange(false);
+  };
+
+  // Enhanced dialog close handler
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      // Clear all form data when dialog is closed
+      setImage("");
+      setName("");
+      setDescription("");
+      setMarkup(initialMarkup);
+      setMaterialFormulaTokens([]);
+      setLaborFormulaTokens([]);
+      clearFormulaStorage();
+      
+      // Reset errors and validation state
+      setMaterialFormulaError(null);
+      setLaborFormulaError(null);
+      setElementErrors({ name: "" });
+      setElementTouched({ name: false });
+    }
+    onOpenChange(open);
+  };
+
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          // Clear storage when dialog is manually closed
-          clearFormulaStorage();
-        }
-        onOpenChange(open);
-      }}
+      onOpenChange={handleDialogOpenChange}
     >
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
@@ -834,7 +900,7 @@ export function ElementDialog({
             Cancel
           </Button>
           <Button
-            onClick={handleSubmit}
+            onClick={handleSubmitWithImage}
             disabled={isSubmitting || !name.trim()}
           >
             {isSubmitting ? (

@@ -76,6 +76,130 @@ interface EditableClientFieldProps {
   placeholder?: string;
 }
 
+// Service Agreement Title Field Component
+const ServiceAgreementTitleField: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  onSave?: () => void;
+}> = ({ value, onChange, onSave }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextOutsideClick = useRef(false);
+
+  // Update temp value when prop value changes
+  useEffect(() => {
+    setTempValue(value);
+  }, [value]);
+
+  // Handle clicks outside to save
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
+      if (
+        isEditing &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node) &&
+        !(event.target instanceof Element && event.target.closest("button"))
+      ) {
+        handleSave();
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isEditing, tempValue]);
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleCancel();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
+  const handleSave = async () => {
+    if (tempValue !== value) {
+      setIsSaving(true);
+      onChange(tempValue);
+      if (onSave) {
+        await onSave();
+      }
+      setIsSaving(false);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    skipNextOutsideClick.current = true;
+    setTempValue(value);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="text-3xl font-bold text-center uppercase mb-2"
+          autoFocus
+          placeholder="Enter agreement title"
+        />
+        <div className="flex justify-center space-x-2">
+          {isSaving ? (
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={handleCancel}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={handleSave}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <h1
+      className="text-3xl font-bold mt-2 mb-8 uppercase text-center group relative cursor-pointer hover:text-primary transition-colors"
+      onClick={() => setIsEditing(true)}
+    >
+      {value}
+      <Edit className="h-4 w-4 absolute -right-6 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </h1>
+  );
+};
+
 // Editable Field Component
 const EditableField: React.FC<EditableFieldProps> = ({
   value,
@@ -95,9 +219,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   // Update temp value when prop value changes
   useEffect(() => {
     setTempValue(value);
-  }, [value]);
-
-  // Handle clicks outside the textarea to save
+  }, [value]); // Handle clicks outside the textarea to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (skipNextOutsideClick.current) {
@@ -108,11 +230,19 @@ const EditableField: React.FC<EditableFieldProps> = ({
       if (
         isEditing &&
         inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        !inputRef.current.contains(event.target as Node) &&
+        !(event.target instanceof Element && event.target.closest("button"))
       ) {
         handleSave();
       }
     };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
   }, [isEditing, tempValue]);
 
   // Handle keyboard shortcuts
@@ -228,7 +358,6 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   useEffect(() => {
     setTempValue(value);
   }, [value]);
-
   // Handle clicks outside to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -236,15 +365,22 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
         skipNextOutsideClick.current = false;
         return;
       }
-
       if (
         isEditing &&
         inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        !inputRef.current.contains(event.target as Node) &&
+        !(event.target instanceof Element && event.target.closest("button"))
       ) {
         handleSave();
       }
     };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
   }, [isEditing, tempValue]);
 
   // Handle keyboard shortcuts
@@ -344,12 +480,23 @@ export function CreateContract({
   contract_id: string;
   proposal: ProposalResponse | undefined;
 }) {
-  // Add local contract state
-  const { data: contract } = useQuery(getContract(contract_id as string));
+  const { data: contract, isLoading: isContractLoading } = useQuery(
+    getContract(contract_id as string)
+  );
 
-  // Use localContract if available, otherwise fallback to proposal.contract
-
-  console.log("Contract data:", contract);
+  // Add check for proposal template data
+  if (!proposal || !proposal.template || isContractLoading) {
+    return (
+      <div className="w-full h-[50vh] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-muted-foreground">
+            Loading contract details...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
@@ -371,24 +518,24 @@ export function CreateContract({
     proposal?.client_address || ""
   );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
-
   // Add state for editable contract name and description
-  const [contractName, setContractName] = useState(contract?.name || "");
-  const [contractDescription, setContractDescription] = useState(
-    contract?.description || ""
+  const [contractName, setContractName] = useState(
+    proposal?.name || contract?.name || ""
   );
-
-  // Default service agreement content with title as first line
-  const defaultServiceAgreement = `SERVICE AGREEMENT
+  const [contractDescription, setContractDescription] = useState(
+    proposal?.description || contract?.description || ""
+  ); // Default service agreement content with title as first line - reactive to client data
+  const defaultServiceAgreement = useMemo(
+    () => `SERVICE AGREEMENT
 
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
 Client: ${
-    contract?.client_name || "[CLIENT_NAME]"
-  }, with a primary address at ${
-    contract?.client_address || "[CLIENT_ADDRESS]"
-  }.
+      proposal?.client_name || clientName || "[CLIENT_NAME]"
+    }, with a primary address at ${
+      proposal?.client_address || clientAddress || "[CLIENT_ADDRESS]"
+    }.
 
 1. SCOPE OF SERVICES:
 The Service Provider agrees to perform the services as outlined in the attached Proposal.
@@ -400,13 +547,21 @@ Payment is due within 30 days of invoice receipt. Late payments are subject to a
 This Agreement shall commence on the date of signing and shall continue until the services are completed, unless terminated earlier.
 
 4. CHANGES AND MODIFICATIONS:
-Any changes to the scope of work must be agreed upon in writing by both parties.`;
-
+Any changes to the scope of work must be agreed upon in writing by both parties.`,
+    [proposal?.client_name, proposal?.client_address, clientName, clientAddress]
+  );
   // Split the content into title and body
-  const initialAgreementContent =
-    contract?.service_agreement_content ||
-    contract?.service_agreement?.content ||
-    defaultServiceAgreement;
+  const initialAgreementContent = useMemo(
+    () =>
+      contract?.service_agreement_content ||
+      contract?.service_agreement?.content ||
+      defaultServiceAgreement,
+    [
+      contract?.service_agreement_content,
+      contract?.service_agreement?.content,
+      defaultServiceAgreement,
+    ]
+  );
 
   const splitContent = (content: string) => {
     const lines = content.split("\n");
@@ -428,6 +583,13 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
   const [serviceAgreementBody, setServiceAgreementBody] = useState(
     splitContent(initialAgreementContent).body
   );
+
+  // Update service agreement when initialAgreementContent changes
+  useEffect(() => {
+    const { title, body } = splitContent(initialAgreementContent);
+    setServiceAgreementTitle(title);
+    setServiceAgreementBody(body);
+  }, [initialAgreementContent]);
 
   const serviceAgreementContent = `${serviceAgreementTitle}\n${serviceAgreementBody}`;
 
@@ -1109,47 +1271,53 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     signatures,
   ]);
 
-  // Add auto-save for contract name and description
+  // Update the auto-save effect for contract name and description
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      // Check if contract exists and if either name or description has changed
       if (
-        contract.name !== contractName ||
-        contract.description !== contractDescription
+        contract &&
+        (contract.name !== contractName ||
+          contract.description !== contractDescription)
       ) {
         saveContractInfoChanges();
       }
     }, 1500); // 1.5 second debounce
 
     return () => clearTimeout(debounceTimer);
-  }, [contractName, contractDescription]);
+  }, [contractName, contractDescription, contract]);
 
-  // Enhanced save contract info changes function
+  // Update saveContractInfoChanges function
   const saveContractInfoChanges = async () => {
     if (!contract_id) return;
-    if (!proposal?.id) return; // Check if proposal ID exists before trying to use it
+    if (!proposal?.id) return;
 
     try {
-      // Update proposal name and description
+      // Create payload with current values
+      const payload = {
+        name: contractName || "",
+        description: contractDescription || "",
+      };
+
+      // Update proposal first
       await updateProposalMutation.mutateAsync({
-        id: proposal.id, // Now we know this is defined
-        data: {
-          name: contractName,
-          description: contractDescription,
-        },
+        id: proposal.id,
+        data: payload,
       });
 
-      // If we have a contract, also update it
-      if (contract && contract.id) {
+      // If contract exists, update it too
+      if (contract?.id) {
         await updateContractMutation.mutateAsync({
           id: contract.id,
-          contract: {
-            name: contractName,
-            description: contractDescription,
-          },
+          contract: payload,
         });
       }
+
+      // Optional: Show success message
+      toast.success("Contract information updated successfully");
     } catch (error) {
       console.error("Error in saveContractInfoChanges:", error);
+      toast.error("Failed to update contract information");
     }
   };
 
@@ -1158,77 +1326,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
+            {" "}
             <div className="mb-12 max-w-4xl mx-auto">
-              {/* Service Agreement Title - Modified to match client information pattern */}
-              {isEditingServiceAgreementTitle ? (
-                <div className="relative">
-                  <Input
-                    value={serviceAgreementTitle}
-                    onChange={(e) => setServiceAgreementTitle(e.target.value)}
-                    onBlur={() => {
-                      setIsEditingServiceAgreementTitle(false);
-                      saveServiceAgreement();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        setIsEditingServiceAgreementTitle(false);
-                        saveServiceAgreement();
-                      }
-                    }}
-                    className="text-3xl font-bold text-center uppercase mb-2"
-                    autoFocus
-                    placeholder="Enter agreement title"
-                  />
-                  <div className="flex justify-center space-x-2">
-                    {updateContractMutation.isPending ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        disabled
-                      >
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setServiceAgreementTitle(
-                              splitContent(initialAgreementContent).title
-                            );
-                            setIsEditingServiceAgreementTitle(false);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setIsEditingServiceAgreementTitle(false);
-                            saveServiceAgreement();
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <h1
-                  className="text-3xl font-bold mt-2 mb-8 uppercase text-center group relative cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => setIsEditingServiceAgreementTitle(true)}
-                >
-                  {serviceAgreementTitle}
-                  <Edit className="h-4 w-4 absolute -right-6 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </h1>
-              )}
+              {/* Service Agreement Title - Using consistent editable pattern */}
+              <div className="text-center mb-8">
+                <ServiceAgreementTitleField
+                  value={serviceAgreementTitle}
+                  onChange={setServiceAgreementTitle}
+                  onSave={saveServiceAgreement}
+                />
+              </div>
 
               {/* Service Agreement Content - Enhanced Editable Field */}
               <EditableField
@@ -1240,11 +1347,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 tooltip="Click to edit agreement content"
               />
             </div>
-
             <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider text-center">
               Contract Details
             </h2>
-
             {proposal ? (
               <div className="space-y-8 w-full">
                 {/* Contract Header - Make name and description editable */}

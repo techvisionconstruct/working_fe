@@ -17,14 +17,12 @@ import { createProposal } from "@/api-calls/proposals/create-proposal";
 import { updateTemplate } from "@/api-calls/templates/update-template";
 import { TradeResponse } from "@/types/trades/dto";
 import { VariableResponse } from "@/types/variables/dto";
-import {
-  TemplateResponse,
-  TemplateUpdateRequest,
-} from "@/types/templates/dto";
+import { TemplateResponse, TemplateUpdateRequest } from "@/types/templates/dto";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { CreateContract } from "@/components/features/create-proposal-page/create-contract";
 import { createContract } from "@/api-calls/contracts/create-contract";
 import { ContractCreateRequest } from "@/types/contracts/dto";
+import { getProposalById } from "@/api-calls/proposals/get-proposal-by-id";
 
 interface ProposalDetailsProps {
   proposal?: ProposalResponse; // Make proposal optional
@@ -37,7 +35,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
   const [contractId, setContractId] = useState<string>("");
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
   const [createdProposal, setCreatedProposal] = useState<ProposalResponse>();
-  console.log("Created Proposal:", createdProposal);
+
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -75,6 +73,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     proposal?.template?.variables || []
   );
 
+
   const updateFormData = (data: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -82,14 +81,31 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === "template") {
       setCurrentStep("details");
     } else if (currentStep === "details") {
       setCurrentStep("trades");
     } else if (currentStep === "trades") {
+<<<<<<< HEAD
       handleUpdateTemplate();
       setCurrentStep("contract");
+=======
+      try {
+        // Wait for template update to complete
+        await handleUpdateTemplate();
+        // Wait for proposal refresh
+        if (createdProposal?.id) {
+          const updatedProposal = await getProposalById(createdProposal.id);
+          setCreatedProposal(updatedProposal.data);
+        }
+        // Only change step after data is updated
+        setCurrentStep("contract");
+      } catch (error) {
+        console.error("Error updating template:", error);
+        toast.error("Failed to update template before proceeding");
+      }
+>>>>>>> development-2
     }
   };
 
@@ -109,7 +125,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
       toast.success("Proposal created successfully!", {
         description: "Your proposal has been saved",
       });
-      handleNext();
     },
     onError: (error: any) => {
       toast.error("Failed to create proposal", {
@@ -124,7 +139,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
       createContract(contractData),
     onSuccess: () => {
       toast.success("Contract created successfully!");
-      handleNext(); // Move to next step after contract creation
     },
     onError: (error: any) => {
       toast.error(
@@ -139,10 +153,8 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
         templateId: string;
         template: TemplateUpdateRequest;
       }) => updateTemplate(data.templateId, data.template),
-      onSuccess: () => {
-        toast.success("Template updated successfully!", {
-          description: "Your proposal has been saved",
-        });
+      onSuccess: async (data) => {
+        toast.success("Template updated successfully");
       },
       onError: (error: any) => {
         toast.error("Failed to update template", {
@@ -151,7 +163,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
         });
       },
     });
-
+  console.log("Created Proposal:", createdProposal);
   const handleCreateProposalAndContract = async () => {
     const templateId = formData.template ? formData.template.id : null;
 
@@ -197,7 +209,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
                 setContractId(contractData.data.id);
                 toast.success("Contract created successfully!");
                 resolve(proposalData);
-                handleNext();
               },
               onError: (error) => {
                 toast.error("Failed to create contract", {
@@ -211,8 +222,8 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
           } catch (error) {
             toast.error("Proposal created but contract creation failed");
             resolve(proposalData);
-            handleNext();
           }
+          handleNext();
         },
         onError: (error) => {
           reject(error);
@@ -236,7 +247,30 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
       variables: variableObjects.map((variable) => variable.id),
     };
 
-    updateTemplateMutation({ templateId, template: tradesAndVariables });
+    return new Promise((resolve, reject) => {
+      updateTemplateMutation(
+        { templateId, template: tradesAndVariables },
+        {
+          onSuccess: async (data) => {
+            // Wait for proposal refresh here
+            if (createdProposal?.id) {
+              try {
+                const updatedProposal = await getProposalById(createdProposal.id);
+                setCreatedProposal(updatedProposal.data);
+                resolve(data);
+              } catch (error) {
+                reject(error);
+              }
+            } else {
+              resolve(data);
+            }
+          },
+          onError: (error) => {
+            reject(error);
+          },
+        }
+      );
+    });
   };
 
   const [isSending, setIsSending] = useState(false);
@@ -457,7 +491,11 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
                   trades: trades.map((trade) => trade.id),
                 });
                 // Update the created proposal with the new trades
-                if (createdProposal && createdProposal.template && createdProposal.template.id) {
+                if (
+                  createdProposal &&
+                  createdProposal.template &&
+                  createdProposal.template.id
+                ) {
                   setCreatedProposal({
                     ...createdProposal,
                     template: {
@@ -473,7 +511,11 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
                   variables: variables.map((variable) => variable.id),
                 });
                 // Update the created proposal with the new variables
-                if (createdProposal && createdProposal.template && createdProposal.template.id) {
+                if (
+                  createdProposal &&
+                  createdProposal.template &&
+                  createdProposal.template.id
+                ) {
                   setCreatedProposal({
                     ...createdProposal,
                     template: {
@@ -488,15 +530,49 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
               <Button variant="outline" onClick={handleBack}>
                 Back
               </Button>
-              <Button onClick={handleNext}>Next: Create Contract</Button>
+              <Button 
+                onClick={handleNext}
+                disabled={isUpdatingTemplate}
+                className="flex items-center gap-2"
+              >
+                {isUpdatingTemplate ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Updating...
+                  </>
+                ) : (
+                  "Next: Create Contract"
+                )}
+              </Button>
             </div>
           </TabsContent>
 
           <TabsContent value="contract" className="p-6 contract-tab-content">
             {/* Only render CreateContract if we have a proposal */}
-            
-              <CreateContract contract_id={contractId} proposal={createdProposal} />
-            
+
+            <CreateContract
+              contract_id={contractId}
+              proposal={createdProposal}
+            />
+
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>
                 Back
@@ -505,7 +581,6 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
           </TabsContent>
         </Tabs>
       </Card>
-     
     </div>
   );
 }
