@@ -93,9 +93,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   // Update temp value when prop value changes
   useEffect(() => {
     setTempValue(value);
-  }, [value]);
-
-  // Handle clicks outside the textarea to save
+  }, [value]);  // Handle clicks outside the textarea to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (skipNextOutsideClick.current) {
@@ -106,11 +104,22 @@ const EditableField: React.FC<EditableFieldProps> = ({
       if (
         isEditing &&
         inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        !inputRef.current.contains(event.target as Node) &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest("button")
+        )
       ) {
         handleSave();
       }
     };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
   }, [isEditing, tempValue]);
 
   // Handle keyboard shortcuts
@@ -122,7 +131,6 @@ const EditableField: React.FC<EditableFieldProps> = ({
       handleSave();
     }
   };
-
   const handleSave = async () => {
     if (tempValue !== value) {
       setIsSaving(true);
@@ -134,6 +142,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   };
 
   const handleCancel = () => {
+    skipNextOutsideClick.current = true;
     setTempValue(value);
     setIsEditing(false);
   };
@@ -207,14 +216,12 @@ const EditableField: React.FC<EditableFieldProps> = ({
   );
 };
 
-// Editable Client Field Component
-const EditableClientField: React.FC<EditableClientFieldProps> = ({
-  label,
-  value,
-  onChange,
-  onSave,
-  placeholder = "Enter information",
-}) => {
+// Service Agreement Title Field Component - Follows same pattern as other editable components
+const ServiceAgreementTitleField: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  onSave?: () => void;
+}> = ({ value, onChange, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
@@ -237,11 +244,22 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
       if (
         isEditing &&
         inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        !inputRef.current.contains(event.target as Node) &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest("button")
+        )
       ) {
         handleSave();
       }
     };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
   }, [isEditing, tempValue]);
 
   // Handle keyboard shortcuts
@@ -258,6 +276,132 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
     if (tempValue !== value) {
       setIsSaving(true);
       onChange(tempValue);
+      if (onSave) {
+        await onSave();
+      }
+      setIsSaving(false);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    skipNextOutsideClick.current = true;
+    setTempValue(value);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="text-3xl font-bold text-center uppercase mb-2"
+          autoFocus
+          placeholder="Enter agreement title"
+        />
+        <div className="flex justify-center space-x-2">
+          {isSaving ? (
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={handleCancel}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={handleSave}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <h1
+      className="text-3xl font-bold mt-2 mb-8 uppercase text-center group relative cursor-pointer hover:text-primary transition-colors"
+      onClick={() => setIsEditing(true)}
+    >
+      {value}
+      <Edit className="h-4 w-4 absolute -right-6 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </h1>
+  );
+};
+
+// Editable Client Field Component
+const EditableClientField: React.FC<EditableClientFieldProps> = ({
+  label,
+  value,
+  onChange,
+  onSave,
+  placeholder = "Enter information",
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextOutsideClick = useRef(false);
+
+  // Update temp value when prop value changes
+  useEffect(() => {
+    setTempValue(value);
+  }, [value]);  // Handle clicks outside to save
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (skipNextOutsideClick.current) {
+        skipNextOutsideClick.current = false;
+        return;
+      }
+
+      if (
+        isEditing &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node) &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest("button")
+        )
+      ) {
+        handleSave();
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isEditing, tempValue]);
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleCancel();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+  const handleSave = async () => {
+    if (tempValue !== value) {
+      setIsSaving(true);
+      onChange(tempValue);
       if (onSave) await onSave();
       setIsSaving(false);
     }
@@ -265,6 +409,7 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
   };
 
   const handleCancel = () => {
+    skipNextOutsideClick.current = true;
     setTempValue(value);
     setIsEditing(false);
   };
@@ -1173,77 +1318,14 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="p-6 rounded-lg border bg-muted/30 w-full">
-            <div className="mb-12 max-w-4xl mx-auto">
-              {/* Service Agreement Title - Modified to match client information pattern */}
-              {isEditingServiceAgreementTitle ? (
-                <div className="relative">
-                  <Input
-                    value={serviceAgreementTitle}
-                    onChange={(e) => setServiceAgreementTitle(e.target.value)}
-                    onBlur={() => {
-                      setIsEditingServiceAgreementTitle(false);
-                      saveServiceAgreement();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        setIsEditingServiceAgreementTitle(false);
-                        saveServiceAgreement();
-                      }
-                    }}
-                    className="text-3xl font-bold text-center uppercase mb-2"
-                    autoFocus
-                    placeholder="Enter agreement title"
-                  />
-                  <div className="flex justify-center space-x-2">
-                    {updateContractMutation.isPending ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        disabled
-                      >
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setServiceAgreementTitle(
-                              splitContent(initialAgreementContent).title
-                            );
-                            setIsEditingServiceAgreementTitle(false);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setIsEditingServiceAgreementTitle(false);
-                            saveServiceAgreement();
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <h1
-                  className="text-3xl font-bold mt-2 mb-8 uppercase text-center group relative cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => setIsEditingServiceAgreementTitle(true)}
-                >
-                  {serviceAgreementTitle}
-                  <Edit className="h-4 w-4 absolute -right-6 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </h1>
-              )}
+            <div className="mb-12 max-w-4xl mx-auto">              {/* Service Agreement Title - Using consistent editable pattern */}
+              <div className="text-center mb-8">
+                <ServiceAgreementTitleField
+                  value={serviceAgreementTitle}
+                  onChange={setServiceAgreementTitle}
+                  onSave={saveServiceAgreement}
+                />
+              </div>
 
               {/* Service Agreement Content - Enhanced Editable Field */}
               <EditableField

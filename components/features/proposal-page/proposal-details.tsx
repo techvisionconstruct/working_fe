@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/shared";
+import { ConfirmationDialog } from "./confirmation-dialog";
 import { ProposalResponse } from "@/types/proposals/dto";
 import { replaceVariableIdsWithNames } from "@/helpers/replace-variable-ids-with-names";
 
@@ -10,6 +11,8 @@ interface ProposalDetailsProps {
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   const [isSending, setIsSending] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   const sendProposalToClient = async () => {
     if (!proposal.id) return;
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -43,7 +46,20 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
       );
     } finally {
       setIsSending(false);
+      setShowConfirmDialog(false);
     }
+  };
+
+  const handleSendClick = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSend = () => {
+    sendProposalToClient();
+  };
+
+  const handleCancelSend = () => {
+    setShowConfirmDialog(false);
   };
 
   // State to track which variable types are expanded
@@ -53,6 +69,17 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
 
   return (
     <>
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={handleCancelSend}
+        onConfirm={handleConfirmSend}
+        title="Send Proposal to Client"
+        message={`Are you sure you want to send this proposal to ${proposal?.client_name} (${proposal?.client_email})? This action cannot be undone.`}
+        confirmText="Send Proposal"
+        cancelText="Cancel"
+        isLoading={isSending}
+      />
+
       <div className="w-full max-w-8xl relative left-1/2 right-1/2 -translate-x-1/2 h-48 md:h-64 mb-4">
         <img
           src={
@@ -174,7 +201,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               <Button
                 variant="outline"
                 className="w-full mb-4"
-                onClick={sendProposalToClient}
+                onClick={handleSendClick}
                 disabled={isSending || !proposal.client_email}
               >
                 {isSending ? (

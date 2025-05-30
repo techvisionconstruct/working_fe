@@ -1330,6 +1330,19 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
 
     if (!elementToUpdate) return;
 
+    // Create a complete element update with all required fields (same as global markup)
+    const elementData = {
+      name: elementToUpdate.name,
+      description: elementToUpdate.description || undefined,
+      material_cost_formula: elementToUpdate.material_cost_formula,
+      labor_cost_formula: elementToUpdate.labor_cost_formula,
+      markup: newMarkup,
+      // Include other essential fields that might be needed
+      material_formula_variables: elementToUpdate.material_formula_variables,
+      labor_formula_variables: elementToUpdate.labor_formula_variables,
+    };
+
+    // Update local state immediately for UI responsiveness
     const updatedTrades = trades.map(trade => {
       if (trade.id === tradeId) {
         return {
@@ -1349,23 +1362,77 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     });
     
     updateTrades(updatedTrades);
-    
-    updateElementMutation({
-      elementId,
-      data: {
-        name: elementToUpdate.name,
-        description: elementToUpdate.description || undefined,
-        image: elementToUpdate.image || undefined,
-        material_cost_formula: elementToUpdate.material_cost_formula,
-        labor_cost_formula: elementToUpdate.labor_cost_formula,
-        markup: newMarkup,
-        material_formula_variables: elementToUpdate.material_formula_variables,
-        labor_formula_variables: elementToUpdate.labor_formula_variables,
-      }
-    });
+
+    // Use direct updateElement call (exactly like global markup does)
+    updateElement(elementId, elementData)
+      .then(response => {
+        console.log(`Successfully updated element ${elementId} with markup ${newMarkup}%`);
+
+        if (response && response.data) {
+          const updatedElement = response.data;
+
+          // Update local state with backend response (same as global markup)
+          const finalUpdatedTrades = trades.map((trade) => {
+            if (trade.elements && trade.elements.some((e) => e.id === updatedElement.id)) {
+              return {
+                ...trade,
+                elements: trade.elements.map((element) =>
+                  element.id === updatedElement.id ? updatedElement : element
+                ),
+              };
+            }
+            return trade;
+          });
+          
+          updateTrades(finalUpdatedTrades);
+        }
+
+        // Invalidate queries (same as global markup)
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        
+        toast.success(`Markup updated to ${newMarkup}%`, {
+          position: "top-center",
+          description: `Element "${elementToUpdate.name}" markup has been saved.`
+        });
+      })
+      .catch(error => {
+        console.error(`Error updating element ${elementId}:`, error);
+        
+        // Revert local state on error (same error handling pattern as global markup)
+        const revertedTrades = trades.map(trade => {
+          if (trade.id === tradeId) {
+            return {
+              ...trade,
+              elements: (trade.elements || []).map(element => {
+                if (element.id === elementId) {
+                  return {
+                    ...element,
+                    markup: elementToUpdate.markup || 0 // Revert to original markup
+                  };
+                }
+                return element;
+              })
+            };
+          }
+          return trade;
+        });
+        
+        updateTrades(revertedTrades);
+
+        // Invalidate queries even on error (same as global markup)
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        
+        toast.error("Failed to save markup", {
+          position: "top-center",
+          description: error instanceof Error ? error.message : "An unexpected error occurred"
+        });
+      });
     
     setEditingMarkupElementId(null);
   };
+
   const cancelEditingMarkup = () => {
     setEditingMarkupElementId(null);
   };
@@ -2433,6 +2500,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                               // Removed individual toast since bulk update will handle it
                               
                               queryClient.invalidateQueries({ queryKey: ["elements"] });
+                              queryClient.invalidateQueries({ queryKey: ["trades"] });
                             })
                             .catch(error => {
                               console.error("Error updating element markup:", error);
