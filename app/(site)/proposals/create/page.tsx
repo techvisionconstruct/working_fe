@@ -25,6 +25,7 @@ import { ProposalResponse } from "@/types/proposals/dto";
 import { CreateContract } from "@/components/features/create-proposal-page/create-contract";
 import { createContract } from "@/api-calls/contracts/create-contract";
 import { ContractCreateRequest } from "@/types/contracts/dto";
+import { getProposalById } from "@/api-calls/proposals/get-proposal-by-id";
 
 interface ProposalDetailsProps {
   proposal?: ProposalResponse; // Make proposal optional
@@ -138,10 +139,17 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
         templateId: string;
         template: TemplateUpdateRequest;
       }) => updateTemplate(data.templateId, data.template),
-      onSuccess: () => {
-        toast.success("Template updated successfully!", {
-          description: "Your proposal has been saved",
-        });
+      onSuccess: async () => {
+        try {
+          console.log(createdProposal?.id);
+          getProposalById(createdProposal?.id || "").then((data) => {
+            console.log("Updated proposal data:", data);
+            setCreatedProposal(data.data);
+          })
+        } catch (error) {
+          console.error('Error fetching updated proposal:', error);
+          toast.error("Template updated but failed to refresh proposal data");
+        }
       },
       onError: (error: any) => {
         toast.error("Failed to update template", {
@@ -150,7 +158,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
         });
       },
     });
-
+  console.log("Created Proposal:", createdProposal);
   const handleCreateProposalAndContract = async () => {
     const templateId = formData.template ? formData.template.id : null;
 
@@ -235,7 +243,19 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
       variables: variableObjects.map((variable) => variable.id),
     };
 
-    updateTemplateMutation({ templateId, template: tradesAndVariables });
+    return new Promise((resolve, reject) => {
+      updateTemplateMutation(
+        { templateId, template: tradesAndVariables },
+        {
+          onSuccess: (data) => {
+            resolve(data);
+          },
+          onError: (error) => {
+            reject(error);
+          },
+        }
+      );
+    });
   };
 
   const [isSending, setIsSending] = useState(false);
