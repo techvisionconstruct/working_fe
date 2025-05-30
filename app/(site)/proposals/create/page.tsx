@@ -38,7 +38,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
   const [contractId, setContractId] = useState<string>("");
   const [template, setTemplate] = useState<TemplateResponse | null>(null);
   const [createdProposal, setCreatedProposal] = useState<ProposalResponse>();
-  console.log("Created Proposal:", createdProposal);
+
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -75,6 +75,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
   const [variableObjects, setVariableObjects] = useState<VariableResponse[]>(
     proposal?.template?.variables || []
   );
+
 
   const updateFormData = (data: any) => {
     setFormData((prev) => ({
@@ -514,7 +515,7 @@ export default function CreateProposalPage({ proposal }: ProposalDetailsProps) {
           <TabsContent value="contract" className="p-6 contract-tab-content">
             {/* Only render CreateContract if we have a proposal */}
             
-              <CreateContract contract_id={contractId} proposal={createdProposal} />
+              <CreateContract contract_id={contractId} proposal={createdProposal} variables={variableObjects}/>
             
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={handleBack}>

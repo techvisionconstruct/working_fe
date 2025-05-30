@@ -484,16 +484,14 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
 export function CreateContract({
   contract_id,
   proposal,
+  variables
 }: {
   contract_id: string;
   proposal: ProposalResponse | undefined;
+  variables: VariableResponse
 }) {
   // Add local contract state
   const { data: contract } = useQuery(getContract(contract_id as string));
-
-  // Use localContract if available, otherwise fallback to proposal.contract
-
-  console.log("Contract data:", contract);
 
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
@@ -1474,64 +1472,63 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 </div>
 
                 {/* Project Variables - Same as before */}
-                {proposal.template?.variables &&
-                  proposal.template?.variables.length > 0 && (
-                    <div className="space-y-4 mt-4">
-                      <h3 className="text-lg font-semibold">
-                        Project Variables
-                      </h3>
-                      {(() => {
-                        // Group variables by variable_type name
-                        const groupedVariables: Record<
-                          string,
-                          VariableResponse[]
-                        > = {};
-                        proposal.template.variables.forEach((variable) => {
-                          const typeName =
-                            variable.variable_type?.name || "Other";
-                          if (!groupedVariables[typeName]) {
-                            groupedVariables[typeName] = [];
-                          }
-                          groupedVariables[typeName].push(variable);
-                        });
+                {Array.isArray(variables) && variables.length > 0 && (
+                  <div className="space-y-4 mt-4">
+                    <h3 className="text-lg font-semibold">
+                      Project Variables
+                    </h3>
+                    {(() => {
+                      // Group variables by variable_type name
+                      const groupedVariables: Record<
+                        string,
+                        VariableResponse[]
+                      > = {};
+                      variables.forEach((variable) => {
+                        const typeName =
+                          variable.variable_type?.name || "Other";
+                        if (!groupedVariables[typeName]) {
+                          groupedVariables[typeName] = [];
+                        }
+                        groupedVariables[typeName].push(variable);
+                      });
 
-                        return (
-                          <div className="grid grid-cols-2 gap-6">
-                            {Object.entries(groupedVariables).map(
-                              ([typeName, variables]) => (
-                                <div
-                                  key={typeName}
-                                  className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                                >
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <div className="h-6 w-1 bg-primary rounded-full"></div>
-                                    <h4 className="font-medium text-sm">
-                                      {typeName}
-                                    </h4>
-                                  </div>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    {variables.map((variable) => (
-                                      <div
-                                        key={variable.id}
-                                        className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
-                                      >
-                                        <span className="text-gray-600">
-                                          {variable.name || "Variable Name"}
-                                        </span>
-                                        <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
-                                          {variable.value}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
+                      return (
+                        <div className="grid grid-cols-2 gap-6">
+                          {Object.entries(groupedVariables).map(
+                            ([typeName, variables]) => (
+                              <div
+                                key={typeName}
+                                className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                              >
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                  <h4 className="font-medium text-sm">
+                                    {typeName}
+                                  </h4>
                                 </div>
-                              )
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
+                                <div className="grid grid-cols-1 gap-2">
+                                  {variables.map((variable) => (
+                                    <div
+                                      key={variable.id}
+                                      className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
+                                    >
+                                      <span className="text-gray-600">
+                                        {variable.name || "Variable Name"}
+                                      </span>
+                                      <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
+                                        {variable.value}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {/* Project Elements - Same as before */}
                 {proposal.template?.trades &&

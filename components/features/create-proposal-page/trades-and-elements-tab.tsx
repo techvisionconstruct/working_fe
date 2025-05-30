@@ -981,7 +981,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setInlineEditingVariableId(variable.id);
     setInlineEditValue(variable.value || 0);
   };
-  const saveInlineValueEdit = (variableId: string, newValue: number) => {
+  const saveInlineValueEdit = async (variableId: string, newValue: number) => {
     if (inlineEditingVariableId === "zero-values-ready") {
       if (variableId !== "zero-values-ready") {
         setInlineEditingVariableId(variableId);
@@ -1001,7 +1001,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       variable_type: variableToUpdate.variable_type?.id || "",
     };
 
-    // Update local variables immediately
+    // Update local variables immediately for UI responsiveness
     const updatedVariables = variables.map((variable) => {
       if (variable.id === variableId) {
         return {
@@ -1063,19 +1063,28 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     // Set loading state for affected elements
     setUpdatingElementCosts(new Set(elementIds));
 
-    // Update variable first with proper cache handling
-    updateVariableMutation({
-      variableId: variableId,
-      data: variableData,
-    });
+    try {
+      // Step 1: Update variable first and wait for completion using direct API call
+      console.log('Updating variable first:', variableId, variableData);
+      const variableResponse = await updateVariable(variableId, variableData);
+      console.log('Variable updated successfully:', variableResponse);
 
-    // Update elements that depend on this variable
-    if (elementsToUpdate.length > 0) {
-      Promise.all(
-        elementsToUpdate.map(({ elementId, data }) => 
-          updateElement(elementId, data)
-        )
-      ).then((responses) => {
+      // Invalidate variables query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["variables"] });
+
+      // Step 2: Update dependent elements sequentially after variable update completes
+      if (elementsToUpdate.length > 0) {
+        console.log(`Updating ${elementsToUpdate.length} dependent elements after variable update...`);
+        
+        const responses = await Promise.all(
+          elementsToUpdate.map(({ elementId, data }) => {
+            console.log('Updating element:', elementId);
+            return updateElement(elementId, data);
+          })
+        );
+
+        console.log('All elements updated successfully:', responses.length);
+
         // Update caches directly with response data
         responses.forEach((response) => {
           if (response && response.data) {
@@ -1126,19 +1135,31 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
             updateTrades(updatedTrades);
           }
         });
-
-        // Clear loading states
-        setUpdatingElementCosts(new Set());
-        setIsUpdatingVariable(false);
         
-        toast.success(`Updated ${elementsToUpdate.length} elements with new variable value`);
-      }).catch((error) => {
-        console.error('Error updating elements:', error);
-        setUpdatingElementCosts(new Set());
-        setIsUpdatingVariable(false);
-        toast.error('Failed to update some elements');
+        toast.success(`Variable updated and ${elementsToUpdate.length} dependent elements refreshed`, {
+          position: "top-center",
+          description: `All changes have been saved successfully.`
+        });
+      } else {
+        toast.success("Variable updated successfully", {
+          position: "top-center",
+          description: `Variable "${variableToUpdate.name}" has been updated.`
+        });
+      }
+
+    } catch (error) {
+      console.error('Error in sequential update process:', error);
+      
+      // Revert local state on error
+      updateVariables(variables);
+      
+      toast.error('Failed to update variable or dependent elements', {
+        position: "top-center",
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
       });
-    } else {
+    } finally {
+      // Clear loading states
+      setUpdatingElementCosts(new Set());
       setIsUpdatingVariable(false);
     }
 
@@ -1687,135 +1708,162 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     setShowEditVariableDialog(true);
   };
 
-  const handleEditVariable = () => {
+  const handleEditVariable = async () => {
     if (!editVariableName.trim() || !currentVariableId) return;
 
     setIsUpdatingVariable(true);
     
-    let processedFormula = editVariableFormula;
-    if (editVariableFormula) {
-      const namePattern = /\{([^{}]+)\}/g;
-      processedFormula = editVariableFormula.replace(namePattern, (match, variableName) => {
-        const exactIdMatch = variables.find(v => v.id === variableName);
-        if (exactIdMatch) return match;
-        
-        const variable = variables.find(v => v.name === variableName);
-        return variable ? `{${variable.id}}` : match;
+    try {
+      let processedFormula = editVariableFormula;
+      if (editVariableFormula) {
+        const namePattern = /\{([^{}]+)\}/g;
+        processedFormula = editVariableFormula.replace(namePattern, (match, variableName) => {
+          const exactIdMatch = variables.find(v => v.id === variableName);
+          if (exactIdMatch) return match;
+          
+          const variable = variables.find(v => v.name === variableName);
+          return variable ? `{${variable.id}}` : match;
+        });
+      }
+
+      const variableData = {
+        name: editVariableName.trim(),
+        description: editVariableDescription.trim() || undefined,
+        value: processedFormula ? undefined : editVariableValue,
+        formula: processedFormula || undefined,
+        variable_type: editVariableType,
+      };
+
+      let updatedValue = editVariableValue;
+      if (processedFormula) {
+        const calculatedValue = calculateFormulaValue(processedFormula, variables);
+        if (calculatedValue !== null) {
+          updatedValue = calculatedValue;
+        }
+      }
+
+      const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data)
+        ? (apiVariableTypes as any).data.find(
+            (type: any) => type.id.toString() === editVariableType
+          )
+        : null;
+
+      // Update local variables immediately for UI responsiveness
+      const updatedVariables = variables.map((variable) => {
+        if (variable.id === currentVariableId) {
+          return {
+            ...variable,
+            name: editVariableName.trim(),
+            description: editVariableDescription.trim() || "",
+            value: updatedValue,
+            formula: processedFormula || "",
+            variable_type: selectedVariableType || variable.variable_type,
+          } as VariableResponse;
+        }
+        return variable;
       });
-    }
 
-    const variableData = {
-      name: editVariableName.trim(),
-      description: editVariableDescription.trim() || undefined,
-      value: processedFormula ? undefined : editVariableValue,
-      formula: processedFormula || undefined,
-      variable_type: editVariableType,
-    };
+      updateVariables(updatedVariables);
 
-    let updatedValue = editVariableValue;
-    if (processedFormula) {
-      const calculatedValue = calculateFormulaValue(processedFormula, variables);
-      if (calculatedValue !== null) {
-        updatedValue = calculatedValue;
-      }
-    }
+      const elementsToUpdate: { elementId: string; data: any }[] = [];
 
-    const selectedVariableType = Array.isArray((apiVariableTypes as any)?.data)
-      ? (apiVariableTypes as any).data.find(
-          (type: any) => type.id.toString() === editVariableType
-        )
-      : null;
+      trades.forEach((trade) => {
+        if (trade.elements) {
+          trade.elements.forEach((element) => {
+            let needsUpdate = false;
 
-    const updatedVariables = variables.map((variable) => {
-      if (variable.id === currentVariableId) {
-        return {
-          ...variable,
-          name: editVariableName.trim(),
-          description: editVariableDescription.trim() || "",
-          value: updatedValue,
-          formula: processedFormula || "",
-          variable_type: selectedVariableType || variable.variable_type,
-        } as VariableResponse;
-      }
-      return variable;
-    });
+            if (
+              element.material_formula_variables &&
+              element.material_formula_variables.some(
+                (v) => v.id.toString() === currentVariableId
+              )
+            ) {
+              needsUpdate = true;
+            }
 
-    updateVariables(updatedVariables);
+            if (
+              element.labor_formula_variables &&
+              element.labor_formula_variables.some(
+                (v) => v.id.toString() === currentVariableId
+              )
+            ) {
+              needsUpdate = true;
+            }
 
-    const elementsToUpdate: { elementId: string; data: any }[] = [];
-
-    trades.forEach((trade) => {
-      if (trade.elements) {
-        trade.elements.forEach((element) => {
-          let needsUpdate = false;
-
-          if (
-            element.material_formula_variables &&
-            element.material_formula_variables.some(
-              (v) => v.id.toString() === currentVariableId
-            )
-          ) {
-            needsUpdate = true;
-          }
-
-          if (
-            element.labor_formula_variables &&
-            element.labor_formula_variables.some(
-              (v) => v.id.toString() === currentVariableId
-            )
-          ) {
-            needsUpdate = true;
-          }
-
-          if (needsUpdate) {
-            elementsToUpdate.push({
-              elementId: element.id,
-              data: {
-                name: element.name,
-                description: element.description || undefined,
-                image: element.image || undefined,
-                material_cost_formula: element.material_cost_formula,
-                labor_cost_formula: element.labor_cost_formula,
-                markup: element.markup,
-                material_formula_variables: element.material_formula_variables,
-                labor_formula_variables: element.labor_formula_variables,
-              },
-            });
-          }
-        });
-      }
-    });
-
-    const variableElementsToUpdate = elementsToUpdate;    updateVariableMutation({
-      variableId: currentVariableId,
-      data: variableData,
-    });
-
-    // Immediately invalidate variables query to reflect updates
-    queryClient.invalidateQueries({ queryKey: ["variables"] });
-
-    setTimeout(() => {
-      if (variableElementsToUpdate.length > 0) {
-        variableElementsToUpdate.forEach(({ elementId, data }) => {
-          updateElementMutation({
-            elementId,
-            data,
+            if (needsUpdate) {
+              elementsToUpdate.push({
+                elementId: element.id,
+                data: {
+                  name: element.name,
+                  description: element.description || undefined,
+                  image: element.image || undefined,
+                  material_cost_formula: element.material_cost_formula,
+                  labor_cost_formula: element.labor_cost_formula,
+                  markup: element.markup,
+                  material_formula_variables: element.material_formula_variables,
+                  labor_formula_variables: element.labor_formula_variables,
+                },
+              });
+            }
           });
-        });
+        }
+      });
 
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["elements"] });
-          queryClient.invalidateQueries({ queryKey: ["trades"] });
-          toast.success(`All elements updated with new variable value`);
-          setIsUpdatingVariable(false);
-        }, 2000);
+      // Step 1: Update variable first and wait for completion using direct API call
+      console.log('Updating variable in edit dialog first:', currentVariableId, variableData);
+      const variableResponse = await updateVariable(currentVariableId, variableData);
+      console.log('Variable updated successfully in edit dialog:', variableResponse);
+
+      // Invalidate variables query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["variables"] });
+
+      // Step 2: Update dependent elements sequentially after variable update completes
+      if (elementsToUpdate.length > 0) {
+        console.log(`Updating ${elementsToUpdate.length} dependent elements after variable edit...`);
+        
+        const responses = await Promise.all(
+          elementsToUpdate.map(({ elementId, data }) => {
+            console.log('Updating element in edit dialog:', elementId);
+            return updateElement(elementId, data);
+          })
+        );
+
+        console.log('All elements updated successfully in edit dialog:', responses.length);
+
+        // Invalidate queries after all elements are updated
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
+        
+        toast.success(`Variable updated and ${elementsToUpdate.length} dependent elements refreshed`, {
+          position: "top-center",
+          description: `All changes have been saved successfully.`
+        });
       } else {
         // Still invalidate queries even if no elements need updates
         queryClient.invalidateQueries({ queryKey: ["elements"] });
         queryClient.invalidateQueries({ queryKey: ["trades"] });
-        setIsUpdatingVariable(false);
+        
+        toast.success("Variable updated successfully", {
+          position: "top-center",
+          description: `Variable "${editVariableName}" has been saved.`
+        });
       }
-    }, 1000);
+
+      setShowEditVariableDialog(false);
+
+    } catch (error) {
+      console.error('Error in sequential variable edit process:', error);
+      
+      // Revert local state on error
+      updateVariables(variables);
+      
+      toast.error('Failed to update variable or dependent elements', {
+        position: "top-center",
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setIsUpdatingVariable(false);
+    }
   };
   const handleOpenEditDialog = (element: ElementResponse) => {
     setCurrentElementId(element.id);

@@ -18,6 +18,7 @@ export function ContractPreview({ proposal }: ContractPreviewProps) {
       return "Invalid date";
     }
   };
+  
   return (
     <div className="border rounded-md p-8 bg-white">
       <div className="max-w-4xl mx-auto">
