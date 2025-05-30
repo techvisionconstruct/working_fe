@@ -515,23 +515,20 @@ export function CreateContract({
     proposal?.client_address || ""
   );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
-
   // Add state for editable contract name and description
-  const [contractName, setContractName] = useState(contract?.name || "");
+  const [contractName, setContractName] = useState(proposal?.name || contract?.name || "");
   const [contractDescription, setContractDescription] = useState(
-    contract?.description || ""
-  );
-
-  // Default service agreement content with title as first line
-  const defaultServiceAgreement = `SERVICE AGREEMENT
+    proposal?.description || contract?.description || ""
+  );// Default service agreement content with title as first line - reactive to client data
+  const defaultServiceAgreement = useMemo(() => `SERVICE AGREEMENT
 
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
 Client: ${
-    contract?.client_name || "[CLIENT_NAME]"
+    proposal?.client_name || clientName || "[CLIENT_NAME]"
   }, with a primary address at ${
-    contract?.client_address || "[CLIENT_ADDRESS]"
+    proposal?.client_address || clientAddress || "[CLIENT_ADDRESS]"
   }.
 
 1. SCOPE OF SERVICES:
@@ -544,13 +541,14 @@ Payment is due within 30 days of invoice receipt. Late payments are subject to a
 This Agreement shall commence on the date of signing and shall continue until the services are completed, unless terminated earlier.
 
 4. CHANGES AND MODIFICATIONS:
-Any changes to the scope of work must be agreed upon in writing by both parties.`;
-
+Any changes to the scope of work must be agreed upon in writing by both parties.`, [proposal?.client_name, proposal?.client_address, clientName, clientAddress]);
   // Split the content into title and body
-  const initialAgreementContent =
+  const initialAgreementContent = useMemo(() => 
     contract?.service_agreement_content ||
     contract?.service_agreement?.content ||
-    defaultServiceAgreement;
+    defaultServiceAgreement,
+    [contract?.service_agreement_content, contract?.service_agreement?.content, defaultServiceAgreement]
+  );
 
   const splitContent = (content: string) => {
     const lines = content.split("\n");
@@ -568,10 +566,16 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   const [serviceAgreementTitle, setServiceAgreementTitle] = useState(
     splitContent(initialAgreementContent).title
-  );
-  const [serviceAgreementBody, setServiceAgreementBody] = useState(
+  );  const [serviceAgreementBody, setServiceAgreementBody] = useState(
     splitContent(initialAgreementContent).body
   );
+
+  // Update service agreement when initialAgreementContent changes
+  useEffect(() => {
+    const { title, body } = splitContent(initialAgreementContent);
+    setServiceAgreementTitle(title);
+    setServiceAgreementBody(body);
+  }, [initialAgreementContent]);
 
   const serviceAgreementContent = `${serviceAgreementTitle}\n${serviceAgreementBody}`;
 
