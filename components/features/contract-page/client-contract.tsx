@@ -17,7 +17,8 @@ import {
   Button,
   Label,
 } from "@/components/shared";
-import { postContract, updateContract } from "@/api-calls/server/contracts";
+import { createContract } from "@/api-calls/contracts/create-contract";
+import { updateContract } from "@/api-calls/server/contracts";
 import { toast } from "sonner";
 
 interface TermSection {
@@ -111,12 +112,11 @@ export function ClientContractDetails({ proposal }: ContractDetailsProps) {
           proposal.contract.uuid;
 
         if (!contractId) {
-          console.error("No contract ID found in the proposal object");
-          throw new Error("Contract ID is missing");
+          console.error("No contract ID found in the proposal object");        throw new Error("Contract ID is missing");
         }
         return updateContract(contractId, data);
       } else {
-        return postContract(data);
+        return createContract(data);
       }
     },
     onSuccess: (data) => {
@@ -1036,30 +1036,7 @@ export function ClientContractDetails({ proposal }: ContractDetailsProps) {
                       <line x1="10" x2="8" y1="9" y2="9" />
                     </svg>
                     {proposal?.contract ? "Update Contract" : "Create Contract"}
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="secondary"
-                className="w-full flex items-center justify-center gap-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-printer"
-                >
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect width="12" height="8" x="6" y="14" />
-                </svg>
-                Print Contract
+                  </>                )}
               </Button>
               <Separator className="my-2" />{" "}
               <div className="rounded-md border p-3">
