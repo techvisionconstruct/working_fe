@@ -105,10 +105,7 @@ const ServiceAgreementTitleField: React.FC<{
         isEditing &&
         inputRef.current &&
         !inputRef.current.contains(event.target as Node) &&
-        !(
-          event.target instanceof Element &&
-          event.target.closest("button")
-        )
+        !(event.target instanceof Element && event.target.closest("button"))
       ) {
         handleSave();
       }
@@ -222,7 +219,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   // Update temp value when prop value changes
   useEffect(() => {
     setTempValue(value);
-  }, [value]);  // Handle clicks outside the textarea to save
+  }, [value]); // Handle clicks outside the textarea to save
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (skipNextOutsideClick.current) {
@@ -234,10 +231,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         isEditing &&
         inputRef.current &&
         !inputRef.current.contains(event.target as Node) &&
-        !(
-          event.target instanceof Element &&
-          event.target.closest("button")
-        )
+        !(event.target instanceof Element && event.target.closest("button"))
       ) {
         handleSave();
       }
@@ -370,14 +364,12 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
       if (skipNextOutsideClick.current) {
         skipNextOutsideClick.current = false;
         return;
-      }      if (
+      }
+      if (
         isEditing &&
         inputRef.current &&
         !inputRef.current.contains(event.target as Node) &&
-        !(
-          event.target instanceof Element &&
-          event.target.closest("button")
-        )
+        !(event.target instanceof Element && event.target.closest("button"))
       ) {
         handleSave();
       }
@@ -484,14 +476,27 @@ const EditableClientField: React.FC<EditableClientFieldProps> = ({
 export function CreateContract({
   contract_id,
   proposal,
-  variables
 }: {
   contract_id: string;
   proposal: ProposalResponse | undefined;
-  variables: VariableResponse
 }) {
-  // Add local contract state
-  const { data: contract } = useQuery(getContract(contract_id as string));
+  const { data: contract, isLoading: isContractLoading } = useQuery(
+    getContract(contract_id as string)
+  );
+
+  // Add check for proposal template data
+  if (!proposal || !proposal.template || isContractLoading) {
+    return (
+      <div className="w-full h-[50vh] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-muted-foreground">
+            Loading contract details...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
@@ -514,20 +519,23 @@ export function CreateContract({
   );
   const [isClientInfoSaving, setIsClientInfoSaving] = useState(false);
   // Add state for editable contract name and description
-  const [contractName, setContractName] = useState(proposal?.name || contract?.name || "");
+  const [contractName, setContractName] = useState(
+    proposal?.name || contract?.name || ""
+  );
   const [contractDescription, setContractDescription] = useState(
     proposal?.description || contract?.description || ""
-  );// Default service agreement content with title as first line - reactive to client data
-  const defaultServiceAgreement = useMemo(() => `SERVICE AGREEMENT
+  ); // Default service agreement content with title as first line - reactive to client data
+  const defaultServiceAgreement = useMemo(
+    () => `SERVICE AGREEMENT
 
 This Service Agreement is entered into as of the date of signing, by and between:
 
 Service Provider: Simple ProjeX, with its principal place of business at Irvine, California, and
 Client: ${
-    proposal?.client_name || clientName || "[CLIENT_NAME]"
-  }, with a primary address at ${
-    proposal?.client_address || clientAddress || "[CLIENT_ADDRESS]"
-  }.
+      proposal?.client_name || clientName || "[CLIENT_NAME]"
+    }, with a primary address at ${
+      proposal?.client_address || clientAddress || "[CLIENT_ADDRESS]"
+    }.
 
 1. SCOPE OF SERVICES:
 The Service Provider agrees to perform the services as outlined in the attached Proposal.
@@ -539,13 +547,20 @@ Payment is due within 30 days of invoice receipt. Late payments are subject to a
 This Agreement shall commence on the date of signing and shall continue until the services are completed, unless terminated earlier.
 
 4. CHANGES AND MODIFICATIONS:
-Any changes to the scope of work must be agreed upon in writing by both parties.`, [proposal?.client_name, proposal?.client_address, clientName, clientAddress]);
+Any changes to the scope of work must be agreed upon in writing by both parties.`,
+    [proposal?.client_name, proposal?.client_address, clientName, clientAddress]
+  );
   // Split the content into title and body
-  const initialAgreementContent = useMemo(() => 
-    contract?.service_agreement_content ||
-    contract?.service_agreement?.content ||
-    defaultServiceAgreement,
-    [contract?.service_agreement_content, contract?.service_agreement?.content, defaultServiceAgreement]
+  const initialAgreementContent = useMemo(
+    () =>
+      contract?.service_agreement_content ||
+      contract?.service_agreement?.content ||
+      defaultServiceAgreement,
+    [
+      contract?.service_agreement_content,
+      contract?.service_agreement?.content,
+      defaultServiceAgreement,
+    ]
   );
 
   const splitContent = (content: string) => {
@@ -564,7 +579,8 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
 
   const [serviceAgreementTitle, setServiceAgreementTitle] = useState(
     splitContent(initialAgreementContent).title
-  );  const [serviceAgreementBody, setServiceAgreementBody] = useState(
+  );
+  const [serviceAgreementBody, setServiceAgreementBody] = useState(
     splitContent(initialAgreementContent).body
   );
 
@@ -1255,47 +1271,53 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     signatures,
   ]);
 
-  // Add auto-save for contract name and description
+  // Update the auto-save effect for contract name and description
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      // Check if contract exists and if either name or description has changed
       if (
-        contract.name !== contractName ||
-        contract.description !== contractDescription
+        contract &&
+        (contract.name !== contractName ||
+          contract.description !== contractDescription)
       ) {
         saveContractInfoChanges();
       }
     }, 1500); // 1.5 second debounce
 
     return () => clearTimeout(debounceTimer);
-  }, [contractName, contractDescription]);
+  }, [contractName, contractDescription, contract]);
 
-  // Enhanced save contract info changes function
+  // Update saveContractInfoChanges function
   const saveContractInfoChanges = async () => {
     if (!contract_id) return;
-    if (!proposal?.id) return; // Check if proposal ID exists before trying to use it
+    if (!proposal?.id) return;
 
     try {
-      // Update proposal name and description
+      // Create payload with current values
+      const payload = {
+        name: contractName || "",
+        description: contractDescription || "",
+      };
+
+      // Update proposal first
       await updateProposalMutation.mutateAsync({
-        id: proposal.id, // Now we know this is defined
-        data: {
-          name: contractName,
-          description: contractDescription,
-        },
+        id: proposal.id,
+        data: payload,
       });
 
-      // If we have a contract, also update it
-      if (contract && contract.id) {
+      // If contract exists, update it too
+      if (contract?.id) {
         await updateContractMutation.mutateAsync({
           id: contract.id,
-          contract: {
-            name: contractName,
-            description: contractDescription,
-          },
+          contract: payload,
         });
       }
+
+      // Optional: Show success message
+      toast.success("Contract information updated successfully");
     } catch (error) {
       console.error("Error in saveContractInfoChanges:", error);
+      toast.error("Failed to update contract information");
     }
   };
 
@@ -1303,7 +1325,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
     <div className="w-full mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
-          <div className="p-6 rounded-lg border bg-muted/30 w-full">            <div className="mb-12 max-w-4xl mx-auto">
+          <div className="p-6 rounded-lg border bg-muted/30 w-full">
+            {" "}
+            <div className="mb-12 max-w-4xl mx-auto">
               {/* Service Agreement Title - Using consistent editable pattern */}
               <div className="text-center mb-8">
                 <ServiceAgreementTitleField
@@ -1323,11 +1347,9 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 tooltip="Click to edit agreement content"
               />
             </div>
-
             <h2 className="text-2xl font-bold mb-4 text-primary uppercase tracking-wider text-center">
               Contract Details
             </h2>
-
             {proposal ? (
               <div className="space-y-8 w-full">
                 {/* Contract Header - Make name and description editable */}
@@ -1472,63 +1494,64 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
                 </div>
 
                 {/* Project Variables - Same as before */}
-                {Array.isArray(variables) && variables.length > 0 && (
-                  <div className="space-y-4 mt-4">
-                    <h3 className="text-lg font-semibold">
-                      Project Variables
-                    </h3>
-                    {(() => {
-                      // Group variables by variable_type name
-                      const groupedVariables: Record<
-                        string,
-                        VariableResponse[]
-                      > = {};
-                      variables.forEach((variable) => {
-                        const typeName =
-                          variable.variable_type?.name || "Other";
-                        if (!groupedVariables[typeName]) {
-                          groupedVariables[typeName] = [];
-                        }
-                        groupedVariables[typeName].push(variable);
-                      });
+                {proposal.template?.variables &&
+                  proposal.template?.variables.length > 0 && (
+                    <div className="space-y-4 mt-4">
+                      <h3 className="text-lg font-semibold">
+                        Project Variables
+                      </h3>
+                      {(() => {
+                        // Group variables by variable_type name
+                        const groupedVariables: Record<
+                          string,
+                          VariableResponse[]
+                        > = {};
+                        proposal.template.variables.forEach((variable) => {
+                          const typeName =
+                            variable.variable_type?.name || "Other";
+                          if (!groupedVariables[typeName]) {
+                            groupedVariables[typeName] = [];
+                          }
+                          groupedVariables[typeName].push(variable);
+                        });
 
-                      return (
-                        <div className="grid grid-cols-2 gap-6">
-                          {Object.entries(groupedVariables).map(
-                            ([typeName, variables]) => (
-                              <div
-                                key={typeName}
-                                className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                              >
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="h-6 w-1 bg-primary rounded-full"></div>
-                                  <h4 className="font-medium text-sm">
-                                    {typeName}
-                                  </h4>
+                        return (
+                          <div className="grid grid-cols-2 gap-6">
+                            {Object.entries(groupedVariables).map(
+                              ([typeName, variables]) => (
+                                <div
+                                  key={typeName}
+                                  className="space-y-2 bg-white p-4 rounded-lg shadow-sm border border-gray-100"
+                                >
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className="h-6 w-1 bg-primary rounded-full"></div>
+                                    <h4 className="font-medium text-sm">
+                                      {typeName}
+                                    </h4>
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {variables.map((variable) => (
+                                      <div
+                                        key={variable.id}
+                                        className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
+                                      >
+                                        <span className="text-gray-600">
+                                          {variable.name || "Variable Name"}
+                                        </span>
+                                        <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
+                                          {variable.value}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-1 gap-2">
-                                  {variables.map((variable) => (
-                                    <div
-                                      key={variable.id}
-                                      className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-md flex justify-between items-center text-sm hover:border-primary/30 transition-colors"
-                                    >
-                                      <span className="text-gray-600">
-                                        {variable.name || "Variable Name"}
-                                      </span>
-                                      <span className="font-medium bg-white px-2 py-1 rounded text-primary border border-gray-100">
-                                        {variable.value}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
+                              )
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
 
                 {/* Project Elements - Same as before */}
                 {proposal.template?.trades &&

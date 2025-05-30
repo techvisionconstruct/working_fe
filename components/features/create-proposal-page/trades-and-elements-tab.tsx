@@ -1001,172 +1001,87 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       variable_type: variableToUpdate.variable_type?.id || "",
     };
 
-    // Update local variables immediately for UI responsiveness
-    const updatedVariables = variables.map((variable) => {
-      if (variable.id === variableId) {
-        return {
-          ...variable,
-          value: newValue
-        };
-      }
-      return variable;
-    });
-    updateVariables(updatedVariables);
-
-    // Find elements that need cost recalculation
-    const elementsToUpdate: { elementId: string; data: any }[] = [];
-    const elementIds: string[] = [];
-    
-    trades.forEach((trade) => {
-      if (trade.elements) {
-        trade.elements.forEach((element) => {
-          let needsUpdate = false;
-
-          if (
-            element.material_formula_variables &&
-            element.material_formula_variables.some(
-              (v) => v.id.toString() === variableId
-            )
-          ) {
-            needsUpdate = true;
-          }
-
-          if (
-            element.labor_formula_variables &&
-            element.labor_formula_variables.some(
-              (v) => v.id.toString() === variableId
-            )
-          ) {
-            needsUpdate = true;
-          }
-
-          if (needsUpdate) {
-            elementIds.push(element.id);
-            elementsToUpdate.push({
-              elementId: element.id,
-              data: {
-                name: element.name,
-                description: element.description || undefined,
-                image: element.image || undefined,
-                material_cost_formula: element.material_cost_formula,
-                labor_cost_formula: element.labor_cost_formula,
-                markup: element.markup,
-                material_formula_variables: element.material_formula_variables,
-                labor_formula_variables: element.labor_formula_variables,
-              },
-            });
-          }
-        });
-      }
-    });
-
-    // Set loading state for affected elements
-    setUpdatingElementCosts(new Set(elementIds));
-
     try {
-      // Step 1: Update variable first and wait for completion using direct API call
-      console.log('Updating variable first:', variableId, variableData);
-      const variableResponse = await updateVariable(variableId, variableData);
-      console.log('Variable updated successfully:', variableResponse);
+      // 1. Update variable first
+      await new Promise((resolve, reject) => {
+        updateVariableMutation(
+          { variableId, data: variableData },
+          {
+            onSuccess: (data) => resolve(data),
+            onError: (error) => reject(error)
+          }
+        );
+      });
 
-      // Invalidate variables query to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["variables"] });
+      // 2. Update local variables state
+      const updatedVariables = variables.map((variable) => {
+        if (variable.id === variableId) {
+          return { ...variable, value: newValue };
+        }
+        return variable;
+      });
+      updateVariables(updatedVariables);
 
-      // Step 2: Update dependent elements sequentially after variable update completes
+      // 3. Find and prepare elements for update
+      const elementsToUpdate = trades.flatMap(trade => 
+        (trade.elements || []).filter(element => {
+          const usesVariable = [
+            ...(element.material_formula_variables || []),
+            ...(element.labor_formula_variables || [])
+          ].some(v => v.id.toString() === variableId);
+          return usesVariable;
+        }).map(element => ({
+          elementId: element.id,
+          data: {
+            name: element.name,
+            description: element.description || undefined,
+            image: element.image || undefined,
+            material_cost_formula: element.material_cost_formula || undefined,
+            labor_cost_formula: element.labor_cost_formula || undefined,
+            markup: element.markup || 0,
+            material_formula_variables: element.material_formula_variables || [],
+            labor_formula_variables: element.labor_formula_variables || [],
+            // Add these fields if they're required by your API
+            origin: element.origin || 'derived'
+          }
+        }))
+      );
+
+      // 4. Set loading state for affected elements
+      setUpdatingElementCosts(new Set(elementsToUpdate.map(e => e.elementId)));
+
+      // 5. Update elements
       if (elementsToUpdate.length > 0) {
-        console.log(`Updating ${elementsToUpdate.length} dependent elements after variable update...`);
-        
-        const responses = await Promise.all(
-          elementsToUpdate.map(({ elementId, data }) => {
-            console.log('Updating element:', elementId);
-            return updateElement(elementId, data);
+        await Promise.all(
+          elementsToUpdate.map(async ({ elementId, data }) => {
+            try {
+              await updateElement(elementId, data);
+            } catch (error) {
+              console.error(`Error updating element ${elementId}:`, error);
+              throw error;
+            }
           })
         );
-
-        console.log('All elements updated successfully:', responses.length);
-
-        // Update caches directly with response data
-        responses.forEach((response) => {
-          if (response && response.data) {
-            const updatedElement = response.data;
-            
-            // Update elements cache
-            queryClient.setQueryData(['elements'], (oldData: any) => {
-              if (!oldData) return oldData;
-              return {
-                ...oldData,
-                data: oldData.data?.map((element: any) =>
-                  element.id === updatedElement.id ? updatedElement : element
-                ) || []
-              };
-            });
-
-            // Update trades cache
-            queryClient.setQueryData(['trades'], (oldData: any) => {
-              if (!oldData) return oldData;
-              return {
-                ...oldData,
-                data: oldData.data?.map((trade: any) => {
-                  if (trade.elements && trade.elements.some((e: any) => e.id === updatedElement.id)) {
-                    return {
-                      ...trade,
-                      elements: trade.elements.map((element: any) =>
-                        element.id === updatedElement.id ? updatedElement : element
-                      ),
-                    };
-                  }
-                  return trade;
-                }) || []
-              };
-            });
-
-            // Update local trades state
-            const updatedTrades = trades.map((trade) => {
-              if (trade.elements && trade.elements.some((e) => e.id === updatedElement.id)) {
-                return {
-                  ...trade,
-                  elements: trade.elements.map((element) =>
-                    element.id === updatedElement.id ? updatedElement : element
-                  ),
-                };
-              }
-              return trade;
-            });
-            updateTrades(updatedTrades);
-          }
-        });
         
-        toast.success(`Variable updated and ${elementsToUpdate.length} dependent elements refreshed`, {
-          position: "top-center",
-          description: `All changes have been saved successfully.`
-        });
-      } else {
-        toast.success("Variable updated successfully", {
-          position: "top-center",
-          description: `Variable "${variableToUpdate.name}" has been updated.`
-        });
+        // 6. Refresh queries
+        queryClient.invalidateQueries({ queryKey: ["elements"] });
+        queryClient.invalidateQueries({ queryKey: ["trades"] });
       }
 
-    } catch (error) {
-      console.error('Error in sequential update process:', error);
-      
-      // Revert local state on error
-      updateVariables(variables);
-      
-      toast.error('Failed to update variable or dependent elements', {
-        position: "top-center",
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
-      });
-    } finally {
-      // Clear loading states
-      setUpdatingElementCosts(new Set());
-      setIsUpdatingVariable(false);
-    }
+      toast.success(`Updated variable and ${elementsToUpdate.length} elements`);
 
-    if (isZeroOrEmpty(newValue)) {
-      setInlineEditingVariableId("zero-values-ready");
-    } else {
-      setInlineEditingVariableId(null);
+    } catch (error) {
+      console.error('Error updating variable and elements:', error);
+      toast.error('Failed to update variable and elements');
+    } finally {
+      setIsUpdatingVariable(false);
+      setUpdatingElementCosts(new Set());
+      
+      if (isZeroOrEmpty(newValue)) {
+        setInlineEditingVariableId("zero-values-ready");
+      } else {
+        setInlineEditingVariableId(null);
+      }
     }
   };
 
@@ -2420,7 +2335,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             <div
                               key={trade.id}
                               className="flex items-center justify-between w-full p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-md"
-                              onClick={() => handleSelectTrade(trade)}
+                              onClick={() => handleSelectTrade(filteredTrades[0])}
                             >
                               <div className="flex items-center">
                                 <BracesIcon className="mr-2 h-4 w-4" />
