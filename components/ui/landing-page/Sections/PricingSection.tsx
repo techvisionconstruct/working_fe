@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Button, Input } from "@/components/shared";
@@ -151,19 +152,17 @@ const PricingSection = () => {
                     <span className="text-5xl font-bold text-gray-900">
                       {plan.price}
                     </span>
-                    <span className="ml-2 text-gray-600">/month</span>
-                  </div>
-
-                  <Button
-                    className={`w-full mb-8 py-6 rounded-xl text-base ${
-                      plan.highlighted
-                        ? "bg-primary hover:bg-primary/90 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-900"
-                    }`}
-                    onClick={handleCalendlyOpen}
-                  >
-                    Get Started Now
-                  </Button>
+                    <span className="ml-2 text-gray-600">/month</span>                  </div>                  <Link href={`/onboarding${email ? `?email=${encodeURIComponent(email)}` : ''}`}>
+                    <Button
+                      className={`w-full mb-8 py-6 rounded-xl text-base ${
+                        plan.highlighted
+                          ? "bg-primary hover:bg-primary/90 text-white"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                      }`}
+                    >
+                      Get Started Now
+                    </Button>
+                  </Link>
 
                   <div className="border-t border-gray-100 pt-6">
                     <p className="font-medium text-gray-700 mb-4">Includes:</p>
@@ -230,16 +229,16 @@ const PricingSection = () => {
                 borderWidth: "2px",
                 backgroundColor: theme === "dark" ? "#23272e" : "#fff",
                 color: "#191919",
-              }}
-            />
-            <Button
-              style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
-              className="hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
-              type="submit"
-              onClick={handleCalendlyOpen}
-            >
-              Get Started Now!
-            </Button>
+              }}            />
+            <Link href={`/onboarding${email ? `?email=${encodeURIComponent(email)}` : ''}`}>
+              <Button
+                style={{ backgroundColor: "hsl(0, 85%, 30%)" }}
+                className="hover:bg-red-700 text-white whitespace-nowrap shadow-md px-6 py-3 rounded-lg text-base font-semibold transition"
+                type="submit"
+              >
+                Get Started Now!
+              </Button>
+            </Link>
           </form>
         </div>
 

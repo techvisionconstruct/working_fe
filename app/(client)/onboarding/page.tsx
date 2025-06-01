@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useCreateOnboardingMutation } from '@/mutation-options/onboard-create'
 import IndustryStep from '@/components/features/onboarding-page/industry-step'
 import ProblemsStep from '@/components/features/onboarding-page/problem-step'
@@ -15,6 +16,7 @@ interface OnboardingData {
 }
 
 export default function OnboardingPage() {
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
   const [data, setData] = useState<OnboardingData>({
     user_industry: [], 
@@ -24,6 +26,14 @@ export default function OnboardingPage() {
   })
 
   const createOnboardingMutation = useCreateOnboardingMutation()
+
+  // Read email from URL parameters and update data state
+  useEffect(() => {
+    const emailFromUrl = searchParams.get('email')
+    if (emailFromUrl) {
+      setData(prev => ({ ...prev, email: emailFromUrl }))
+    }
+  }, [searchParams])
 
   const totalSteps = 4
 

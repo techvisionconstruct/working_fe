@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Oswald } from "next/font/google";
 import { motion } from "framer-motion";
 import { Button } from "@/components/shared";
@@ -7,6 +7,27 @@ import { PopupModal } from "react-calendly";
 
 const CTASection = () => {
   const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  
+  // Handle escape key to close video modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && videoModalOpen) {
+        setVideoModalOpen(false);
+      }
+    };
+
+    if (videoModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset'; // Restore scrolling
+    };
+  }, [videoModalOpen]);
+  
   return (
     <div>
       <section
@@ -86,8 +107,7 @@ const CTASection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.6 }}
-          >
-            <Button
+          >            <Button
               size="lg"
               className="rounded-xl py-6 px-8 bg-white text-primary hover:bg-white/90 text-lg w-full shadow-lg shadow-white/10"
               onClick={() => setCalendlyOpen(true)}
@@ -105,6 +125,7 @@ const CTASection = () => {
             <Button
               size="lg"
               className="rounded-xl py-6 px-8 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 text-lg w-full"
+              onClick={() => setVideoModalOpen(true)}
             >
               <Play className="h-5 w-5 mr-2" /> Watch Demo
             </Button>
@@ -125,10 +146,41 @@ const CTASection = () => {
             </p>
             <p className="text-white/60 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" /> Cancel anytime
-            </p>
-          </motion.div>
+            </p>          </motion.div>
         </div>
       </section>
+
+      {/* Video Modal */}
+      {videoModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setVideoModalOpen(false)}
+        >
+          <div 
+            className="relative w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setVideoModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all duration-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="aspect-video">
+              <iframe
+                src="https://www.youtube.com/embed/boRuZyMTPPk?autoplay=1&rel=0"
+                title="Simple ProjeX Demo"
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

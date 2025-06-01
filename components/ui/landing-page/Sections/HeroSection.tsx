@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Oswald } from "next/font/google";
@@ -16,6 +17,26 @@ function HeroSection() {
   const [email, setEmail] = useState("");
   const [calendlyOpen, setCalendlyOpen] = useState(false);
   const [calendlyUrl, setCalendlyUrl] = useState("");
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+
+  // Handle escape key to close video modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && videoModalOpen) {
+        setVideoModalOpen(false);
+      }
+    };
+
+    if (videoModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset'; // Restore scrolling
+    };
+  }, [videoModalOpen]);
 
   const handleCalendlyOpen = () => {
     if (!email.trim()) {
@@ -210,15 +231,15 @@ function HeroSection() {
                     placeholder="Enter your email"
                     className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white"
                   />
-                </form>
-                <Button
-                  size="lg"
-                  className="rounded-full bg-white hover:bg-white/90 text-lg px-8 h-12"
-                  style={{ color: "hsl(0, 85%, 30%)" }}
-                  onClick={handleCalendlyOpen}
-                >
-                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                </form>                <Link href={`/onboarding${email ? `?email=${encodeURIComponent(email)}` : ''}`}>
+                  <Button
+                    size="lg"
+                    className="rounded-full bg-white hover:bg-white/90 text-lg px-8 h-12"
+                    style={{ color: "hsl(0, 85%, 30%)" }}
+                  >
+                    Get Started <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
 
                 {typeof window !== "undefined" && (
                   <PopupModal
@@ -376,12 +397,12 @@ function HeroSection() {
                   />
                 </motion.div>
 
-                {/* Play button overlay with improved animations */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40">
+                {/* Play button overlay with improved animations */}                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40">
                   <motion.button
                     className="group relative"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => setVideoModalOpen(true)}
                   >
                     {/* Outer rings with improved animation */}
                     <motion.div
@@ -468,9 +489,40 @@ function HeroSection() {
                 </motion.div>
               ))}
             </div>
-          </div>
-        </motion.div>
+          </div>        </motion.div>
       </section>
+
+      {/* Video Modal */}
+      {videoModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setVideoModalOpen(false)}
+        >
+          <div 
+            className="relative w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setVideoModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all duration-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="aspect-video">
+              <iframe
+                src="https://www.youtube.com/embed/boRuZyMTPPk?autoplay=1&rel=0"
+                title="Simple ProjeX Demo"
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
