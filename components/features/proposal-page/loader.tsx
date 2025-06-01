@@ -13,7 +13,7 @@ export function ProposalLoader() {
       <div className="flex items-center justify-between">
         <div className="text-2xl font-bold">Proposal Library</div>
         <Link
-          href="/templates/create"
+          href="/proposals/create"
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           Create Proposal
