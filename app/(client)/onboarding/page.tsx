@@ -96,44 +96,40 @@ export default function OnboardingPage() {
             onFinish={handleFinish}
             onPrev={prevStep}
             isLoading={createOnboardingMutation.isPending}
-          />
-        )
+          />        )
       default:
         return null
     }
   }
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-900">
+  return (    <div className="h-screen flex flex-col">
+      <div className="max-w-4xl mx-auto px-6 flex flex-col h-full">
+        {/* Progress Indicator */}
+        <div className="pt-8 pb-6 flex-shrink-0">
+          <div className="flex justify-center items-center mb-3">
+            <div className="flex space-x-2">
+              {Array.from({ length: totalSteps }, (_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                    i + 1 <= currentStep ? 'bg-black' : 'bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="text-center">
+            <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
               Step {currentStep} of {totalSteps}
             </span>
-            <span className="text-sm text-gray-500">
-              {Math.round((currentStep / totalSteps) * 100)}% complete
-            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        </div>        {/* Step Content */}
+        <div className="flex-1 flex flex-col justify-center px-4 pb-16">
           {renderStep()}
-        </div>
-
-        {/* Error Display */}
+        </div>        {/* Error Display */}
         {createOnboardingMutation.isError && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">
-              Error: {createOnboardingMutation.error?.message || 'Something went wrong'}
+          <div className="pb-12 flex-shrink-0 text-center">
+            <p className="text-sm font-medium text-red-500">
+              {createOnboardingMutation.error?.message || 'Something went wrong'}
             </p>
           </div>
         )}

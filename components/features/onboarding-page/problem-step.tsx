@@ -36,65 +36,65 @@ export default function ProblemsStep({ value, onChange, onNext, onPrev }: Proble
   const isSelected = (problem: string) => {
     return value.some(item => item.name === problem)
   }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (value.length > 0) {
       onNext()
     }
   }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          What problems does our app help you solve?
+    return (
+    <form onSubmit={handleSubmit} className="space-y-8 h-full flex flex-col justify-between">
+      <div className="text-center space-y-4">
+        <h2 className="text-3xl font-light text-black tracking-tight">
+          What challenges do you face?
         </h2>
-        <p className="text-gray-600">
-          Select all that apply (choose at least one)
+        <p className="text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
+          Select all that apply to your current workflow
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start overflow-y-auto max-h-80">
         {problemOptions.map((problem) => (
           <button
             key={problem}
             type="button"
             onClick={() => toggleProblem(problem)}
-            className={`p-4 text-left rounded-lg border-2 transition-all ${
+            className={`w-full p-4 text-left rounded-lg border transition-all duration-300 group ${
               isSelected(problem)
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-black bg-black text-white shadow-md'
+                : 'border-gray-200 hover:border-gray-400 text-gray-700 hover:shadow-sm'
             }`}
           >
-            <div className="flex items-center">
-              <div className={`w-5 h-5 rounded border-2 mr-3 flex items-center justify-center ${
-                isSelected(problem) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium tracking-wide">{problem}</span>
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                isSelected(problem) 
+                  ? 'bg-white border-white' 
+                  : 'border-gray-300 group-hover:border-gray-500'
               }`}>
                 {isSelected(problem) && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}
               </div>
-              {problem}
             </div>
           </button>
         ))}
       </div>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center pt-4">
         <button
           type="button"
           onClick={onPrev}
-          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+          className="px-6 py-3 text-muted-foreground rounded-full font-medium hover:text-foreground transition-colors text-sm tracking-wide"
         >
           Back
         </button>
         <button
           type="submit"
           disabled={value.length === 0}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+          className="px-10 py-3 bg-black text-white rounded-full font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-800 transition-all duration-200 text-sm tracking-wide"
         >
           Continue
         </button>
