@@ -36,7 +36,7 @@ export function ProposalDropdownMenu({ proposalId, onDelete, isDeleting }: Propo
     }
   };
 
-  const editUrl = `${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposalId}/edit`;
+  const editUrl = `/proposals/${proposalId}/edit`;
 
   return (
     <DropdownMenu>
