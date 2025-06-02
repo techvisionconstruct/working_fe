@@ -43,8 +43,9 @@ import { updateVariable } from "@/api-calls/variables/update-variable";
 import { createTrade } from "@/api-calls/trades/create-trade";
 import { updateTrade } from "@/api-calls/trades/update-trade";
 import { createElement } from "@/api-calls/elements/create-element";
-import { updateElement } from "@/api-calls/elements/update-element";
+import { patchElement } from "@/api-calls/elements/patch-element";
 import { updateProposalTemplate } from "@/api-calls/proposals/update-proposal-template";
+import { useElementPatchMutation } from "@/mutation-options";
 
 import { VariableResponse, VariableUpdateRequest } from "@/types/variables/dto";
 import { ElementResponse } from "@/types/elements/dto";
@@ -511,9 +512,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
       },
     });
   const { mutate: updateElementMutation, isPending: isUpdatingElement } =
-    useMutation({
-      mutationFn: ({ elementId, data }: { elementId: string; data: any }) =>
-        updateElement(elementId, data),      onSuccess: (response) => {
+    useElementPatchMutation({
+      onSuccess: (response) => {
         if (response && response.data) {
           const updatedElement = response.data;
 
@@ -1055,7 +1055,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         await Promise.all(
           elementsToUpdate.map(async ({ elementId, data }) => {
             try {
-              await updateElement(elementId, data);
+              await patchElement(elementId, data);
             } catch (error) {
               console.error(`Error updating element ${elementId}:`, error);
               throw error;
@@ -1141,9 +1141,9 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
           labor_formula_variables: element.labor_formula_variables,
         };
         
-        // Add this update to our promises array - use updateElementMutation and preserve the response
+        // Add this update to our promises array - use patchElement and preserve the response
         updatePromises.push(
-          updateElement(element.id, elementData)
+          patchElement(element.id, elementData)
             .then(response => ({
               tradeId: trade.id,
               updatedElement: response.data
@@ -1299,8 +1299,8 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
     
     updateTrades(updatedTrades);
 
-    // Use direct updateElement call (exactly like global markup does)
-    updateElement(elementId, elementData)
+    // Use direct patchElement call (exactly like global markup does)
+    patchElement(elementId, elementData)
       .then(response => {
         console.log(`Successfully updated element ${elementId} with markup ${newMarkup}%`);
 
@@ -1739,7 +1739,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
         const responses = await Promise.all(
           elementsToUpdate.map(({ elementId, data }) => {
             console.log('Updating element in edit dialog:', elementId);
-            return updateElement(elementId, data);
+            return patchElement(elementId, data);
           })
         );
 
@@ -2446,7 +2446,7 @@ const TradesAndElementsStep: React.FC<TradesAndElementsStepProps> = ({
                             material_formula_variables: currentElement.material_formula_variables,
                             labor_formula_variables: currentElement.labor_formula_variables,
                           };
-                            updateElement(currentElementId, elementData)
+                            patchElement(currentElementId, elementData)
                             .then(() => {
                               const updatedTrades = trades.map(trade => ({
                                 ...trade,

@@ -484,20 +484,6 @@ export function CreateContract({
     getContract(contract_id as string)
   );
 
-  // Add check for proposal template data
-  if (!proposal || !proposal.template || isContractLoading) {
-    return (
-      <div className="w-full h-[50vh] flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-muted-foreground">
-            Loading contract details...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   // Add isEditing state that was missing
   const [isEditing, setIsEditing] = useState(true);
 
@@ -1320,6 +1306,20 @@ Any changes to the scope of work must be agreed upon in writing by both parties.
       toast.error("Failed to update contract information");
     }
   };
+
+  // Add check for proposal template data AFTER all hooks
+  if (!proposal || !proposal.template || isContractLoading) {
+    return (
+      <div className="w-full h-[50vh] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-muted-foreground">
+            Loading contract details...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full mx-auto">
